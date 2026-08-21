@@ -5,7 +5,7 @@ import { DHODashboard } from "./pages/DHODashboard";
 import { MoHPDashboard } from "./pages/MoHPDashboard";
 import { CHUMADashboard } from "./pages/CHUMADashboard";
 import { Sidebar } from "./components/Sidebar";
-import { OfflineBanner } from "./components/design/OfflineBanner";
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAppSelector((s) => s.auth);

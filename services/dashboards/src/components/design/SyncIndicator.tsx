@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+
 
 interface SyncIndicatorProps {
   status: "synced" | "syncing" | "offline" | "error";

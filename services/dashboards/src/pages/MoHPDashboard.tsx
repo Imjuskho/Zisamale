@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../hooks/useRedux";
+import { useState } from "react";
 import { KPICard } from "../components/design/KPICard";
 import { SyncIndicator } from "../components/design/SyncIndicator";
 
@@ -39,7 +38,6 @@ function malariaArrow(trend: string) {
 }
 
 export function MoHPDashboard() {
-  const { user } = useAppSelector((s) => s.auth);
   const [budget, setBudget] = useState(150);
 
   return (

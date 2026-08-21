@@ -1,4 +1,4 @@
-import { strings } from "../i18n";
+import { strings } from "../../i18n";
 
 function riskColor(score: number): string {
   if (score >= 9) return "bg-risk-critical text-white";

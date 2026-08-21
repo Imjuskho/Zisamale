@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector, useAppDispatch } from "../hooks/useRedux";
-import { api } from "../services/api";
+import { useAppSelector } from "../hooks/useRedux";
 import { AlertCard } from "../components/design/AlertCard";
 import { KPICard } from "../components/design/KPICard";
 import { EmptyState } from "../components/design/EmptyState";
@@ -8,7 +7,6 @@ import { SyncIndicator } from "../components/design/SyncIndicator";
 import type { Alert, AlertActionType } from "../types";
 
 export function DHODashboard() {
-  const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);

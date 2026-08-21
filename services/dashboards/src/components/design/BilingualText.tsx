@@ -1,4 +1,4 @@
-import { strings, type StringKey } from "../i18n";
+import { strings, type StringKey } from "../../i18n";
 
 interface BilingualTextProps {
   key: StringKey;

@@ -1,4 +1,4 @@
-import { strings } from "../i18n";
+import { strings } from "../../i18n";
 
 interface OfflineBannerProps {
   onSync?: () => void;

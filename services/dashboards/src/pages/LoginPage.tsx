@@ -24,7 +24,7 @@ export function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isAuthenticated } = useAppSelector((s) => s.auth);
-  const { darkMode } = useAppSelector((s) => s.theme);
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
