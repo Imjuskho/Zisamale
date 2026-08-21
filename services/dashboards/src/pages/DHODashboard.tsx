@@ -1,111 +1,114 @@
-import { useEffect, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
-import {
-  fetchAlerts,
-  fetchSurveillanceTrends,
-  fetchCHWPerformance,
-  fetchCHWHouseholds,
-  submitAlertAction,
-  realtimeAlertReceived,
-  setWsStatus,
-  selectDistrict,
-} from "../store/dashboardSlice";
-import { AlertCommandCenter } from "../components/AlertCommandCenter";
-import { TrendChart } from "../components/charts/TrendChart";
-import { LeafletMap, type DistrictRiskInput } from "../components/LeafletMap";
-import { CHWPerformanceTable } from "../components/CHWPerformanceTable";
-import { connectAlertSocket } from "../services/api";
-
-const LEVEL_TO_RISK = { low: 0.22, medium: 0.47, high: 0.86 } as const;
+import { useEffect, useState } from "react";
+import { useAppSelector, useAppDispatch } from "../hooks/useRedux";
+import { api } from "../services/api";
+import { AlertCard } from "../components/design/AlertCard";
+import { KPICard } from "../components/design/KPICard";
+import { EmptyState } from "../components/design/EmptyState";
+import { SyncIndicator } from "../components/design/SyncIndicator";
+import type { Alert, AlertActionType } from "../types";
 
 export function DHODashboard() {
   const dispatch = useAppDispatch();
-  const {
-    alerts,
-    districts,
-    trends,
-    loading,
-    chwPerformance,
-    chwHouseholds,
-    wsStatus,
-  } = useAppSelector((s) => s.dashboard);
-  const user = useAppSelector((s) => s.auth.user);
-  const districtId = user?.district || "nsanje-001";
+  const { user } = useAppSelector((s) => s.auth);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const districtId = user?.district ?? "00000000-0000-0000-0000-000000000002";
 
   useEffect(() => {
-    dispatch(fetchAlerts(districtId));
-    dispatch(fetchSurveillanceTrends(districtId));
-    dispatch(fetchCHWPerformance(districtId));
-  }, [dispatch, districtId]);
+    async function load() {
+      try {
+        const token = localStorage.getItem("zisamale-token") ?? "";
+        const res = await fetch(`/api/v1/district/${districtId}/alerts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAlerts(data.alerts ?? []);
+        }
+      } catch {
+        // silently handle — will show empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [districtId]);
 
-  useEffect(() => {
-    const socket = connectAlertSocket({
-      onAlert: (alert) => dispatch(realtimeAlertReceived(alert)),
-      onStatus: (status) => dispatch(setWsStatus(status)),
-    });
-    return () => socket.close();
-  }, [dispatch]);
+  function handleAction(alertId: string, action: AlertActionType) {
+    setAlerts((prev) =>
+      prev.map((a) =>
+        a.alert_id === alertId
+          ? { ...a, response_status: action === "dismiss" ? "resolved" : "acknowledged" }
+          : a
+      )
+    );
+  }
 
-  const mapDistricts = useMemo<DistrictRiskInput[]>(
-    () =>
-      districts.map((d) => ({
-        district_id: d.district_id,
-        name: d.district_name,
-        risk_score: LEVEL_TO_RISK[d.malaria_risk_level],
-      })),
-    [districts]
-  );
+  const unackCount = alerts.filter((a) => a.response_status === "pending").length;
+  const criticalCount = alerts.filter((a) => a.alert_level === "red").length;
 
   return (
-    <div className="dashboard dho-dashboard">
-      <header>
-        <h1>District Health Office Dashboard</h1>
-        <p>
-          {user?.district || "District"} Health Office
-          <span
-            className={`ws-status ws-${wsStatus}`}
-            style={{ marginLeft: 12, fontSize: 12 }}
-            role="status"
-          >
-            Live updates: {wsStatus}
-          </span>
-        </p>
-      </header>
-      {loading && <div className="loading">Loading...</div>}
-      <section>
-        <AlertCommandCenter
-          alerts={alerts}
-          onAction={(alert, action) => {
-            void dispatch(submitAlertAction({ alertId: alert.alert_id, action }));
-          }}
-        />
-      </section>
-      <section>
-        <LeafletMap
-          districts={mapDistricts}
-          onSelectDistrict={(props) => dispatch(selectDistrict(props.district_id))}
-        />
-      </section>
-      {trends && (
-        <section>
-          <TrendChart actual={trends.actual} predicted={trends.predicted} />
-          {trends.accuracy && (
-            <div className="model-metrics">
-              <h3>Model Performance</h3>
-              <span>AUC-ROC: {trends.accuracy.auc_roc}</span>
-              <span>Sensitivity: {trends.accuracy.sensitivity}</span>
-              <span>Specificity: {trends.accuracy.specificity}</span>
-            </div>
-          )}
-        </section>
-      )}
-      <section>
-        <CHWPerformanceTable
-          rows={chwPerformance}
-          householdsByChw={chwHouseholds}
-          onLoadHouseholds={(chwId) => dispatch(fetchCHWHouseholds(chwId))}
-        />
-      </section>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-headline font-bold text-zisamale-dark">Alert Command Center</h1>
+          <p className="text-body text-neutral mt-1">
+            {alerts.length} alerts • {unackCount} unacknowledged
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <SyncIndicator status="synced" />
+          <div className="text-right">
+            <p className="text-body font-medium">{user?.name}</p>
+            <p className="text-caption text-neutral">District: Nsanje</p>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard label="ACTIVE ALERTS" value={alerts.length} icon="🔔" />
+        <KPICard label="CRITICAL" value={criticalCount} icon="🔴" trend={criticalCount > 0 ? { direction: "up", value: "needs action", isPositive: false } : undefined} />
+        <KPICard label="CHWs ACTIVE" value="12" icon="👥" />
+        <KPICard label="STOCKOUTS" value="2" icon="📦" trend={{ direction: "up", value: "2 this week", isPositive: false }} />
+      </div>
+
+      {/* Alert List */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-title font-semibold text-zisamale-dark">
+            Alerts ({alerts.length})
+          </h2>
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card animate-pulse h-40" />
+            ))}
+          </div>
+        ) : alerts.length === 0 ? (
+          <EmptyState
+            icon="✅"
+            title="No active alerts"
+            subtitle="All clear in your district right now."
+          />
+        ) : (
+          <div className="space-y-4">
+            {alerts
+              .sort((a, b) => b.risk_score - a.risk_score)
+              .map((alert) => (
+                <AlertCard
+                  key={alert.alert_id}
+                  alert={alert}
+                  onAction={handleAction}
+                />
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

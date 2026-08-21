@@ -9,10 +9,10 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 RATE_LIMITS = {
-    "chw": {"requests": 100, "window_seconds": 60},
-    "dho": {"requests": 500, "window_seconds": 60},
-    "mohp": {"requests": 1000, "window_seconds": 60},
-    "default": {"requests": 200, "window_seconds": 60},
+    "chw": {"requests": 500, "window_seconds": 60},
+    "dho": {"requests": 1000, "window_seconds": 60},
+    "mohp": {"requests": 2000, "window_seconds": 60},
+    "default": {"requests": 500, "window_seconds": 60},
 }
 
 

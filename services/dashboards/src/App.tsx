@@ -5,14 +5,18 @@ import { DHODashboard } from "./pages/DHODashboard";
 import { MoHPDashboard } from "./pages/MoHPDashboard";
 import { CHUMADashboard } from "./pages/CHUMADashboard";
 import { Sidebar } from "./components/Sidebar";
+import { OfflineBanner } from "./components/design/OfflineBanner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAppSelector((s) => s.auth);
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen bg-surface-bg">
       <Sidebar />
-      <main className="main-content">{children}</main>
+      <main className="flex-1 ml-[280px] p-6 max-w-[1400px]">
+        {children}
+      </main>
     </div>
   );
 }

@@ -27,6 +27,7 @@ import com.zisamale.ui.screen.LoginScreen
 import com.zisamale.ui.screen.PriorityVisitItem
 import com.zisamale.ui.screen.ReferralFormScreen
 import com.zisamale.ui.screen.VisitFormScreen
+import com.zisamale.ui.theme.ZisamaleTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            ZisamaleTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     val scope = rememberCoroutineScope()

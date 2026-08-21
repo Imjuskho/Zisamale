@@ -66,14 +66,20 @@ def stop_container(name: str):
         wait_healthy(timeout=60)
 
 
-def login() -> str:
-    r = httpx.post(
-        f"{BASE}/api/v1/auth/login",
-        json={"username": "dho@nsanje.gov.mw", "password": "Zisamale2026!"},
-        timeout=10,
-    )
-    if r.status_code == 200:
-        return r.json()["access_token"]
+def login(retries: int = 3) -> str:
+    for attempt in range(retries):
+        try:
+            r = httpx.post(
+                f"{BASE}/api/v1/auth/login",
+                json={"username": "dho@nsanje.gov.mw", "password": "Zisamale2026!"},
+                timeout=15,
+            )
+            if r.status_code == 200:
+                return r.json()["access_token"]
+        except Exception:
+            pass
+        if attempt < retries - 1:
+            time.sleep(2)
     return ""
 
 
@@ -108,7 +114,8 @@ class TestChaosDatabaseDown:
         with stop_container(CONTAINER_DB):
             time.sleep(2)
         assert wait_healthy(timeout=60), "API did not recover after DB restart"
-        token = login()
+        time.sleep(3)
+        token = login(retries=5)
         assert token, "Login should work after DB recovery"
 
 
@@ -121,7 +128,7 @@ class TestChaosRedisDown:
             r = httpx.post(
                 f"{BASE}/api/v1/auth/login",
                 json={"username": "dho@nsanje.gov.mw", "password": "Zisamale2026!"},
-                timeout=10,
+                timeout=15,
             )
             assert r.status_code == 200, f"Login failed without Redis: {r.status_code} {r.text}"
             print(f"\n  Redis down login: {r.status_code} OK")

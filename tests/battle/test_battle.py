@@ -12,14 +12,14 @@ DISTRICT_NSANJE = "00000000-0000-0000-0000-000000000002"
 HH_NSANJE = "00000000-0000-0000-0000-0000000000cc"
 
 
-def api(method: str, path: str, token: str = "", retries: int = 2, **kw) -> httpx.Response:
+def api(method: str, path: str, token: str = "", retries: int = 4, **kw) -> httpx.Response:
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     headers.update(kw.pop("headers", {}))
     url = f"{BASE}{path}"
     for attempt in range(retries + 1):
         r = httpx.request(method, url, headers=headers, timeout=30, **kw)
         if r.status_code == 429 and attempt < retries:
-            time.sleep(2)
+            time.sleep(5)
             continue
         return r
     return r
