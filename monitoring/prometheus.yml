@@ -1,0 +1,80 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: zisamale-production
+    environment: production
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  # --- Prometheus itself ---
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- Zisamale API (FastAPI /metrics on :8000) ---
+  - job_name: zisamale-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api.zisamale.svc.cluster.local:8000"]
+        labels:
+          service: zisamale-api
+          namespace: zisamale
+      # Local docker-compose fallback
+      - targets: ["api:8000"]
+        labels:
+          service: zisamale-api
+          namespace: local
+
+  # --- Zisamale ML service (/metrics on :8001) ---
+  - job_name: zisamale-ml
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["ml.zisamale.svc.cluster.local:8001"]
+        labels:
+          service: zisamale-ml
+          namespace: zisamale
+      - targets: ["ml:8001"]
+        labels:
+          service: zisamale-ml
+          namespace: local
+
+  # --- Node exporter (host/disk/network metrics on :9100) ---
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          service: infrastructure
+
+  # --- Kubernetes pods (auto-discovery via annotations) ---
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        action: replace
+        target_label: service

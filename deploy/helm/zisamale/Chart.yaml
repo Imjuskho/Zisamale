@@ -1,0 +1,18 @@
+apiVersion: v2
+name: zisamale
+description: Zisamale - AI-augmented community health intelligence platform for Malawi
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - health
+  - surveillance
+  - ml
+  - malawi
+home: https://zisamale.mw
+sources:
+  - https://github.com/zisamale/zisamale
+maintainers:
+  - name: Zisamale Engineering
+    email: engineering@zisamale.mw
+dependencies: []

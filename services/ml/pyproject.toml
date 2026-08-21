@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zisamale-ml"
+version = "0.1.0"
+description = "Zisamale ML Training Pipelines"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.5.0",
+    "xgboost>=2.0.0",
+    "prophet>=1.1.0",
+    "joblib>=1.4.0",
+    "pydantic>=2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["pipelines*", "data*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

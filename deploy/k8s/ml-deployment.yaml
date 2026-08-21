@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zisamale-ml
+  namespace: zisamale
+  labels:
+    app.kubernetes.io/name: zisamale-ml
+    app.kubernetes.io/component: ml
+    app.kubernetes.io/part-of: zisamale
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zisamale-ml
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zisamale-ml
+        app.kubernetes.io/component: ml
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: ml
+          image: zisamale/zisamale-ml:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: zisamale-config
+            - secretRef:
+                name: zisamale-secrets
+          volumeMounts:
+            - name: models
+              mountPath: /app/models
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ml-models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ml-models
+  namespace: zisamale
+  labels:
+    app.kubernetes.io/name: zisamale-ml
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml
+  namespace: zisamale
+  labels:
+    app.kubernetes.io/name: zisamale-ml
+    app.kubernetes.io/component: ml
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: zisamale-ml
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,95 @@
+name: Zisamale CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-tests:
+    name: Cloud API Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: zisamale_test
+          POSTGRES_USER: zisamale_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          cd services/api
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+          ENVIRONMENT: testing
+        run: |
+          cd services/api
+          python -m pytest tests/ -v
+
+  ml-tests:
+    name: ML Pipeline Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          cd services/ml
+          pip install -r requirements.txt 2>/dev/null || pip install numpy pandas scikit-learn xgboost joblib pytest
+      - name: Run tests
+        run: |
+          cd services/ml
+          python -m pytest tests/ -v
+
+  dashboard-tests:
+    name: Dashboard Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          cd services/dashboards
+          npm ci
+      - name: Run tests
+        run: |
+          cd services/dashboards
+          npm run test
+      - name: Build
+        run: |
+          cd services/dashboards
+          npm run build
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ruff check
+        run: |
+          pip install ruff
+          cd services/api && ruff check .
+          cd ../ml && ruff check .

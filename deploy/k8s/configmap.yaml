@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zisamale-config
+  namespace: zisamale
+  labels:
+    app.kubernetes.io/name: zisamale
+    app.kubernetes.io/part-of: zisamale
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+
+  # --- Database ---
+  DB_HOST: "postgres.zisamale.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "zisamale"
+  DB_USER: "zisamale"
+
+  # --- Redis ---
+  REDIS_URL: "redis://redis.zisamale.svc.cluster.local:6379/0"
+
+  # --- RabbitMQ ---
+  RABBITMQ_HOST: "rabbitmq.zisamale.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "zisamale"
+
+  # --- Auth ---
+  JWT_ALGORITHM: "HS256"
+  JWT_EXPIRATION_MINUTES: "480"
+
+  # --- ML ---
+  MODEL_REGISTRY_PATH: "/app/models"
+
+  # --- Integrations ---
+  DHIS2_BASE_URL: "https://dhis2.example.mw/api"
+  LMIS_BASE_URL: "https://lmis.example.mw/api"
+  SMS_PROVIDER: "africastalking"
+
+  # --- Storage ---
+  AWS_REGION: "af-south-1"
+  AWS_S3_BUCKET: "zisamale-data"

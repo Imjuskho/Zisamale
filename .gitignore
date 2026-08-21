@@ -1,0 +1,78 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.env
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# === Node.js ===
+node_modules/
+dist/
+.next/
+.nuxt/
+.output/
+*.tsbuildinfo
+
+# === Android ===
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+
+# === Docker ===
+docker-compose.override.yml
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === OS ===
+.DS_Store
+Thumbs.db
+*.log
+
+# === Secrets ===
+*.pem
+*.key
+*.cert
+.env.local
+.env.production
+credentials.json
+service-account*.json
+
+# === ML Artifacts ===
+*.pkl
+*.joblib
+*.onnx
+*.tflite
+*.h5
+*.pt
+*.pth
+models/trained/
+mlruns/
+apps/android/local.properties

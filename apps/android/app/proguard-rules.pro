@@ -1,0 +1,2 @@
+-keep class com.zisamale.data.local.** { *; }
+-keep class com.zisamale.domain.model.** { *; }

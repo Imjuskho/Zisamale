@@ -1,0 +1,86 @@
+# Prometheus alerting rules consumed by Alertmanager.
+groups:
+  - name: zisamale-api
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{service="zisamale-api", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{service="zisamale-api"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: zisamale-api
+        annotations:
+          summary: "API error rate above 5%"
+          description: "5xx responses exceed 5% of requests over the last 5 minutes ({{ $value | humanizePercentage }})."
+          runbook_url: https://docs.zisamale.mw/runbooks/api-high-error-rate
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{service="zisamale-api"}[5m])) by (le)
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          service: zisamale-api
+        annotations:
+          summary: "API P95 latency above 1.5s"
+          description: "P95 request latency is {{ $value | humanizeDuration }} (threshold 1.5s) for 10 minutes."
+          runbook_url: https://docs.zisamale.mw/runbooks/api-high-latency
+
+  - name: zisamale-infra
+    rules:
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs", mountpoint="/"}
+            /
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs", mountpoint="/"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Disk usage above 85% on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} free space remains on {{ $labels.instance }} ({{ $labels.device }})."
+          runbook_url: https://docs.zisamale.mw/runbooks/low-disk-space
+
+      - alert: PodRestartingFrequently
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="zisamale"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod restarting frequently: {{ $labels.pod }}"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has restarted {{ $value | printf \"%.0f\" }} times in the last hour."
+          runbook_url: https://docs.zisamale.mw/runbooks/pod-restarts
+
+      - alert: PostgresDown
+        expr: up{service="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL is unreachable"
+          description: "PostgreSQL has been down for more than 2 minutes."
+          runbook_url: https://docs.zisamale.mw/runbooks/postgres-down
+
+      - alert: RedisDown
+        expr: up{service="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis is unreachable"
+          description: "Redis has been down for more than 2 minutes; caching and queues are degraded."
+          runbook_url: https://docs.zisamale.mw/runbooks/redis-down

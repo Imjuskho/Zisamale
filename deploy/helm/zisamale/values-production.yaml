@@ -1,0 +1,77 @@
+# Production environment overrides.
+# Usage: helm upgrade --install zisamale deploy/helm/zisamale -f deploy/helm/zisamale/values-production.yaml
+
+global:
+  environment: production
+  imagePullPolicy: IfNotPresent
+
+api:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+ml:
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+
+dashboard:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+postgres:
+  storageSize: 50Gi
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+backup:
+  schedule: "0 1 * * *"
+  storageSize: 50Gi
+
+redis:
+  maxmemory: 1gb
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  clusterIssuer: letsencrypt-prod
+  apiHost: api.zisamale.mw
+  dashboardHost: dashboard.zisamale.mw
+  tls:
+    enabled: true
+
+monitoring:
+  serviceMonitor:
+    enabled: true

@@ -1,0 +1,113 @@
+# Default values for the zisamale chart (development environment).
+# Override per environment with -f values-staging.yaml / values-production.yaml.
+
+global:
+  environment: development
+  imageRegistry: docker.io/zisamale
+  imagePullPolicy: IfNotPresent
+
+# --- API ---
+api:
+  enabled: true
+  image:
+    repository: zisamale/zisamale-api
+    tag: latest
+  replicaCount: 1
+  containerPort: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+# --- ML ---
+ml:
+  enabled: true
+  image:
+    repository: zisamale/zisamale-ml
+    tag: latest
+  replicaCount: 1
+  containerPort: 8001
+  modelStorage: 5Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# --- Dashboard ---
+dashboard:
+  enabled: true
+  image:
+    repository: zisamale/zisamale-dashboard
+    tag: latest
+  replicaCount: 1
+  containerPort: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- PostgreSQL ---
+postgres:
+  enabled: true
+  image: postgis/postgis:16-3.4
+  replicaCount: 1
+  storageSize: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  storageSize: 20Gi
+
+# --- Redis ---
+redis:
+  enabled: true
+  image: redis:7-alpine
+  replicaCount: 1
+  maxmemory: 256mb
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 384Mi
+
+# --- Ingress ---
+ingress:
+  enabled: false
+  className: nginx
+  clusterIssuer: letsencrypt-staging
+  apiHost: api.dev.zisamale.mw
+  dashboardHost: dashboard.dev.zisamale.mw
+  tls:
+    enabled: false
+
+# --- Monitoring ---
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# --- Existing secrets (created out-of-band or via deploy/k8s/secrets.yaml) ---
+secrets:
+  existingSecret: zisamale-secrets
