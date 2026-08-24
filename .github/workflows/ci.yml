@@ -58,6 +58,30 @@ jobs:
         run: |
           cd services/ml
           python -m pytest tests/ -v
+      - name: Edge model regression (train + export parity + size budget)
+        run: |
+          PYTHONPATH=services/ml python -m pipelines.train_edge_models
+
+  android-tests:
+    name: Android Build & Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v3
+      # ubuntu-latest runners ship the Android SDK; ANDROID_HOME is preconfigured.
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug
+      - name: Unit tests (rules, edge-model parity, sync engine)
+        run: ./gradlew :app:testDebugUnitTest
+      - name: Release compile (R8 rules smoke)
+        run: ./gradlew :app:compileReleaseKotlin
 
   dashboard-tests:
     name: Dashboard Tests

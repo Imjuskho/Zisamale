@@ -1,0 +1,539 @@
+{
+  "feature_count": 330,
+  "geometry_types": {
+    "POINT": 168,
+    "POLYGON": 162
+  },
+  "bbox": [
+    32.8636492,
+    -16.6945456,
+    35.8111735,
+    -9.6500808
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "VARCHAR",
+      "null_count": 0,
+      "null_percent": 0.0,
+      "distinct_count": 330,
+      "top_values": [
+        {
+          "value": "node/4453653390",
+          "count": 1
+        },
+        {
+          "value": "node/4727728051",
+          "count": 1
+        },
+        {
+          "value": "node/4727728053",
+          "count": 1
+        },
+        {
+          "value": "node/6463828714",
+          "count": 1
+        },
+        {
+          "value": "node/4429376033",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "name",
+      "type": "VARCHAR",
+      "null_count": 49,
+      "null_percent": 14.85,
+      "distinct_count": 269,
+      "top_values": [
+        {
+          "value": "Mtemanyama",
+          "count": 2
+        },
+        {
+          "value": "Lifuwu Health Center",
+          "count": 2
+        },
+        {
+          "value": "Chilonga Health Center",
+          "count": 2
+        },
+        {
+          "value": "Health Clinic",
+          "count": 2
+        },
+        {
+          "value": "Nakalanzi Health Centre",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "name_en",
+      "type": "VARCHAR",
+      "null_count": 313,
+      "null_percent": 94.85,
+      "distinct_count": 16,
+      "top_values": [
+        {
+          "value": "One Stop Pharmacy",
+          "count": 2
+        },
+        {
+          "value": "Kasese Health Center",
+          "count": 1
+        },
+        {
+          "value": "Chacogo Medical Clinic",
+          "count": 1
+        },
+        {
+          "value": "Karonga District Hospital",
+          "count": 1
+        },
+        {
+          "value": "Kalulu Clinic",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "name_ny",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "amenity",
+      "type": "VARCHAR",
+      "null_count": 15,
+      "null_percent": 4.55,
+      "distinct_count": 6,
+      "top_values": [
+        {
+          "value": "hospital",
+          "count": 209
+        },
+        {
+          "value": "clinic",
+          "count": 67
+        },
+        {
+          "value": "pharmacy",
+          "count": 27
+        },
+        {
+          "value": "dentist",
+          "count": 9
+        },
+        {
+          "value": "doctors",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "building",
+      "type": "VARCHAR",
+      "null_count": 277,
+      "null_percent": 83.94,
+      "distinct_count": 8,
+      "top_values": [
+        {
+          "value": "yes",
+          "count": 43
+        },
+        {
+          "value": "hospital",
+          "count": 4
+        },
+        {
+          "value": "clinic",
+          "count": 1
+        },
+        {
+          "value": "residential",
+          "count": 1
+        },
+        {
+          "value": "detached",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "healthcare",
+      "type": "VARCHAR",
+      "null_count": 119,
+      "null_percent": 36.06,
+      "distinct_count": 10,
+      "top_values": [
+        {
+          "value": "hospital",
+          "count": 132
+        },
+        {
+          "value": "clinic",
+          "count": 38
+        },
+        {
+          "value": "pharmacy",
+          "count": 17
+        },
+        {
+          "value": "dentist",
+          "count": 9
+        },
+        {
+          "value": "yes",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "name": "healthcare_speciality",
+      "type": "VARCHAR",
+      "null_count": 320,
+      "null_percent": 96.97,
+      "distinct_count": 6,
+      "top_values": [
+        {
+          "value": "general",
+          "count": 5
+        },
+        {
+          "value": "maternity;dentist;internal;gynaecology",
+          "count": 1
+        },
+        {
+          "value": "maternity;general;paediatrics;community",
+          "count": 1
+        },
+        {
+          "value": "orthopaedics",
+          "count": 1
+        },
+        {
+          "value": "general;stomatology",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "operator_type",
+      "type": "VARCHAR",
+      "null_count": 318,
+      "null_percent": 96.36,
+      "distinct_count": 7,
+      "top_values": [
+        {
+          "value": "private",
+          "count": 4
+        },
+        {
+          "value": "ngo",
+          "count": 3
+        },
+        {
+          "value": "government",
+          "count": 1
+        },
+        {
+          "value": "religious",
+          "count": 1
+        },
+        {
+          "value": "public",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "capacity_persons",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "addr_full",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "addr_city",
+      "type": "VARCHAR",
+      "null_count": 310,
+      "null_percent": 93.94,
+      "distinct_count": 8,
+      "top_values": [
+        {
+          "value": "Balaka",
+          "count": 5
+        },
+        {
+          "value": "Lilongwe",
+          "count": 5
+        },
+        {
+          "value": "Blantyre",
+          "count": 5
+        },
+        {
+          "value": "Rumphi",
+          "count": 1
+        },
+        {
+          "value": "Monkey Bay",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "source",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "adm0_pcode",
+      "type": "VARCHAR",
+      "null_count": 0,
+      "null_percent": 0.0,
+      "distinct_count": 1,
+      "top_values": [
+        {
+          "value": "MWI",
+          "count": 330
+        }
+      ]
+    },
+    {
+      "name": "adm0_name",
+      "type": "VARCHAR",
+      "null_count": 0,
+      "null_percent": 0.0,
+      "distinct_count": 1,
+      "top_values": [
+        {
+          "value": "Malawi",
+          "count": 330
+        }
+      ]
+    },
+    {
+      "name": "adm1_pcode",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 3,
+      "top_values": [
+        {
+          "value": "MW3",
+          "count": 175
+        },
+        {
+          "value": "MW2",
+          "count": 110
+        },
+        {
+          "value": "MW1",
+          "count": 44
+        }
+      ]
+    },
+    {
+      "name": "adm1_name",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 3,
+      "top_values": [
+        {
+          "value": "Southern",
+          "count": 175
+        },
+        {
+          "value": "Central",
+          "count": 110
+        },
+        {
+          "value": "Northern",
+          "count": 44
+        }
+      ]
+    },
+    {
+      "name": "adm2_pcode",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 31,
+      "top_values": [
+        {
+          "value": "MW210",
+          "count": 51
+        },
+        {
+          "value": "MW315",
+          "count": 45
+        },
+        {
+          "value": "MW206",
+          "count": 21
+        },
+        {
+          "value": "MW310",
+          "count": 18
+        },
+        {
+          "value": "MW312",
+          "count": 14
+        }
+      ]
+    },
+    {
+      "name": "adm2_name",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 31,
+      "top_values": [
+        {
+          "value": "Lilongwe City",
+          "count": 51
+        },
+        {
+          "value": "Blantyre City",
+          "count": 45
+        },
+        {
+          "value": "Lilongwe",
+          "count": 21
+        },
+        {
+          "value": "Chikwawa",
+          "count": 18
+        },
+        {
+          "value": "Balaka",
+          "count": 14
+        }
+      ]
+    },
+    {
+      "name": "adm3_pcode",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 144,
+      "top_values": [
+        {
+          "value": "MW31542",
+          "count": 16
+        },
+        {
+          "value": "MW21065",
+          "count": 10
+        },
+        {
+          "value": "MW21033",
+          "count": 10
+        },
+        {
+          "value": "MW31002",
+          "count": 10
+        },
+        {
+          "value": "MW31547",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "name": "adm3_name",
+      "type": "VARCHAR",
+      "null_count": 1,
+      "null_percent": 0.3,
+      "distinct_count": 144,
+      "top_values": [
+        {
+          "value": "Namalimwe Ward",
+          "count": 16
+        },
+        {
+          "value": "TA Lundu",
+          "count": 10
+        },
+        {
+          "value": "Area 35",
+          "count": 10
+        },
+        {
+          "value": "Area 3",
+          "count": 10
+        },
+        {
+          "value": "TA Msamala",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "name": "adm4_pcode",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "adm4_name",
+      "type": "VARCHAR",
+      "null_count": 330,
+      "null_percent": 100.0,
+      "distinct_count": 0,
+      "top_values": []
+    },
+    {
+      "name": "name_latin",
+      "type": "VARCHAR",
+      "null_count": 48,
+      "null_percent": 14.55,
+      "distinct_count": 270,
+      "top_values": [
+        {
+          "value": "Mtemanyama",
+          "count": 2
+        },
+        {
+          "value": "Lifuwu Health Center",
+          "count": 2
+        },
+        {
+          "value": "Chilonga Health Center",
+          "count": 2
+        },
+        {
+          "value": "Health Clinic",
+          "count": 2
+        },
+        {
+          "value": "Mwalingo Private Hospital",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "summary": "330 features. geometry types: 168 POINT, 162 POLYGON. 11 of 24 columns are >=50% null (name_en, name_ny, building, healthcare_speciality, operator_type, capacity_persons, addr_full, addr_city, source, adm4_pcode, adm4_name).",
+  "temporal": null
+}
