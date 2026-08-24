@@ -1,17 +1,25 @@
-import { strings } from "../../i18n";
+import {
+  RISK_BG_CLASSES,
+  RISK_BORDER_CLASSES,
+  toneFromScore0to10,
+} from "../../design/riskScale";
+import { useT } from "./LanguageContext";
+import type { StringKey } from "../../i18n";
+
+const TONE_LABEL_KEY: Record<string, StringKey> = {
+  low: "riskLow",
+  medium: "riskMedium",
+  high: "riskHigh",
+  critical: "riskCritical",
+};
 
 function riskColor(score: number): string {
-  if (score >= 9) return "bg-risk-critical text-white";
-  if (score >= 7) return "bg-risk-high text-white";
-  if (score >= 4) return "bg-risk-medium text-zisamale-dark";
-  return "bg-risk-low text-white";
+  return RISK_BG_CLASSES[toneFromScore0to10(score)];
 }
 
-function riskLabel(score: number): string {
-  if (score >= 9) return strings.riskCritical.ny;
-  if (score >= 7) return strings.riskHigh.ny;
-  if (score >= 4) return strings.riskMedium.ny;
-  return strings.riskLow.ny;
+function useRiskLabel(): (score: number) => string {
+  const t = useT();
+  return (score: number) => t(TONE_LABEL_KEY[toneFromScore0to10(score)]);
 }
 
 interface RiskBadgeProps {
@@ -21,6 +29,7 @@ interface RiskBadgeProps {
 }
 
 export function RiskBadge({ score, size = "md", showLabel = false }: RiskBadgeProps) {
+  const riskLabel = useRiskLabel();
   const sizeClasses = {
     sm: "w-10 h-10 text-base",
     md: "w-12 h-12 text-lg",
@@ -52,20 +61,15 @@ interface RiskCardProps {
 }
 
 export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps) {
-  const borderColor =
-    score >= 9
-      ? "border-risk-critical"
-      : score >= 7
-        ? "border-risk-high"
-        : score >= 4
-          ? "border-risk-medium"
-          : "border-risk-low";
+  const tone = toneFromScore0to10(score);
+  const borderColor = RISK_BORDER_CLASSES[tone];
+  const riskLabel = useRiskLabel();
 
   return (
     <div className={`card border-2 ${borderColor} rounded-xl`}>
       <div className="flex items-start justify-between mb-3">
         <span className="text-caption font-medium text-neutral uppercase tracking-wider">
-          {strings.riskLow.ny.split("")[0] === "B" ? "RISK SCORE" : "RISK SCORE"}
+          RISK SCORE
         </span>
       </div>
 
@@ -77,15 +81,7 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
           </div>
           <div className="h-2 bg-neutral-light rounded-full mt-2 w-40">
             <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                score >= 9
-                  ? "bg-risk-critical"
-                  : score >= 7
-                    ? "bg-risk-high"
-                    : score >= 4
-                      ? "bg-risk-medium"
-                      : "bg-risk-low"
-              }`}
+              className={`h-2 rounded-full transition-[width,background-color] duration-500 ease-out ${RISK_BG_CLASSES[tone].split(" ")[0]}`}
               style={{ width: `${(score / 10) * 100}%` }}
             />
           </div>

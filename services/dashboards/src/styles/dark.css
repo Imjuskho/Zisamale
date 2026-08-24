@@ -1,0 +1,734 @@
+/* ================================================================== */
+/* DARK MODE — COMPREHENSIVE (single source of truth)                 */
+/* All .dark rules live here. Uses CSS variables from index.css.      */
+/* ================================================================== */
+
+/* --- Base --- */
+.dark .app-layout,
+.dark body {
+  background: var(--color-surface-bg);
+  color: var(--color-text);
+}
+
+/* --- Sidebar --- */
+.dark .sidebar {
+  background: var(--color-surface);
+  border-right-color: var(--color-border);
+}
+.dark .sidebar-brand { border-bottom-color: var(--color-border); }
+.dark .sidebar-brand h2 { color: var(--color-text); }
+.dark .sidebar-link { color: var(--color-text-secondary); }
+.dark .sidebar-link:hover { background: var(--color-bg-muted); color: var(--color-text); }
+.dark .sidebar-link.active { background: var(--color-primary-light); color: var(--color-primary); }
+.dark .sidebar-link.active .sidebar-link-sub { color: var(--color-primary); }
+.dark .sidebar-link-sub { color: var(--color-text-muted); }
+.dark .sidebar-user-name { color: var(--color-text); }
+.dark .sidebar-user-role { color: var(--color-text-muted); }
+.dark .sidebar-user-info { color: var(--color-text); }
+.dark .sidebar-footer { border-top-color: var(--color-border); }
+.dark .sidebar-avatar { background: var(--color-primary-light); color: var(--color-primary); }
+
+/* --- Theme toggle --- */
+.dark .theme-toggle {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .theme-toggle:hover {
+  background: var(--color-border);
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+/* --- Login page --- */
+.dark .login-card-zone { background: var(--color-surface-bg); }
+.dark .login-page h1 { color: var(--color-text); }
+.dark .login-page label { color: var(--color-text-secondary); }
+.dark .login-subtitle { color: var(--color-text-muted); }
+.dark .login-input-icon { color: var(--color-text-muted); }
+.dark .login-password-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+.dark .login-error {
+  background: rgba(198, 40, 40, 0.16);
+  border-color: rgba(198, 40, 40, 0.5);
+  color: #f87171;
+}
+.dark .login-footnote { color: var(--color-text-muted); }
+.dark .login-mobile-brand .login-hero-logo--small {
+  background: var(--color-green);
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .dark .login-card-zone { background: var(--color-surface-bg); }
+}
+.dark .login-page input,
+.dark .login-page select {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* --- Dashboard layout --- */
+.dark .dashboard-header h1 { color: var(--color-text); }
+.dark .dashboard-header p { color: var(--color-text-muted); }
+.dark .dashboard section > h2,
+.dark .dashboard section > h3 { color: var(--color-text); }
+.dark .loading { color: var(--color-text-muted); }
+
+/* --- Executive summary --- */
+.dark .executive-summary {
+  background: rgba(45, 125, 70, 0.06);
+  border-color: rgba(45, 125, 70, 0.15);
+}
+.dark .executive-summary h2 { color: var(--color-text); }
+.dark .executive-summary p { color: var(--color-text-secondary); }
+
+/* --- Error boundary --- */
+.dark .error-boundary { background: var(--color-surface-bg); }
+.dark .error-boundary-card {
+  background: var(--color-surface-card);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.dark .error-boundary-card h2 { color: var(--color-text); }
+.dark .error-boundary-message { color: var(--color-text-muted); }
+.dark .error-boundary-details pre { background: var(--color-bg-muted); }
+
+/* --- Model metrics --- */
+.dark .model-metrics { background: var(--color-bg-muted); color: var(--color-text-secondary); }
+.dark .model-metrics h3 { color: var(--color-text); }
+.dark .model-metrics span { background: var(--color-surface-card); color: var(--color-text); }
+
+/* --- All card/panel surfaces --- */
+.dark .alert-command-card,
+.dark .data-table-wrapper,
+.dark .national-overview,
+.dark .chw-performance,
+.dark .nlg-executive-summary,
+.dark .budget-modeler,
+.dark .trend-chart,
+.dark .commodity-forecast,
+.dark .leaflet-map,
+.dark .alert-command-center,
+.dark .risk-map,
+.dark .alert-inbox,
+.dark .nlg-summary {
+  background: var(--color-surface-card);
+  border-color: var(--color-border);
+}
+
+/* --- Headings on cards --- */
+.dark .national-overview > h2,
+.dark .nlg-executive-summary h2,
+.dark .nlg-executive-summary h3,
+.dark .budget-modeler h2,
+.dark .budget-modeler legend,
+.dark .trend-chart h2,
+.dark .commodity-forecast h2,
+.dark .alert-command-center > h2 {
+  color: var(--color-text);
+}
+
+/* --- Tables --- */
+.dark .data-table thead th,
+.dark .district-table thead th,
+.dark .chw-table thead th {
+  color: var(--color-text-muted);
+  border-bottom-color: var(--color-border);
+}
+.dark .data-table tbody td,
+.dark .district-table tbody td,
+.dark .chw-table tbody td {
+  color: var(--color-text-secondary);
+  border-bottom-color: var(--color-border-light);
+}
+.dark .district-name,
+.dark .chw-name { color: var(--color-text); }
+.dark .data-table tbody tr:hover,
+.dark .district-table tbody tr:hover,
+.dark .chw-row:hover { background: var(--color-bg-muted); }
+.dark .chw-row.visits-low { background: rgba(249, 168, 37, 0.08); }
+.dark .chw-row.visits-low:hover { background: rgba(249, 168, 37, 0.15); }
+.dark .chw-row.sync-stale { background: rgba(198, 40, 40, 0.08); }
+.dark .chw-row.sync-stale:hover { background: rgba(198, 40, 40, 0.15); }
+.dark .chw-households-row td { background: var(--color-bg-muted); }
+.dark .household-table thead th {
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  border-bottom-color: var(--color-border);
+}
+.dark .household-table tbody td {
+  color: var(--color-text-secondary);
+  border-bottom-color: var(--color-border-light);
+}
+.dark .chw-legend { border-top-color: var(--color-border); color: var(--color-text-muted); }
+
+/* --- Table search/filters --- */
+.dark .data-table-search input,
+.dark .alert-filters select,
+.dark .alert-filters input,
+.dark .budget-modeler select,
+.dark .budget-modeler input[type="number"] {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .data-table-search input:focus,
+.dark .alert-filters input:focus,
+.dark .budget-modeler input[type="number"]:focus {
+  border-color: var(--color-primary);
+}
+.dark .data-table-empty,
+.dark .data-table-pagination,
+.dark .alert-empty { color: var(--color-text-muted); }
+
+/* --- Alert command center --- */
+.dark .alert-command-card { background: var(--color-surface-card); }
+.dark .alert-red { background: rgba(198, 40, 40, 0.08); }
+.dark .alert-yellow { background: rgba(249, 168, 37, 0.08); }
+.dark .alert-green { background: rgba(46, 125, 50, 0.08); }
+.dark .alert-disease { color: var(--color-text); }
+.dark .alert-ta { color: var(--color-text-muted); }
+.dark .alert-body { color: var(--color-text-secondary); }
+.dark .alert-stat { color: var(--color-text-muted); }
+.dark .alert-filters { border-bottom-color: var(--color-border); }
+.dark .alert-stats { border-top-color: var(--color-border); color: var(--color-text-muted); }
+
+/* --- Alert inbox cards --- */
+.dark .alert-card { border-bottom-color: var(--color-border-light); }
+.dark .alert-card:hover { background: var(--color-bg-muted); }
+.dark .alert-actions button {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .alert-actions button:hover { background: var(--color-border); }
+
+/* --- Status badges --- */
+.dark .status-pending { background: rgba(230, 81, 0, 0.12); color: #ffa726; }
+.dark .status-acknowledged { background: rgba(21, 101, 192, 0.12); color: #42a5f5; }
+.dark .status-in_progress { background: rgba(123, 31, 162, 0.12); color: #ba68c8; }
+.dark .status-resolved { background: rgba(45, 125, 70, 0.12); color: #66bb6a; }
+
+/* --- Budget modeler --- */
+.dark .budget-modeler fieldset { border-color: var(--color-border); }
+.dark .budget-modeler label { color: var(--color-text-secondary); }
+.dark .budget-modeler input[type="range"] { background: var(--color-border); }
+.dark .scenario-output > div { background: var(--color-bg-muted); }
+.dark .scenario-output > div strong { color: var(--color-text); }
+.dark .scenario-output > div span { color: var(--color-text-muted); }
+.dark .scenario-comparison {
+  background: rgba(249, 251, 231, 0.06);
+  color: var(--color-text-secondary);
+}
+
+/* --- Charts --- */
+.dark .chart-container { background: var(--color-surface-card); }
+.dark .chart-title { color: var(--color-text); }
+.dark .chart-subtitle { color: var(--color-text-muted); }
+.dark .stock-legend { border-top-color: var(--color-border); }
+.dark .stock-legend-item { color: var(--color-text-secondary); }
+
+/* --- NLG --- */
+.dark .nlg-executive-summary button {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .nlg-executive-summary button:hover { background: var(--color-border); }
+
+/* --- PDF export --- */
+.dark .pdf-export-btn {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .pdf-export-btn:hover { background: var(--color-border); }
+
+/* --- WS status --- */
+.dark .ws-connected { background: rgba(45, 125, 70, 0.12); color: #66bb6a; }
+.dark .ws-connecting { background: rgba(230, 81, 0, 0.12); color: #ffa726; }
+.dark .ws-error,
+.dark .ws-disconnected { background: rgba(198, 40, 40, 0.12); color: #ef5350; }
+
+/* --- Mobile nav --- */
+.dark .mobile-nav {
+  background: var(--color-surface);
+  border-top-color: var(--color-border);
+}
+.dark .mobile-nav a { color: var(--color-text-muted); }
+.dark .mobile-nav a.active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* --- CHW Dashboard --- */
+.dark .chw-household-list h2 { color: var(--color-text); }
+.dark .household-card {
+  background: var(--color-surface-card);
+  border-color: var(--color-border);
+}
+.dark .household-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.08);
+}
+.dark .household-card-info strong { color: var(--color-text); }
+.dark .household-card-meta { color: var(--color-text-muted); }
+.dark .household-card-details {
+  border-top-color: var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+.dark .household-high-risk { border-left-color: #ef5350; }
+.dark .high-risk-tag { background: rgba(198, 40, 40, 0.12); }
+.dark .visit-status { color: var(--color-text-muted); }
+
+/* --- Patient card --- */
+.dark .patient-card-name { color: var(--color-text); }
+.dark .patient-card-meta { color: var(--color-text-muted); }
+.dark .patient-card:hover { border-color: var(--color-primary); }
+
+/* --- Visit form --- */
+.dark .visit-form-title { color: var(--color-text); }
+.dark .visit-form-label { color: var(--color-text-secondary); }
+.dark .visit-form-checkbox { color: var(--color-text-secondary); }
+.dark .visit-form-actions { border-top-color: var(--color-border-light); }
+.dark .symptom-chip {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .symptom-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.dark .symptom-active {
+  background: rgba(15, 123, 138, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* --- Voice input --- */
+.dark .voice-btn { background: var(--color-teal); }
+.dark .voice-btn:hover:not(:disabled) { background: var(--color-primary); }
+.dark .voice-status { color: var(--color-text-muted); }
+.dark .voice-notes-row .input-field {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* --- Confirmation dialog --- */
+.dark .confirm-dialog-card { background: var(--color-surface-card); }
+.dark .confirm-dialog-title { color: var(--color-text); }
+.dark .confirm-dialog-message { color: var(--color-text-secondary); }
+
+/* --- District scorecard --- */
+.dark .scorecard-card {
+  background: var(--color-surface-card);
+  border-color: var(--color-border);
+}
+.dark .scorecard-card:hover { border-color: var(--color-primary); }
+.dark .scorecard-name { color: var(--color-text); }
+.dark .scorecard-metric-value { color: var(--color-text); }
+.dark .scorecard-metric-label { color: var(--color-text-muted); }
+.dark .scorecard-footer {
+  border-top-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* --- Moyo Map surface elements --- */
+.dark .moyo-map-header h2 { color: var(--color-text); }
+.dark .moyo-map-subtitle { color: var(--color-text-muted); }
+.dark .facility-marker { background: var(--color-surface); border-color: var(--ring); }
+.dark .facility-popup .leaflet-popup-content-wrapper { background: var(--color-surface); color: var(--color-text); }
+.dark .facility-popup .leaflet-popup-tip { background: var(--color-surface); }
+.dark .facility-panel { background: var(--color-surface); }
+.dark .facility-panel-header {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border);
+}
+.dark .facility-panel-title h2 { color: var(--color-text); }
+.dark .facility-panel-type { color: var(--color-text-muted); }
+.dark .facility-section { border-bottom-color: var(--color-border); }
+.dark .facility-section h3 { color: var(--color-text-muted); }
+.dark .facility-bed-counter { background: var(--color-bg-muted); }
+.dark .facility-bed-total-big { color: var(--color-text); }
+.dark .facility-bed-total-label { color: var(--color-text-muted); }
+.dark .facility-bed-bar { background: var(--color-border); }
+.dark .facility-stock-alert { background: rgba(198, 40, 40, 0.1); }
+.dark .facility-stock-bar { background: var(--color-border); }
+.dark .facility-stock-name { color: var(--color-text); }
+.dark .facility-staff-chip { border-bottom-color: var(--color-border-light); }
+.dark .facility-staff-name { color: var(--color-text); }
+.dark .facility-staff-role { color: var(--color-text-muted); }
+.dark .facility-road-row { color: var(--color-text-secondary); }
+.dark .facility-road-route { color: var(--color-text); }
+.dark .facility-panel-actions { border-top-color: var(--color-border); }
+.dark .facility-panel-updated { color: var(--color-text-muted); }
+.dark .facility-panel-close { color: var(--color-text-muted); }
+.dark .facility-panel-close:hover { background: var(--color-bg-muted); }
+
+/* --- Referral engine --- */
+.dark .referral-engine { background: var(--color-surface); }
+.dark .referral-header h3 { color: var(--color-text); }
+.dark .referral-close { color: var(--color-text-muted); }
+.dark .referral-condition { background: var(--color-bg-muted); color: var(--color-text); }
+.dark .referral-card { border-color: var(--color-border); background: var(--color-bg-muted); }
+.dark .referral-card--recommended {
+  background: rgba(45, 125, 70, 0.08);
+  border-color: var(--color-primary);
+}
+.dark .referral-card--unreachable { background: var(--color-bg-muted); }
+.dark .referral-card-title strong { color: var(--color-text); }
+.dark .referral-card-distance { color: var(--color-text-muted); }
+.dark .referral-rank { color: var(--color-text-muted); }
+.dark .referral-urgency--immediate { background: rgba(198, 40, 40, 0.12); color: #ef5350; }
+.dark .referral-urgency--urgent { background: rgba(217, 119, 6, 0.12); color: #ffb300; }
+.dark .referral-urgency--routine { background: rgba(22, 163, 74, 0.12); color: #66bb6a; }
+
+/* --- CHW Presence --- */
+.dark .chw-presence-panel,
+.dark .community-voice-panel,
+.dark .climate-overlay-options,
+.dark .map-toolbar-panel,
+.dark .outbreak-time-slider {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+.dark .chw-presence-toggle,
+.dark .community-voice-toggle,
+.dark .climate-overlay-toggle,
+.dark .map-toolbar-toggle {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .chw-presence-toggle:hover,
+.dark .community-voice-toggle:hover,
+.dark .climate-overlay-toggle:hover,
+.dark .map-toolbar-toggle:hover {
+  background: var(--color-bg-muted);
+}
+.dark .chw-presence-note { background: var(--color-bg-muted); color: var(--color-text-muted); }
+.dark .chw-dot { background: var(--color-bg-muted); }
+.dark .chw-dot--emergency { background: rgba(198, 40, 40, 0.1); }
+.dark .chw-dot-label { color: var(--color-text); }
+.dark .chw-ghost-label { color: var(--color-text-muted); }
+.dark .chw-checkin-btn { border-color: var(--color-border); color: var(--color-text-muted); }
+
+/* --- Community voice pins --- */
+.dark .community-filter-btn {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+.dark .community-filter-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.dark .community-pin-card { background: var(--color-bg-muted); }
+.dark .community-pin-header strong { color: var(--color-text); }
+.dark .community-pin-desc { color: var(--color-text-secondary); }
+.dark .community-pin-meta { color: var(--color-text-muted); }
+.dark .community-report-bar { background: var(--color-bg-muted); }
+.dark .community-report-btn {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+.dark .community-empty { color: var(--color-text-muted); }
+
+/* --- Outbreak slider --- */
+.dark .outbreak-slider-header { color: var(--color-text); }
+.dark .outbreak-slider-label { color: var(--color-text-muted); }
+.dark .outbreak-slider-input { background: var(--color-border); }
+.dark .outbreak-prediction-count { color: var(--color-text-muted); }
+
+/* --- Climate overlay --- */
+.dark .climate-option { color: var(--color-text); }
+.dark .climate-option:hover { background: var(--color-bg-muted); }
+.dark .climate-option--active { background: var(--color-bg-muted); }
+
+/* --- Map toolbar --- */
+.dark .map-layer-btn { color: var(--color-text); }
+.dark .map-layer-btn:hover { background: var(--color-bg-muted); }
+.dark .map-layer-btn--active { background: var(--color-bg-muted); }
+.dark .map-action-btn {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .map-action-btn:hover { background: var(--color-border); }
+.dark .map-toolbar-actions { border-top-color: var(--color-border); }
+
+/* --- Map legend --- */
+.dark .map-legend { background: var(--color-surface); border-color: var(--color-border); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+.dark .map-legend-header { color: var(--color-text); }
+.dark .map-legend-header:hover { background: var(--color-bg-muted); }
+.dark .map-legend-section-toggle { color: var(--color-text-muted); }
+.dark .map-legend-section-toggle--open { color: var(--color-text); }
+.dark .map-legend-section-toggle:hover { background: var(--color-bg-muted); }
+.dark .map-legend-item { color: var(--color-text); }
+
+/* --- Skeleton loading --- */
+.dark .skeleton {
+  background: linear-gradient(90deg, #302820 25%, #3C3327 50%, #302820 75%);
+  background-size: 200% 100%;
+}
+.dark .skeleton-table { background: var(--color-surface-card); border-color: var(--color-border); }
+.dark .skeleton-table-header { background: var(--color-bg-muted); border-color: var(--color-border); }
+.dark .skeleton-table-row { border-bottom-color: var(--color-border-light); }
+.dark .skeleton-chart-area { background: var(--color-bg-muted); }
+
+/* ================================================================== */
+/* IMMUNIZATION / MATERNITY / NEW SUBSYSTEMS — DARK MODE               */
+/* ================================================================== */
+
+.dark .immunization-layer,
+.dark .maternity-layer,
+.dark .chw-coverage-heatmap,
+.dark .intervention-simulator,
+.dark .supply-chain-layer,
+.dark .nutrition-layer,
+.dark .health-weather-panel {
+  background: var(--color-surface-card);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.dark .immunization-toggle,
+.dark .maternity-toggle,
+.dark .chw-coverage-toggle,
+.dark .intervention-toggle,
+.dark .supply-chain-toggle,
+.dark .nutrition-toggle,
+.dark .health-weather-toggle {
+  background: var(--color-bg-muted);
+  border-bottom-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .immunization-toggle:hover,
+.dark .maternity-toggle:hover,
+.dark .chw-coverage-toggle:hover,
+.dark .intervention-toggle:hover,
+.dark .supply-chain-toggle:hover,
+.dark .nutrition-toggle:hover,
+.dark .health-weather-toggle:hover {
+  background: var(--color-border);
+}
+
+.dark .imm-tab,
+.dark .mat-tab {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+.dark .imm-tab--active,
+.dark .mat-tab--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.dark .imm-stat { color: #ef5350; }
+.dark .imm-stat-label { color: var(--color-text-muted); }
+.dark .imm-note { color: var(--color-text-muted); }
+
+.dark .imm-village-row:hover,
+.dark .mat-home-card:hover,
+.dark .mat-tba-card:hover,
+.dark .nutrition-row:hover {
+  background: var(--color-bg-muted);
+}
+.dark .imm-village-name,
+.dark .mat-home-name { color: var(--color-text); }
+.dark .imm-village-ta,
+.dark .imm-route-meta,
+.dark .imm-cold-status,
+.dark .imm-empty,
+.dark .mat-tba-meta,
+.dark .mat-empty,
+.dark .supply-empty { color: var(--color-text-muted); }
+
+.dark .imm-stock-alert,
+.dark .supply-alert,
+.dark .nutrition-alert {
+  background: rgba(230, 81, 0, 0.1);
+}
+
+.dark .imm-route-card {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+}
+.dark .imm-route-card strong { color: var(--color-text); }
+.dark .imm-route-stop { color: var(--color-text-secondary); }
+
+.dark .mat-home-card,
+.dark .mat-tba-card {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+}
+.dark .mat-home-status { color: var(--color-text); }
+.dark .mat-capacity-bar { background: var(--color-border); }
+.dark .mat-tba-note { color: var(--color-primary); }
+
+.dark .chw-coverage-stat { background: var(--color-bg-muted); }
+.dark .chw-coverage-num { color: var(--color-text); }
+.dark .chw-coverage-label { color: var(--color-text-muted); }
+.dark .chw-heat-cell { background: var(--color-bg-muted); }
+.dark .chw-heat-name { color: var(--color-text-muted); }
+.dark .chw-coverage-note { color: var(--color-text-muted); }
+
+.dark .intervention-desc { color: var(--color-text-muted); }
+.dark .intervention-label { color: var(--color-text); }
+.dark .intervention-select {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .intervention-result {
+  background: var(--color-bg-muted);
+}
+.dark .intervention-result-label { color: var(--color-text-muted); }
+.dark .intervention-result-value { color: var(--color-text); }
+
+.dark .supply-truck-card {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+}
+.dark .supply-truck-card--breach {
+  background: rgba(198, 40, 40, 0.08);
+  border-color: #ef5350;
+}
+.dark .supply-truck-driver { color: var(--color-text); }
+.dark .supply-truck-dest,
+.dark .supply-truck-cargo { color: var(--color-text-muted); }
+
+.dark .nutrition-village { color: var(--color-text); }
+.dark .nutrition-stats { color: var(--color-text-muted); }
+.dark .nutrition-rutf-badge { background: var(--color-high); }
+
+.dark .health-weather-date { color: var(--color-text-muted); }
+.dark .health-weather-refresh {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+.dark .health-weather-district { color: var(--color-text); }
+.dark .health-weather-summary { color: var(--color-text-secondary); }
+.dark .health-weather-action { color: var(--color-text-secondary); }
+
+/* --- Leaflet popup overrides --- */
+.dark .leaflet-popup-content-wrapper {
+  background: var(--color-surface-card);
+  color: var(--color-text);
+}
+.dark .leaflet-popup-tip { background: var(--color-surface-card); }
+.dark .leaflet-popup-content { color: var(--color-text); }
+.dark .leaflet-control-zoom a {
+  background: var(--color-surface-card);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.dark .leaflet-control-attribution {
+  background: rgba(26, 26, 46, 0.85) !important;
+  color: var(--color-text-muted) !important;
+}
+.dark .leaflet-control-attribution a { color: var(--color-text-muted) !important; }
+
+/* --- Moyo Map header / status / district panel (dark) --- */
+.dark .moyo-map-tagline { color: #4db6ac; }
+.dark .moyo-refresh-btn { color: #4db6ac; }
+.dark .moyo-refresh-btn:hover { background: rgba(77, 182, 172, 0.12); }
+.dark .moyo-district-panel {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  border-left-color: var(--color-primary);
+}
+.dark .moyo-district-panel-header strong { color: var(--color-text); }
+.dark .moyo-district-panel-header button:hover { background: var(--color-bg-muted); }
+.dark .moyo-district-panel-body { color: var(--color-text-secondary); }
+
+/* --- Scorecard carousel (dark) --- */
+.dark .scorecard-carousel-card:hover {
+  border-color: var(--color-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.dark .scorecard-carousel-card--selected,
+.dark .scorecard-carousel-card--selected:hover {
+  border-color: #D98F63;
+  box-shadow: 0 0 0 4px rgba(217, 143, 99, 0.18), 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.dark .carousel-metric-value,
+.dark .map-layer-label,
+.dark .exec-header h2,
+.dark .exec-section-title h3,
+.dark .exec-ai-title { color: var(--color-text); }
+.dark .trend-good { color: #81c784; }
+.dark .trend-bad { color: #ef9a9a; }
+.dark .scorecard-alerts.has-alerts { color: #ef9a9a; }
+.dark .scorecard-stock.has-stockouts { color: #ffcc80; }
+.dark .scorecard-clear { color: #81c784; }
+.dark .scorecard-map-hint { color: #4db6ac; }
+.dark .scorecard-carousel-arrow {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .scorecard-carousel-dot { background: #3a3a55; }
+.dark .scorecard-carousel-dot--active { background: #D98F63; }
+
+/* --- Map toolbar rich panel (dark) --- */
+.dark .map-toolbar-toggle {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.dark .map-toolbar-toggle:hover { background: var(--color-bg-muted); }
+.dark .map-toolbar-count--active { background: #D98F63; }
+
+/* --- Executive summary (dark) --- */
+.dark .exec-critical-banner {
+  background: rgba(198, 40, 40, 0.16);
+  border-color: rgba(198, 40, 40, 0.4);
+  color: #ef9a9a;
+}
+.dark .exec-critical-detail { color: #ef9a9a; }
+.dark .exec-badge--red { background: rgba(198, 40, 40, 0.25); color: #ef9a9a; }
+.dark .exec-badge--green { background: rgba(76, 175, 80, 0.2); color: #a5d6a7; }
+.dark .exec-badge--amber { background: rgba(230, 81, 0, 0.22); color: #ffcc80; }
+.dark .exec-badge--blue { background: rgba(21, 101, 192, 0.25); color: #90caf9; }
+.dark .exec-icon--red { background: rgba(198, 40, 40, 0.25); color: #ef9a9a; }
+.dark .exec-icon--amber { background: rgba(249, 168, 37, 0.22); color: #ffd54f; }
+.dark .exec-icon--orange { background: rgba(230, 81, 0, 0.25); color: #ffab91; }
+.dark .exec-icon--teal { background: rgba(15, 123, 138, 0.28); color: #4dd0e1; }
+.dark .exec-ai-recommendation {
+  background: rgba(76, 175, 80, 0.12);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+.dark .exec-ai-icon { background: rgba(76, 175, 80, 0.22); color: #81c784; }
+.dark .exec-section-body,
+.dark .exec-header-meta,
+.dark .exec-ai-text { color: var(--color-text-secondary); }
+
+/* --- Language toggle (dark) --- */
+.dark .language-toggle-compact {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.dark .language-toggle-compact:hover {
+  background: var(--color-bg-muted);
+  color: var(--color-text);
+}
+.dark .language-toggle-full { background: var(--color-bg-muted); }
+.dark .language-toggle-full button.active {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+}
+
+/* Toast notifications — dark */
+.dark .toast-item {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.dark .toast-close:hover { background: rgba(255, 255, 255, 0.1); }

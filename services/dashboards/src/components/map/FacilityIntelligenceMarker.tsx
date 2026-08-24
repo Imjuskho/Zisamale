@@ -1,83 +1,76 @@
+/**
+ * FACILITY MARKER ICONS — Leaflet DivIcon factories
+ *
+ * Two icon variants:
+ *   createFacilityIcon()   — rich card with type badge + bed count + staff
+ *   createSimpleFacilityIcon() — compact teardrop pin (for clusters)
+ *
+ * Both support the real Malawi facility data from facilityService.ts.
+ */
 import L from "leaflet";
-import type { Facility, FacilityType, FacilityStatus } from "../../types";
+import type { Facility } from "../../services/facilityService";
+import { FACILITY_CONFIG, STATUS_CONFIG } from "../../services/facilityService";
 
-const TYPE_RING: Record<FacilityType, string> = {
-  district_hospital: "#1e40af",
-  community_hospital: "#0f7b8a",
-  health_centre: "#2d7d46",
-  health_post: "#6b7280",
-  private: "#7c3aed",
-};
+/* ── Rich card icon (expanded view) ─────────────────────────────── */
 
-const STATUS_FILL: Record<FacilityStatus, string> = {
-  operational: "#22c55e",
-  partial: "#f59e0b",
-  closed: "#ef4444",
-};
-
-function bedsAvailable(facility: Facility): number {
-  return facility.beds.reduce((sum, b) => sum + b.available, 0);
-}
-
-function bedsTotal(facility: Facility): number {
-  return facility.beds.reduce((sum, b) => sum + b.total, 0);
-}
-
-function topStockStatus(facility: Facility): string {
-  const critical = facility.stock.filter((s) => s.status === "critical").length;
-  if (critical > 0) return `${critical} CRITICAL`;
-  const amber = facility.stock.filter((s) => s.status === "amber").length;
-  if (amber > 0) return `${amber} low`;
+function topStatusLabel(facility: Facility): string {
+  if (facility.beds_total != null && facility.beds_available != null) {
+    if (facility.beds_available < 3) return "CRITICAL";
+    if (facility.beds_available < facility.beds_total * 0.3) return "LOW";
+  }
+  if (facility.operational_status === "Partial") return "PARTIAL";
+  if (facility.operational_status === "Closed" || facility.operational_status === "Not Functional") return "DOWN";
   return "OK";
 }
 
-function staffLabel(facility: Facility): string {
-  const doctor = facility.staff.find((s) => s.role.toLowerCase().includes("doctor") || s.role.toLowerCase().includes("medical officer"));
-  if (doctor && doctor.status === "present") return `Dr. ${doctor.name.split(" ").pop()}`;
-  const co = facility.staff.find((s) => s.role.toLowerCase().includes("clinical"));
-  if (co && co.status === "present") return co.name;
-  const anyPresent = facility.staff.find((s) => s.status === "present");
-  if (anyPresent) return anyPresent.name;
-  return "No staff";
-}
-
-function staffIcon(facility: Facility): string {
-  const doctor = facility.staff.find((s) => s.role.toLowerCase().includes("doctor") || s.role.toLowerCase().includes("medical officer"));
-  if (doctor && doctor.status === "present") return "闪电";
-  const hasStaff = facility.staff.some((s) => s.status === "present");
-  if (hasStaff) return "○";
-  return "✕";
-}
-
-function facilityTypeLabel(t: FacilityType): string {
-  return {
-    district_hospital: "DH",
-    community_hospital: "CH",
-    health_centre: "HC",
-    health_post: "HP",
-    private: "PV",
-  }[t];
+function topStatusColor(facility: Facility): string {
+  const label = topStatusLabel(facility);
+  if (label === "CRITICAL") return "#C62828";
+  if (label === "LOW" || label === "PARTIAL") return "#E65100";
+  if (label === "DOWN") return "#999";
+  return "#2D7D46";
 }
 
 export function createFacilityIcon(facility: Facility): L.DivIcon {
-  const ring = TYPE_RING[facility.facility_type];
-  const fill = STATUS_FILL[facility.status];
-  const beds = bedsAvailable(facility);
-  const total = bedsTotal(facility);
-  const stock = topStockStatus(facility);
-  const staff = staffLabel(facility);
-  const staffIconChar = staffIcon(facility);
-  const pulse = facility.emergency_receiving;
+  const config = FACILITY_CONFIG[facility.type];
+  const status = (facility.operational_status && STATUS_CONFIG[facility.operational_status]) || STATUS_CONFIG.Functional;
+  const statusLabel = topStatusLabel(facility);
+  const statusColor = topStatusColor(facility);
+  const bedText =
+    facility.beds_total != null
+      ? `${facility.beds_available ?? "?"}/${facility.beds_total}`
+      : null;
 
   const html = `
-    <div class="facility-marker ${pulse ? "facility-marker--pulse" : ""}" style="--ring: ${ring}; --fill: ${fill};">
-      <div class="facility-marker__ring">
-        <div class="facility-marker__badge">${facilityTypeLabel(facility.facility_type)}</div>
-      </div>
-      <div class="facility-marker__body">
-        <div class="facility-marker__beds">${beds}/${total}</div>
-        <div class="facility-marker__stock">${stock}</div>
-        <div class="facility-marker__staff"><span class="facility-marker__staff-icon">${staffIconChar}</span> ${staff}</div>
+    <div style="
+      display:flex;align-items:center;gap:6px;
+      background:var(--color-surface,#fff);
+      border:1px solid var(--color-border,#e0e0e0);
+      border-left:3px solid ${config.color};
+      border-radius:6px;
+      padding:4px 8px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.12);
+      cursor:pointer;
+      white-space:nowrap;
+      opacity:${status.opacity};
+      transition:transform 0.15s,box-shadow 0.15s;
+    ">
+      <div style="
+        width:24px;height:24px;border-radius:50%;
+        background:${config.color};
+        border:2px solid #fff;
+        box-shadow:0 1px 3px rgba(0,0,0,0.2);
+        display:flex;align-items:center;justify-content:center;
+        color:#fff;font-size:9px;font-weight:700;font-family:Inter,sans-serif;
+        flex-shrink:0;
+      ">${config.label}</div>
+      <div style="min-width:0;">
+        <div style="font-size:10px;font-weight:600;color:var(--color-text,#1a1a2e);line-height:1.2;max-width:100px;overflow:hidden;text-overflow:ellipsis;">${facility.name}</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:9px;">
+          ${bedText ? `<span style="color:${statusColor};font-weight:600;">${bedText} beds</span>` : ""}
+          <span style="color:${statusColor};font-weight:500;">${statusLabel}</span>
+          ${facility.chw_verified ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="#2D7D46" stroke="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>` : ""}
+        </div>
       </div>
     </div>
   `;
@@ -85,30 +78,43 @@ export function createFacilityIcon(facility: Facility): L.DivIcon {
   return L.divIcon({
     html,
     className: "",
-    iconSize: [140, 80],
-    iconAnchor: [70, 40],
+    iconSize: [180, 44],
+    iconAnchor: [12, 22],
+    popupAnchor: [6, -10],
   });
 }
 
-export function createSimpleFacilityIcon(facility: Facility): L.DivIcon {
-  const ring = TYPE_RING[facility.facility_type];
-  const fill = STATUS_FILL[facility.status];
-  const pulse = facility.emergency_receiving;
+/* ── Compact teardrop pin (default / clustered view) ─────────────── */
+
+export function createSimpleFacilityIcon(
+  facility: Facility,
+  opts?: { className?: string }
+): L.DivIcon {
+  const config = FACILITY_CONFIG[facility.type];
+  const status = (facility.operational_status && STATUS_CONFIG[facility.operational_status]) || STATUS_CONFIG.Functional;
+  const size = config.size;
+
+  const bedAlert =
+    facility.beds_total != null &&
+    facility.beds_available != null &&
+    facility.beds_available < 3;
 
   const html = `
-    <div class="facility-pin ${pulse ? "facility-pin--pulse" : ""}">
-      <svg width="28" height="36" viewBox="0 0 28 36">
-        <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z" fill="${ring}"/>
-        <circle cx="14" cy="14" r="8" fill="${fill}"/>
-        <text x="14" y="18" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">${facilityTypeLabel(facility.facility_type)}</text>
+    <div style="position:relative;width:${size}px;height:${size}px;opacity:${status.opacity};">
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="${config.color}" stroke="#fff" stroke-width="${config.strokeWidth}"/>
+        <text x="12" y="16" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Inter,sans-serif">${config.label}</text>
       </svg>
+      ${bedAlert ? `<div style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#C62828;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,0.3);"></div>` : ""}
+      ${facility.chw_verified ? `<div style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#2D7D46;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg></div>` : ""}
     </div>
   `;
 
   return L.divIcon({
     html,
-    className: "",
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
+    className: opts?.className ?? "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   });
 }

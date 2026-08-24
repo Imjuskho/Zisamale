@@ -12,17 +12,30 @@ import {
 } from "../store/dashboardSlice";
 import { AlertCommandCenter } from "../components/AlertCommandCenter";
 import { TrendChart } from "../components/charts/TrendChart";
-import { LeafletMap, type DistrictRiskInput } from "../components/LeafletMap";
+import { LeafletMap } from "../components/LeafletMap";
+import type { DistrictRiskInput } from "../types";
 import { CHWPerformanceTable } from "../components/CHWPerformanceTable";
 import { connectAlertSocket } from "../services/api";
 import { KPICard } from "../components/design/KPICard";
 import { SyncIndicator } from "../components/design/SyncIndicator";
 import { SkeletonDashboard } from "../components/design/Skeleton";
+import { useToast } from "../components/design/Toast";
+import { useMapLayers } from "../hooks/useMapLayers";
+import type { AlertActionType } from "../types";
+
+const ACTION_TOASTS: Record<AlertActionType, string> = {
+  acknowledge: "Alert acknowledged. Supervisor notified.",
+  deploy_drrt: "DRRT deployment requested.",
+  request_supplies: "Supply request submitted.",
+  dismiss: "Alert dismissed.",
+};
 
 const LEVEL_TO_RISK = { low: 0.22, medium: 0.47, high: 0.86 } as const;
 
 export function DHODashboard() {
   const dispatch = useAppDispatch();
+  const toast = useToast();
+  const { layers, refetch: refetchLayers } = useMapLayers();
   const {
     alerts,
     districts,
@@ -80,23 +93,36 @@ export function DHODashboard() {
       </header>
       {loading && <SkeletonDashboard />}
       <div className="kpi-row">
-        <KPICard label="Critical Alerts" value={criticalAlerts} icon="Bell" iconColor="#c62828" trend={criticalAlerts > 3 ? { direction: "up", value: `${criticalAlerts} active`, isPositive: false } : undefined} />
-        <KPICard label="Predicted Cases" value={totalPredicted} icon="ChartBar" iconColor="#0f7b8a" />
-        <KPICard label="CHWs Online" value={`${chwsOnline}/${chwPerformance.length}`} icon="Users" iconColor="#2d7d46" />
-        <KPICard label="Districts" value={districts.length} icon="MapPin" iconColor="#0f7b8a" />
+        <KPICard label="Critical Alerts" value={criticalAlerts} icon="Bell" iconColor="#C62828" trend={criticalAlerts > 3 ? { direction: "up", value: `${criticalAlerts} active`, isPositive: false } : undefined} />
+        <KPICard label="Predicted Cases" value={totalPredicted} icon="ChartBar" iconColor="#17646C" />
+        <KPICard label="CHWs Online" value={`${chwsOnline}/${chwPerformance.length}`} icon="Users" iconColor="#2D7D46" />
+        <KPICard label="Districts" value={districts.length} icon="MapPin" iconColor="#17646C" />
       </div>
       <section>
         <AlertCommandCenter
           alerts={alerts}
           onAction={(alert, action) => {
-            void dispatch(submitAlertAction({ alertId: alert.alert_id, action }));
+            dispatch(submitAlertAction({ alertId: alert.alert_id, action }))
+              .unwrap()
+              .then(() => toast.show(ACTION_TOASTS[action], { type: "success" }))
+              .catch(() =>
+                toast.show("Action failed — check your connection and try again.", {
+                  type: "error",
+                })
+              );
           }}
         />
       </section>
       <section>
         <LeafletMap
           districts={mapDistricts}
-          onSelectDistrict={(props) => dispatch(selectDistrict(props.district_id))}
+          role="dho"
+          layers={layers}
+          onRefresh={refetchLayers}
+          onRefreshWeather={refetchLayers}
+          onSelectDistrict={(props) => {
+            if (props) dispatch(selectDistrict(props.district_id));
+          }}
         />
       </section>
       {trends && (

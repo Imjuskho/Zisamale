@@ -7,11 +7,11 @@
     --color-green: #2D7D46;
     --color-green-dark: #1B5E20;
     --color-green-light: #E8F5E9;
-    --color-teal: #0F7B8A;
-    --color-teal-dark: #004D56;
-    --color-teal-light: #E0F2F1;
-    --color-dark: #1A1A2E;
-    --color-light: #F5F5F0;
+    --color-teal: #17646C;
+    --color-teal-dark: #0E474D;
+    --color-teal-light: #E4EEEC;
+    --color-dark: #29241C;
+    --color-light: #F6F1E7;
     --color-critical: #C62828;
     --color-critical-light: #FFEBEE;
     --color-high: #E65100;
@@ -22,12 +22,52 @@
     --color-low-light: #E8F5E9;
     --color-info: #1565C0;
     --color-info-light: #E3F2FD;
-    --color-neutral: #616161;
-    --color-border: #E0E0E0;
-    --color-divider: #EEEEEE;
-    --color-surface-bg: #F5F5F0;
-    --color-surface-card: #FFFFFF;
-    --font-primary: "Inter", system-ui, -apple-system, sans-serif;
+    --color-neutral: #6E6557;
+    --color-divider: #EFE8D9;
+
+    /* Malawi earth editorial — type system */
+    --font-primary: "Archivo", system-ui, -apple-system, sans-serif;
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+
+    /* Semantic surface/text tokens — warm paper + charcoal ink */
+    --color-surface-bg: #F6F1E7;
+    --color-surface: #FFFDF8;
+    --color-surface-card: #FFFDF8;
+    --color-surface-elevated: #FFFFFF;
+    --color-border: #E3D9C6;
+    --color-border-light: #EFE8D9;
+    --color-text: #29241C;
+    --color-text-muted: #776D5C;
+    --color-text-secondary: #55503F;
+    --color-bg-muted: #F0EADC;
+    --color-accent: #C86E4B;
+    --color-primary: #A8502F;
+    --color-primary-light: rgba(168, 80, 47, 0.1);
+
+    --ring: #A8502F;
+
+    /* Paper grain — signature Zisamale texture */
+    --grain-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  .dark {
+    --color-teal: #56A8B0;
+    --color-teal-dark: #79C4CB;
+    --color-teal-light: #1d3a3d;
+    --color-surface-bg: #16110C;
+    --color-surface: #201A13;
+    --color-surface-card: #251F17;
+    --color-surface-elevated: #2B241B;
+    --color-border: #3C3327;
+    --color-border-light: #302820;
+    --color-text: #F1E9DC;
+    --color-text-muted: #A89C89;
+    --color-text-secondary: #C9BDAA;
+    --color-bg-muted: #2B241B;
+    --color-accent: #D98F63;
+    --color-primary: #D98F63;
+    --color-primary-light: rgba(217, 143, 99, 0.15);
+    --ring: #D9A441;
   }
 
   * {
@@ -45,125 +85,290 @@
   body {
     font-family: var(--font-primary);
     background-color: var(--color-surface-bg);
-    color: var(--color-dark);
-    line-height: 1.5;
+    background-image: var(--grain-image);
+    color: var(--color-text);
+    line-height: 1.55;
+  }
+
+  ::selection {
+    background: rgba(200, 110, 75, 0.28);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.25;
+  }
+
+  /* Numeric stability: dynamic figures never shift layout */
+  .text-data,
+  .data-table td,
+  .moyo-district-risk-chip,
+  .kpi-trend-value,
+  .badge-count {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Editorial voice: serif display for page and section titles */
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.85rem, 1.4rem + 1.4vw, 2.45rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.42rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* Terracotta signature rule under every section title */
+  .dark h2::after,
+  h2::after {
+    content: "";
+    display: block;
+    width: 34px;
+    height: 3px;
+    margin-top: 7px;
+    border-radius: 1px;
+    background: var(--color-primary);
   }
 }
 
+/* Component layer written as plain CSS (no @apply of custom theme
+   utilities) so builds never depend on tailwind.config.js contents —
+   tokens come from :root above and literal brand constants. */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3.5
-           bg-zisamale-green text-white font-semibold text-body
-           shadow-card transition-all duration-200
-           hover:bg-zisamale-green-dark hover:shadow-card-hover hover:scale-[0.98]
-           active:scale-[0.96] active:shadow-none
-           disabled:bg-neutral disabled:text-neutral-light disabled:cursor-not-allowed disabled:shadow-none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    padding: 0.875rem 1.5rem;
+    background: #A8502F;
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 3px rgba(41, 36, 28, 0.10), 0 1px 2px rgba(41, 36, 28, 0.06);
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
     min-height: 56px;
     min-width: 56px;
   }
+  .btn-primary:hover:not(:disabled) {
+    background: #8A3E22;
+    box-shadow: 0 3px 8px rgba(41, 36, 28, 0.14), 0 2px 4px rgba(41, 36, 28, 0.08);
+    transform: scale(0.98);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.96);
+    box-shadow: none;
+  }
+  .btn-primary:disabled {
+    background: #6E6557;
+    color: #F1EBDF;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3
-           bg-transparent border-2 border-zisamale-teal text-zisamale-teal font-semibold text-body
-           transition-all duration-200
-           hover:bg-zisamale-teal/10
-           active:scale-[0.96];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 600;
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
     min-height: 48px;
+  }
+  .btn-secondary:hover {
+    background: rgba(168, 80, 47, 0.10);
+  }
+  .btn-secondary:active {
+    transform: scale(0.96);
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3.5
-           bg-risk-critical text-white font-semibold text-body
-           shadow-card transition-all duration-200
-           hover:bg-red-800 hover:shadow-card-hover hover:scale-[0.98]
-           active:scale-[0.96] active:shadow-none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    padding: 0.875rem 1.5rem;
+    background: #C62828;
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(41, 36, 28, 0.10), 0 1px 2px rgba(41, 36, 28, 0.06);
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
     min-height: 56px;
+    min-width: 56px;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: #991B1B;
+    box-shadow: 0 3px 8px rgba(41, 36, 28, 0.14), 0 2px 4px rgba(41, 36, 28, 0.08);
+    transform: scale(0.98);
+  }
+  .btn-danger:active:not(:disabled) {
+    transform: scale(0.96);
+    box-shadow: none;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2
-           bg-transparent text-zisamale-teal font-medium text-caption
-           transition-all duration-200
-           hover:bg-zisamale-teal/10;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    font-weight: 500;
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .btn-ghost:hover {
+    background: rgba(168, 80, 47, 0.10);
   }
 
   .card {
-    @apply bg-surface-card rounded-lg border border-surface-border p-4 shadow-card;
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
     border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(41, 36, 28, 0.10), 0 1px 2px rgba(41, 36, 28, 0.06);
   }
 
   .card-elevated {
-    @apply bg-surface-card rounded-lg p-4 shadow-elevated;
+    background: var(--color-surface-elevated);
     border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 12px 24px rgba(41, 36, 28, 0.16), 0 4px 8px rgba(41, 36, 28, 0.08);
   }
 
   .card-critical {
-    @apply bg-surface-card rounded-lg p-4 border-2 border-risk-critical;
+    background: var(--color-surface-card);
+    border: 2px solid #C62828;
     border-radius: 16px;
-    box-shadow: 0px 4px 8px rgba(198, 40, 40, 0.15);
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(198, 40, 40, 0.15);
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-neutral px-4 py-3.5 text-body
-           bg-white transition-all duration-200
-           focus:border-zisamale-teal focus:outline-none focus:ring-2 focus:ring-zisamale-teal/20
-           placeholder:text-neutral/50;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    background: var(--color-surface-elevated);
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
     min-height: 56px;
   }
+  .input-field::placeholder {
+    color: rgba(110, 101, 87, 0.55);
+  }
+  .input-field:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(168, 80, 47, 0.18);
+  }
 
-  .input-error {
-    @apply border-risk-critical focus:border-risk-critical focus:ring-risk-critical/20;
+  .input-error,
+  .input-field.input-error {
+    border-color: #C62828;
+  }
+  .input-error:focus,
+  .input-field.input-error:focus {
+    border-color: #C62828;
+    box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.20);
   }
 
   .section-header {
-    @apply text-caption font-medium text-neutral uppercase tracking-wider mb-3;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
   }
 
   .risk-badge {
-    @apply inline-flex items-center justify-center w-12 h-12 rounded-full font-bold text-white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    color: #fff;
   }
-
-  .risk-badge-critical {
-    @apply risk-badge bg-risk-critical;
-  }
-
-  .risk-badge-high {
-    @apply risk-badge bg-risk-high;
-  }
-
-  .risk-badge-medium {
-    @apply risk-badge bg-risk-medium text-zisamale-dark;
-  }
-
-  .risk-badge-low {
-    @apply risk-badge bg-risk-low;
-  }
+  .risk-badge-critical { background: #C62828; color: #fff; }
+  .risk-badge-high { background: #E65100; color: #fff; }
+  .risk-badge-medium { background: #F9A825; color: #29241C; }
+  .risk-badge-low { background: #2E7D32; color: #fff; }
 
   .offline-banner {
-    @apply w-full bg-zisamale-teal text-white text-center py-2 text-caption font-medium;
+    width: 100%;
+    background: #17646C;
+    color: #fff;
+    text-align: center;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    font-weight: 500;
   }
 
-  .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-body font-medium
-           transition-all duration-200 cursor-pointer;
-  }
-
-  .nav-item-active {
-    @apply nav-item bg-zisamale-green/10 text-zisamale-green;
-  }
-
+  .nav-item,
+  .nav-item-active,
   .nav-item-inactive {
-    @apply nav-item text-neutral hover:bg-neutral-light hover:text-zisamale-dark;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 500;
+    transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1), transform 0.12s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+    cursor: pointer;
+  }
+  .nav-item-active {
+    background: rgba(168, 80, 47, 0.10);
+    color: var(--color-primary);
+  }
+  .nav-item-inactive {
+    color: var(--color-text-secondary);
+  }
+  .nav-item-inactive:hover {
+    background: var(--color-bg-muted);
+    color: var(--color-text);
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

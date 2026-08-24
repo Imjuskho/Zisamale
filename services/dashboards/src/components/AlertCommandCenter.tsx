@@ -9,17 +9,12 @@ import {
   YAxis,
 } from "recharts";
 import type { Alert, AlertActionType } from "../types";
+import { t } from "../i18n";
+import { ALERT_LEVEL_STYLES } from "../design/riskScale";
 
 export type AlertAction = AlertActionType;
 
-const RISK_STYLES: Record<
-  Alert["alert_level"],
-  { bg: string; border: string; label: string }
-> = {
-  red: { bg: "#fee2e2", border: "#dc2626", label: "CRITICAL" },
-  yellow: { bg: "#fef9c3", border: "#d97706", label: "ELEVATED" },
-  green: { bg: "#dcfce7", border: "#16a34a", label: "LOW" },
-};
+const RISK_STYLES = ALERT_LEVEL_STYLES;
 
 const ACTIONS: { action: AlertActionType; label: string }[] = [
   { action: "acknowledge", label: "Acknowledge" },
@@ -126,6 +121,7 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
   const [levelFilter, setLevelFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [lastDismissed, setLastDismissed] = useState<Alert | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<
     Record<string, Alert["response_status"]>
   >({});
@@ -154,9 +150,20 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
     return statusOverrides[alert.alert_id] ?? alert.response_status;
   }
 
+  function undoDismiss() {
+    if (!lastDismissed) return;
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(lastDismissed.alert_id);
+      return next;
+    });
+    setLastDismissed(null);
+  }
+
   async function handleAction(alert: Alert, action: AlertActionType) {
     if (action === "dismiss") {
       setDismissedIds((prev) => new Set(prev).add(alert.alert_id));
+      setLastDismissed(alert);
     } else {
       const nextStatus: Alert["response_status"] =
         action === "acknowledge" ? "acknowledged" : "in_progress";
@@ -167,6 +174,15 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
 
   const timelineAlert =
     visibleAlerts.find((a) => a.alert_id === selectedId) ?? visibleAlerts[0] ?? null;
+
+  const hasActiveFilters =
+    diseaseFilter !== "all" || levelFilter !== "all" || statusFilter !== "all";
+
+  function clearAllFilters() {
+    setDiseaseFilter("all");
+    setLevelFilter("all");
+    setStatusFilter("all");
+  }
 
   return (
     <div className="alert-command-center">
@@ -220,8 +236,43 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
         </div>
       </div>
 
+      {lastDismissed && (
+        <div
+          className="alert-dismissed-banner"
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "8px 12px",
+            marginBottom: 12,
+            borderRadius: 8,
+            background: "var(--color-bg-muted, #f1f5f9)",
+            border: "1px solid var(--color-border, #cbd5e1)",
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            {t("alertDismissed")} {lastDismissed.disease} — {lastDismissed.ta_name}
+          </span>
+          <button type="button" onClick={undoDismiss}>
+            {t("undo")}
+          </button>
+        </div>
+      )}
+
       {visibleAlerts.length === 0 ? (
-        <p className="alert-empty">No alerts match the current filters.</p>
+        <div className="alert-empty">
+          <p>
+            {hasActiveFilters
+              ? "No alerts match the current filters."
+              : t("noAlertsAtAll")}
+          </p>
+          {hasActiveFilters && (
+            <button type="button" onClick={clearAllFilters}>
+              {t("clearFilters")}
+            </button>
+          )}
+        </div>
       ) : (
         <div className="alert-cards" style={{ display: "grid", gap: 12 }}>
           {visibleAlerts.map((alert) => {
@@ -292,7 +343,7 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
                     );
                   })}
                   <button type="button" onClick={() => setSelectedId(alert.alert_id)}>
-                    View Timeline
+                    View timeline
                   </button>
                 </footer>
               </article>
@@ -302,10 +353,16 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
       )}
 
       {timelineAlert && (
-        <section className="outbreak-timeline" style={{ marginTop: 16 }}>
+        <section className="outbreak-timeline" style={{ marginTop: 16 }} aria-label={`Outbreak timeline for ${timelineAlert.ta_name}, ${timelineAlert.disease}`}>
           <h3>
             Outbreak Timeline &mdash; {timelineAlert.ta_name} ({timelineAlert.disease})
           </h3>
+          <p className="sr-only">
+            Projected {timelineAlert.disease} cases over the coming weeks for{" "}
+            {timelineAlert.ta_name}: about {timelineAlert.predicted_cases} cases
+            predicted at the peak, with an upper estimate of{" "}
+            {timelineAlert.confidence_interval?.[1] ?? timelineAlert.predicted_cases}.
+          </p>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={outbreakCurve(timelineAlert)}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -316,8 +373,8 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
                 type="monotone"
                 dataKey="cases"
                 name="Predicted cases"
-                stroke="#dc2626"
-                fill="#fecaca"
+                stroke="#C62828"
+                fill="#FFEBEE"
                 strokeWidth={2}
               />
             </AreaChart>

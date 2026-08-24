@@ -63,6 +63,21 @@ import {
   Circle,
   CheckFat,
   WarningCircle,
+  Truck,
+  Path,
+  CaretLeft,
+  CaretRight,
+  CaretUp,
+  CaretDown,
+  Stack,
+  Sparkle,
+  SquaresFour,
+  ArrowsClockwise,
+  Virus,
+  Heartbeat,
+  WarningOctagon,
+  Check,
+  X,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
@@ -136,6 +151,21 @@ const ICON_MAP = {
   Circle,
   CheckFat,
   WarningCircle,
+  Truck,
+  Path,
+  CaretLeft,
+  CaretRight,
+  CaretUp,
+  CaretDown,
+  Stack,
+  Sparkle,
+  SquaresFour,
+  ArrowsClockwise,
+  Virus,
+  Heartbeat,
+  WarningOctagon,
+  Check,
+  X,
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

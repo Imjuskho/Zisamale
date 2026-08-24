@@ -87,7 +87,7 @@ export function CHWDashboard() {
           label="Visits This Week"
           value={myPerf ? `${myPerf.visits_this_week}/${myPerf.expected_visits_weekly}` : "—"}
           icon="ListChecks"
-          iconColor="#0f7b8a"
+          iconColor="#17646C"
           trend={
             completionRate >= 80
               ? { direction: "up", value: `${completionRate}%`, isPositive: true }
@@ -100,11 +100,11 @@ export function CHWDashboard() {
           label="High-Risk Households"
           value={highRisk}
           icon="Warning"
-          iconColor="#c62828"
+          iconColor="#C62828"
           trend={highRisk > 0 ? { direction: "up", value: `${highRisk} need attention`, isPositive: false } : undefined}
         />
-        <KPICard label="Children Under 5" value={underFive} icon="Baby" iconColor="#0f7b8a" />
-        <KPICard label="Total Households" value={households.length} icon="House" iconColor="#2d7d46" />
+        <KPICard label="Children Under 5" value={underFive} icon="Baby" iconColor="#17646C" />
+        <KPICard label="Total Households" value={households.length} icon="House" iconColor="#2D7D46" />
       </div>
 
       <section className="chw-household-list">
@@ -114,7 +114,7 @@ export function CHWDashboard() {
             title="No households assigned"
             subtitle="Your supervisor will assign households to your catchment area."
             icon="House"
-            iconColor="#0f7b8a"
+            iconColor="#17646C"
           />
         ) : (
           <div className="household-cards">

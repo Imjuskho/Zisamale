@@ -20,11 +20,11 @@ export function EmptyState({ title, subtitle, icon = "Info", iconColor, action }
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: iconColor ? `${iconColor}14` : "#f0f0f0",
+          backgroundColor: iconColor ? `${iconColor}14` : "var(--color-bg-muted)",
           marginBottom: 24,
         }}
       >
-        <Icon name={icon} size={36} color={iconColor ?? "#999"} />
+        <Icon name={icon} size={36} color={iconColor ?? "var(--color-text-muted)"} />
       </div>
       <h3 className="text-title font-semibold text-zisamale-dark mb-2">{title}</h3>
       {subtitle && <p className="text-body text-neutral max-w-xs">{subtitle}</p>}

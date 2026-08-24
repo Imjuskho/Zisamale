@@ -29,9 +29,9 @@ export function syncStatus(ageHours: number): {
 }
 
 const TONE_COLORS = {
-  ok: "#15803d",
-  warn: "#c2410c",
-  stale: "#b91c1c",
+  ok: "#2E7D32",
+  warn: "#E65100",
+  stale: "#C62828",
 } as const;
 
 function formatLastVisit(iso: string | null): string {
@@ -134,8 +134,9 @@ export function CHWPerformanceTable({
         </tbody>
       </table>
       <p className="chw-legend">
-        Red background: sync older than 48h &middot; Yellow background: under 50% visit
-        completion &middot; Click a row for household drill-down.
+        Rows with a red background have not synced in over 48 hours; yellow
+        means under 50% visit completion. Open a row (Enter, Space, or click)
+        to see its households.
       </p>
     </div>
   );
@@ -169,16 +170,27 @@ function FragmentRow({
         className={`chw-row ${rowTone}`}
         onClick={onToggle}
         style={{ cursor: "pointer" }}
-        aria-expanded={isExpanded}
       >
-        <td className="chw-name">{chw.chw_name}</td>
-        <td>{chw.catchment_population.toLocaleString()}</td>
+        <td className="chw-name">
+          <button
+            type="button"
+            className="chw-row-toggle"
+            aria-expanded={isExpanded}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+          >
+            {isExpanded ? "▾" : "▸"} {chw.chw_name}
+          </button>
+        </td>
+        <td>{(chw.catchment_population ?? 0).toLocaleString()}</td>
         <td>
-          {chw.visits_this_week}/{chw.expected_visits_weekly} (
+          {chw.visits_this_week ?? 0}/{chw.expected_visits_weekly ?? 1} (
           {Math.round(completion * 100)}%)
         </td>
-        <td>{chw.high_risk_cases}</td>
-        <td>{chw.referrals_open}</td>
+        <td>{chw.high_risk_cases ?? 0}</td>
+        <td>{chw.referrals_open ?? 0}</td>
         <td>
           <span
             className={`sync-badge sync-${status.tone}`}

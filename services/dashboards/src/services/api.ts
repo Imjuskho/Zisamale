@@ -4,10 +4,23 @@ import type {
   BudgetScenarioInput,
   BudgetScenarioOutput,
   CaseTrend,
+  CHWLocation,
   CHWPerformance,
+  ClimateOverlay,
+  ColdChainFacility,
+  CommunityPin,
   CommodityForecast,
   DistrictSummary,
+  HealthWeatherBriefing,
   Household,
+  MaternityWaitingHome,
+  NutritionDataPoint,
+  OutbreakPrediction,
+  OutreachRoute,
+  RegistryFacility,
+  SupplyTruck,
+  TraditionalBirthAttendant,
+  Village,
   WsStatus,
 } from "../types";
 
@@ -120,6 +133,27 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * A 401 means the stored session is expired or invalid. Without this, the app
+ * keeps rendering a zombie dashboard where every request silently fails
+ * (e.g. empty district scorecards). End the session and return to login.
+ * Full reload (not SPA navigate): the Redux store must re-initialize from
+ * localStorage, otherwise LoginPage bounces straight back into the app.
+ */
+function handleSessionExpiry(): void {
+  if (typeof window === "undefined") return;
+  tokenStore.clear();
+  try {
+    localStorage.removeItem("zisamale-user");
+    localStorage.removeItem("zisamale-role");
+  } catch {
+    // ignore
+  }
+  if (window.location.pathname !== "/login") {
+    window.location.replace("/login?expired=1");
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const {
     method = "GET",
@@ -166,6 +200,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       const message =
         (errorBody && (errorBody.detail ?? errorBody.message)) ||
         `API error: ${response.status}`;
+      if (response.status === 401 && authenticated && !path.startsWith("/api/v1/auth/")) {
+        handleSessionExpiry();
+      }
       throw new ApiError(String(message), "http", response.status);
     } catch (err) {
       const isApiError = err instanceof ApiError;
@@ -290,6 +327,93 @@ export const api = {
       method: "POST",
       body: input,
     });
+  },
+
+  /* MOYO map layer datasets (backend derives or serves each) */
+  getCHWPresence(): Promise<CHWLocation[]> {
+    return request<CHWLocation[]>("/api/v1/map/chw-presence");
+  },
+  getCommunityPins(): Promise<CommunityPin[]> {
+    return request<CommunityPin[]>("/api/v1/map/community-pins");
+  },
+  getOutbreakPredictions(): Promise<OutbreakPrediction[]> {
+    return request<OutbreakPrediction[]>("/api/v1/map/outbreak-predictions");
+  },
+  getImmunizationVillages(): Promise<Village[]> {
+    return request<Village[]>("/api/v1/map/immunization/villages");
+  },
+  getOutreachRoutes(): Promise<OutreachRoute[]> {
+    return request<OutreachRoute[]>("/api/v1/map/immunization/outreach-routes");
+  },
+  getColdChain(): Promise<ColdChainFacility[]> {
+    return request<ColdChainFacility[]>("/api/v1/map/cold-chain");
+  },
+  getMaternityHomes(): Promise<MaternityWaitingHome[]> {
+    return request<MaternityWaitingHome[]>("/api/v1/map/maternity-homes");
+  },
+  getTBAs(): Promise<TraditionalBirthAttendant[]> {
+    return request<TraditionalBirthAttendant[]>("/api/v1/map/tbas");
+  },
+  getSupplyTrucks(): Promise<SupplyTruck[]> {
+    return request<SupplyTruck[]>("/api/v1/map/supply-trucks");
+  },
+  getNutritionData(): Promise<NutritionDataPoint[]> {
+    return request<NutritionDataPoint[]>("/api/v1/map/nutrition");
+  },
+  getWeatherBriefing(): Promise<HealthWeatherBriefing> {
+    return request<HealthWeatherBriefing>("/api/v1/map/weather-briefing");
+  },
+  getClimateOverlays(type: ClimateOverlay["overlay_type"]): Promise<ClimateOverlay[]> {
+    return request<ClimateOverlay[]>(
+      `/api/v1/map/climate-overlays?type=${encodeURIComponent(type)}`
+    );
+  },
+
+  /**
+   * Facility registry (Zipatala MHFR-derived) as GeoJSON → domain objects.
+   * Fields the API does not serve yet are mapped to `null`, never invented.
+   */
+  async getRegistryFacilities(): Promise<RegistryFacility[]> {
+    const geojson = await request<{
+      features: Array<{
+        geometry: { coordinates: [number, number] };
+        properties: {
+          id: string;
+          name: string;
+          type: RegistryFacility["type"];
+          district?: string | null;
+          beds_total?: number | null;
+          has_maternity?: boolean;
+          has_lab?: boolean;
+          has_pharmacy?: boolean;
+        };
+      }>;
+    }>("/api/v1/facilities?limit=5000");
+    return geojson.features.map((f) => ({
+      id: f.properties.id,
+      name: f.properties.name,
+      type: f.properties.type,
+      ownership: null,
+      district: f.properties.district ?? "",
+      traditional_authority: null,
+      latitude: f.geometry.coordinates[1],
+      longitude: f.geometry.coordinates[0],
+      operational_status: null,
+      beds_total: f.properties.beds_total ?? null,
+      beds_available: null,
+      services: [
+        ...(f.properties.has_maternity ? ["maternity"] : []),
+        ...(f.properties.has_lab ? ["lab"] : []),
+        ...(f.properties.has_pharmacy ? ["pharmacy"] : []),
+      ],
+      last_verified: null,
+      data_source: "api",
+      chw_verified: false,
+      chw_verified_by: null,
+      chw_verified_date: null,
+      mhfrcode: null,
+      dhis2code: null,
+    }));
   },
 };
 

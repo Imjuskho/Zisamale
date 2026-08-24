@@ -103,6 +103,7 @@ export const submitAlertAction = createAsyncThunk(
 );
 
 function upsertAlert(state: DashboardState, alert: Alert) {
+  if (!alert?.alert_id) return; // ignore malformed payloads (e.g. {ok:true})
   const idx = state.alerts.findIndex((a) => a.alert_id === alert.alert_id);
   if (idx >= 0) state.alerts[idx] = alert;
   else state.alerts.unshift(alert);

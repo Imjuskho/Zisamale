@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 window.location.reload();
               }}
             >
-              Reload Page
+              Reload page
             </button>
           </div>
         </div>

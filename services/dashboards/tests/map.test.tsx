@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { LeafletMap, riskToColor, riskToLabel } from "../src/components/LeafletMap";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { dashboardReducer, themeReducer } from "../src/store/dashboardSlice";
+import { LeafletMap } from "../src/components/LeafletMap";
+import { riskToColor, riskToLabel, RISK_HEX } from "../src/design/riskScale";
 
 const { fakeMap } = vi.hoisted(() => ({
   fakeMap: {
     setZoom: vi.fn(),
     flyTo: vi.fn(),
+    flyToBounds: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
   },
@@ -55,18 +60,27 @@ describe("LeafletMap", () => {
   beforeEach(() => {
     fakeMap.setZoom.mockClear();
     fakeMap.flyTo.mockClear();
+    fakeMap.flyToBounds.mockClear();
   });
 
+  function renderMap(ui: React.ReactElement) {
+    const store = configureStore({
+      reducer: { dashboard: dashboardReducer, theme: themeReducer },
+    });
+    return render(<Provider store={store}>{ui}</Provider>);
+  }
+
   it("renders the map shell with OpenStreetMap tiles", () => {
-    render(<LeafletMap />);
-    expect(screen.getByText("District Risk Map")).toBeInTheDocument();
+    renderMap(<LeafletMap />);
+    expect(screen.getByText("Moyo Map")).toBeInTheDocument();
+    expect(screen.getByText(/Spatial Health Intelligence/)).toBeInTheDocument();
     expect(screen.getByTestId("map-container")).toBeInTheDocument();
     const tileLayer = screen.getByTestId("tile-layer");
     expect(tileLayer.getAttribute("data-url")).toContain("openstreetmap");
   });
 
   it("renders Malawi district polygons and the color legend", () => {
-    render(<LeafletMap />);
+    renderMap(<LeafletMap />);
     expect(screen.getByText("Nsanje")).toBeInTheDocument();
     expect(screen.getByText("Blantyre")).toBeInTheDocument();
     expect(screen.getByText("Lilongwe")).toBeInTheDocument();
@@ -77,7 +91,7 @@ describe("LeafletMap", () => {
 
   it("shows popup info panel and notifies parent on district click", () => {
     const onSelect = vi.fn();
-    render(<LeafletMap onSelectDistrict={onSelect} />);
+    renderMap(<LeafletMap onSelectDistrict={onSelect} />);
     fireEvent.click(screen.getByText("Blantyre"));
     const panel = screen.getByRole("status");
     expect(panel).toHaveTextContent("Blantyre");
@@ -90,7 +104,7 @@ describe("LeafletMap", () => {
   });
 
   it("uses caller-supplied risk data instead of sample values", () => {
-    render(
+    renderMap(
       <LeafletMap
         districts={[{ name: "Nsanje", risk_score: 0.91, facility_count: 12 }]}
       />
@@ -102,19 +116,24 @@ describe("LeafletMap", () => {
   });
 
   it("dismisses the info panel via Close", () => {
-    render(<LeafletMap />);
+    renderMap(<LeafletMap />);
     fireEvent.click(screen.getByText("Nsanje"));
     expect(screen.getByRole("status")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Close"));
+    fireEvent.click(screen.getByRole("button", { name: /close district panel/i }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("flies to district bounds when selection is controlled externally", () => {
+    renderMap(<LeafletMap selectedDistrictId="blantyre" />);
+    expect(fakeMap.flyToBounds).toHaveBeenCalled();
   });
 
   describe("color scale helpers", () => {
     it("maps risk bands to the configured colors", () => {
-      expect(riskToColor(0.1)).toBe("#22c55e");
-      expect(riskToColor(0.45)).toBe("#eab308");
-      expect(riskToColor(0.7)).toBe("#f97316");
-      expect(riskToColor(0.95)).toBe("#ef4444");
+      expect(riskToColor(0.1)).toBe(RISK_HEX.low);
+      expect(riskToColor(0.45)).toBe(RISK_HEX.medium);
+      expect(riskToColor(0.7)).toBe(RISK_HEX.high);
+      expect(riskToColor(0.95)).toBe(RISK_HEX.critical);
     });
 
     it("labels risk bands", () => {

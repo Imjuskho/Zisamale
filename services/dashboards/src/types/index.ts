@@ -40,7 +40,7 @@ export interface CommodityForecast {
   stockout_risk: number;
 }
 
-export type UserRole = "dho" | "mohp" | "chw" | "phim";
+export type UserRole = "dho" | "mohp" | "chw" | "phim" | "supervisor";
 
 export type AlertActionType =
   | "acknowledge"
@@ -175,50 +175,40 @@ export interface DataTableProps<T> {
 /* MOYO MAP — Spatial Health Intelligence Types                       */
 /* ================================================================== */
 
-export type FacilityType = "district_hospital" | "community_hospital" | "health_centre" | "health_post" | "private";
+/**
+ * Facility registry domain model (Zipatala MHFR-derived). Fields the
+ * backend does not serve yet stay `null` — the UI renders "Unverified"
+ * rather than inventing values.
+ */
+export type RegistryFacilityType =
+  | "district_hospital"
+  | "community_hospital"
+  | "health_centre"
+  | "health_post"
+  | "private";
 
-export type FacilityStatus = "operational" | "partial" | "closed";
+export type RegistryFacilityStatus = "Functional" | "Partial" | "Not Functional" | "Closed";
 
-export type StaffPresence = "present" | "on_break" | "absent";
-
-export interface FacilityStaff {
-  role: string;
+export interface RegistryFacility {
+  id: string;
   name: string;
-  status: StaffPresence;
-}
-
-export interface FacilityBed {
-  ward: string;
-  available: number;
-  total: number;
-}
-
-export interface FacilityStock {
-  commodity: string;
-  level: number;
-  status: "good" | "amber" | "critical";
-}
-
-export interface RoadCondition {
-  route: string;
-  status: "passable" | "flooded" | "4wd_only" | "blocked";
-  note?: string;
-}
-
-export interface Facility {
-  facility_id: string;
-  name: string;
-  facility_type: FacilityType;
-  lat: number;
-  lng: number;
-  status: FacilityStatus;
-  beds: FacilityBed[];
-  stock: FacilityStock[];
-  staff: FacilityStaff[];
-  roads: RoadCondition[];
-  emergency_receiving?: boolean;
-  last_updated: string;
-  phone?: string;
+  type: RegistryFacilityType;
+  ownership: string | null;
+  district: string;
+  traditional_authority: string | null;
+  latitude: number;
+  longitude: number;
+  operational_status: RegistryFacilityStatus | null;
+  beds_total: number | null;
+  beds_available: number | null;
+  services: string[];
+  last_verified: string | null;
+  data_source: string;
+  chw_verified: boolean;
+  chw_verified_by: string | null;
+  chw_verified_date: string | null;
+  mhfrcode: string | null;
+  dhis2code: string | null;
 }
 
 export type CHWPresenceLevel = "ghost" | "area" | "precise";
@@ -272,6 +262,7 @@ export interface ClimateOverlay {
   lng: number;
   value: number;
   label: string;
+  color?: string;
 }
 
 export interface ReferralRequest {
@@ -283,15 +274,13 @@ export interface ReferralRequest {
 }
 
 export interface ReferralResult {
-  facility: Facility;
+  facility: RegistryFacility;
   distance_km: number;
   eta_minutes: number;
-  road_status: RoadCondition;
   score: number;
   capabilities_matched: boolean;
   beds_available: boolean;
-  stock_available: boolean;
-  staff_present: boolean;
+  status_ok: boolean;
   recommended: boolean;
 }
 
@@ -300,9 +289,127 @@ export type MapLayer =
   | "facilities"
   | "chw_presence"
   | "community_pins"
-  | "outbreak预测"
+  | "outbreak"
   | "rainfall"
   | "flood"
   | "temperature"
+  | "vegetation"
   | "immunization"
-  | "maternity";
+  | "cold_chain"
+  | "maternity"
+  | "tba"
+  | "supply_chain"
+  | "nutrition"
+  | "mental_health";
+
+/* ================================================================== */
+/* IMMUNIZATION MICRO-PLANNING (Part 6)                               */
+/* ================================================================== */
+
+export interface Village {
+  village_id: string;
+  name: string;
+  ta_name: string;
+  lat: number;
+  lng: number;
+  under5_population: number;
+  dpt3_coverage: number;
+  measles_coverage: number;
+  pentavalent_coverage: number;
+}
+
+export interface ColdChainFacility {
+  facility_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  fridge_status: "working" | "broken" | "none";
+  last_temperature: number | null;
+  solar_powered: boolean;
+}
+
+export interface OutreachRoute {
+  route_id: string;
+  label: string;
+  stops: { lat: number; lng: number; village_name: string; unvaccinated_count: number }[];
+  total_unvaccinated: number;
+  estimated_hours: number;
+}
+
+/* ================================================================== */
+/* MATERNAL & TBA INTEGRATION (Part 7)                                */
+/* ================================================================== */
+
+export interface MaternityWaitingHome {
+  mwh_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  capacity: number;
+  occupied: number;
+  status: "open" | "full" | "closed";
+  linked_facility_id: string;
+}
+
+export interface TraditionalBirthAttendant {
+  tba_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  years_experience: number;
+  registered: boolean;
+  linked_facility_id: string;
+  village: string;
+}
+
+/* ================================================================== */
+/* HEALTH WEATHER / SUPPLY CHAIN / NUTRITION (Part 9)                 */
+/* ================================================================== */
+
+export interface HealthWeatherBriefing {
+  briefing_id: string;
+  generated_at: string;
+  district: string;
+  risk_summary: string;
+  action_items: string[];
+  alert_level: "green" | "yellow" | "red";
+}
+
+export interface SupplyTruck {
+  truck_id: string;
+  driver_name: string;
+  lat: number;
+  lng: number;
+  heading: number;
+  cargo: string;
+  destination: string;
+  eta_hours: number;
+  temperature_breach: boolean;
+  last_update: string;
+}
+
+export interface NutritionDataPoint {
+  village_id: string;
+  village_name: string;
+  lat: number;
+  lng: number;
+  stunting_rate: number;
+  wasting_rate: number;
+  muac_screenings: number;
+  rutf_needed: boolean;
+}
+
+/* ================================================================== */
+/* REFERRAL ROUTING (map route lines)                                 */
+/* ================================================================== */
+
+export interface ReferralRoute {
+  from_lat: number;
+  from_lng: number;
+  to_lat: number;
+  to_lng: number;
+  road_status: "passable" | "flooded" | "4wd_only" | "blocked";
+  distance_km: number;
+  eta_minutes: number;
+  recommended: boolean;
+}

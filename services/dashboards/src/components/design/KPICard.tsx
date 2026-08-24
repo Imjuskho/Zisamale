@@ -35,11 +35,11 @@ export function KPICard({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: iconColor ? `${iconColor}14` : "#f0f0f0",
+              backgroundColor: iconColor ? `${iconColor}14` : "var(--color-bg-muted)",
               flexShrink: 0,
             }}
           >
-            <Icon name={icon} size={20} color={iconColor ?? "#666"} />
+            <Icon name={icon} size={20} color={iconColor ?? "var(--color-text-muted)"} />
           </span>
         )}
       </div>
@@ -50,11 +50,11 @@ export function KPICard({
       </div>
 
       {trend && (
-        <div className="flex items-center gap-1 mt-2">
+        <div className="flex items-center gap-1 mt-2 kpi-trend-value">
           <Icon
             name={trend.direction === "down" ? "TrendDown" : trend.direction === "up" ? "TrendUp" : "Minus"}
             size={14}
-            color={trend.isPositive ? "#2d7d46" : "#c62828"}
+            color={trend.isPositive ? "#2D7D46" : "#C62828"}
           />
           <span
             className={`text-caption font-medium ${

@@ -3,6 +3,7 @@ import { useAppSelector, useAppDispatch } from "../hooks/useRedux";
 import { logout } from "../store/dashboardSlice";
 import { tokenStore } from "../services/api";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageToggle } from "./design/LanguageToggle";
 import { t, type StringKey } from "../i18n";
 import { Icon, type IconName } from "./design/Icon";
 import type { UserRole } from "../types";
@@ -20,6 +21,7 @@ const ROLE_I18N: Record<UserRole, StringKey> = {
   mohp: "roleMOHP",
   chw: "roleCHW",
   phim: "rolePHIM",
+  supervisor: "roleSupervisor",
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -67,10 +69,12 @@ export function Sidebar() {
             </div>
           </div>
         )}
-        <ThemeToggle />
+        <div className="sidebar-toggles">
+          <LanguageToggle variant="compact" />
+          <ThemeToggle />
+        </div>
         <button
           className="sidebar-link sidebar-logout"
-          aria-label={t("signOut", "ny")}
           onClick={() => {
             dispatch(logout());
             tokenStore.clear();

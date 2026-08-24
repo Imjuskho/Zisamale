@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Alert, CommodityForecast, DistrictSummary } from "../types";
+import { Icon } from "./design/Icon";
+import { LanguageToggle } from "./design/LanguageToggle";
+import { useLanguage, useT } from "./design/LanguageContext";
+import { useToast } from "./design/Toast";
 
 export type BriefingLanguage = "en" | "ny";
 
@@ -27,6 +32,7 @@ interface BriefingData {
 }
 
 interface Section {
+  id: string;
   heading: { en: string; ny: string };
   body: { en: string; ny: string };
 }
@@ -36,7 +42,7 @@ function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-function buildSections(data: BriefingData, date: Date): Section[] {
+export function buildSections(data: BriefingData): Section[] {
   const { alerts, districts, forecast } = data;
   const sections: Section[] = [];
 
@@ -47,16 +53,17 @@ function buildSections(data: BriefingData, date: Date): Section[] {
   const names = listNames(outbreakDistricts.slice(0, 5));
 
   sections.push({
+    id: "outbreak",
     heading: { en: "Outbreak Outlook", ny: "Chiwerengero cha Chiwombo" },
     body: {
       en:
         n > 0
-          ? `This week (Week ${isoWeek(date).week}, ${isoWeek(date).year}): ${n} district${n === 1 ? "" : "s"} predicted outbreaks${names ? ` — ${names}` : ""}.`
-          : `This week (Week ${isoWeek(date).week}, ${isoWeek(date).year}): no districts are predicted to experience outbreaks.`,
+          ? `${n} district${n === 1 ? "" : "s"} predicted outbreaks${names ? ` — ${names}` : ""} this week.`
+          : "No districts are predicted to experience outbreaks this week.",
       ny:
         n > 0
-          ? `Sabata ino (Sabata ${isoWeek(date).week}, Chaka ${isoWeek(date).year}): maboma ${n} akuwerengedwa kuti adzakhala ndi chiwombo cha malungo${names ? ` — ${names}` : ""}.`
-          : `Sabata ino (Sabata ${isoWeek(date).week}, Chaka ${isoWeek(date).year}): palibe boma lofotokozedwa kuti lidzakhala ndi chiwombo.`,
+          ? `Maboma ${n} akuwerengedwa kuti adzakhala ndi chiwombo cha malungo${names ? ` — ${names}` : ""} sabata ino.`
+          : "Palibe boma lofotokozedwa kuti lidzakhala ndi chiwombo sabata ino.",
     },
   });
 
@@ -68,18 +75,19 @@ function buildSections(data: BriefingData, date: Date): Section[] {
     .map((a) => `${a.ta_name} (${a.disease})`);
 
   sections.push({
+    id: "alerts",
     heading: { en: "Active Alerts", ny: "Zochenjera Zogwira Ntchito" },
     body: {
       en:
         alerts.length === 0
-          ? "There are no active disease alerts this week."
+          ? "There are no active disease alerts requiring immediate action."
           : `${alerts.length} active alert${alerts.length === 1 ? "" : "s"}: ${counts.red} critical, ${counts.yellow} elevated, ${counts.green} low.` +
             (criticalTAs.length > 0
               ? ` Priority response areas: ${listNames(criticalTAs)}.`
               : ""),
       ny:
         alerts.length === 0
-          ? "Palibe zochenjera za matenda sabata ino."
+          ? "Palibe zochenjera za matenda zofunika kuchita kanthu msanga."
           : `Zochenjera zogwira ntchito: ${alerts.length} — zowopsa ${counts.red}, zapakati ${counts.yellow}, zochepa ${counts.green}.` +
             (criticalTAs.length > 0
               ? ` Malo oyenera kupatsa mphamvu: ${listNames(criticalTAs)}.`
@@ -96,6 +104,7 @@ function buildSections(data: BriefingData, date: Date): Section[] {
     .join("; ");
 
   sections.push({
+    id: "supply",
     heading: { en: "Commodity Supply", ny: "Zinthu Zofunikira" },
     body: {
       en: stockoutRisks.length
@@ -114,9 +123,10 @@ function buildSections(data: BriefingData, date: Date): Section[] {
       (a, b) => a.essential_service_coverage - b.essential_service_coverage
     )[0];
     sections.push({
+      id: "services",
       heading: { en: "Essential Services", ny: "Utumiki Waukulu" },
       body: {
-        en: `Essential service coverage averages ${Math.round(avgCoverage * 100)}% nationally; lowest in ${worst.district_name} (${Math.round(worst.essential_service_coverage * 100)}%).`,
+        en: `Coverage averages ${Math.round(avgCoverage * 100)}% nationally; lowest in ${worst.district_name} (${Math.round(worst.essential_service_coverage * 100)}%).`,
         ny: `Utumiki waukulu wafika ${Math.round(avgCoverage * 100)}% pa dziko lonse; wotsika kwambiri ku ${worst.district_name} (${Math.round(worst.essential_service_coverage * 100)}%).`,
       },
     });
@@ -145,6 +155,61 @@ function briefingToText(
   return lines.join("\n");
 }
 
+/* ── Visual configuration per section ─────────────────────────────── */
+
+const SECTION_STYLE: Record<
+  string,
+  { icon: Parameters<typeof Icon>[0]["name"]; iconClass: string }
+> = {
+  outbreak: { icon: "Virus", iconClass: "exec-icon--red" },
+  alerts: { icon: "Bell", iconClass: "exec-icon--amber" },
+  supply: { icon: "Package", iconClass: "exec-icon--orange" },
+  services: { icon: "Heartbeat", iconClass: "exec-icon--teal" },
+};
+
+interface Badge {
+  text: string;
+  tone: "red" | "green" | "amber" | "blue";
+}
+
+function buildBadge(sectionId: string, data: BriefingData): Badge | null {
+  switch (sectionId) {
+    case "outbreak": {
+      const n = data.districts.filter((d) => d.malaria_risk_level === "high").length;
+      return n > 0
+        ? { text: `${n} district${n === 1 ? "" : "s"} at risk`, tone: "red" }
+        : { text: "No outbreak predicted", tone: "green" };
+    }
+    case "alerts": {
+      const red = data.alerts.filter((a) => a.alert_level === "red").length;
+      if (data.alerts.length === 0) return { text: "0 alerts", tone: "green" };
+      return { text: `${data.alerts.length} active${red > 0 ? ` • ${red} critical` : ""}`, tone: red > 0 ? "red" : "amber" };
+    }
+    case "supply": {
+      const atRisk = (data.forecast ?? []).filter((f) => f.stockout_risk > 0.5).length;
+      return atRisk > 0
+        ? { text: `${atRisk} at risk`, tone: "amber" }
+        : { text: "Within thresholds", tone: "green" };
+    }
+    case "services": {
+      if (data.districts.length === 0) return null;
+      const avg =
+        data.districts.reduce((s, d) => s + d.essential_service_coverage, 0) /
+        data.districts.length;
+      return { text: `${Math.round(avg * 100)}% national`, tone: "blue" };
+    }
+    default:
+      return null;
+  }
+}
+
+const BADGE_TONE_CLASS: Record<Badge["tone"], string> = {
+  red: "exec-badge--red",
+  green: "exec-badge--green",
+  amber: "exec-badge--amber",
+  blue: "exec-badge--blue",
+};
+
 interface NLGExecutiveSummaryProps {
   alerts: Alert[];
   districts: DistrictSummary[];
@@ -158,16 +223,29 @@ export function NLGExecutiveSummary({
   forecast,
   date = new Date(),
 }: NLGExecutiveSummaryProps) {
-  const [language, setLanguage] = useState<BriefingLanguage>("en");
+  const { language } = useLanguage();
+  const t = useT();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const data = useMemo(() => ({ alerts, districts, forecast }), [alerts, districts, forecast]);
+  const sections = useMemo(() => buildSections(data), [data]);
+  const text = useMemo(() => briefingToText(sections, language, date), [sections, language, date]);
 
-  const sections = useMemo(
-    () => buildSections({ alerts, districts, forecast }, date),
-    [alerts, districts, forecast, date]
-  );
-  const text = useMemo(
-    () => briefingToText(sections, language, date),
-    [sections, language, date]
-  );
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const criticalAlerts = alerts.filter((a) => a.alert_level === "red");
+  const topStockouts = (forecast ?? [])
+    .filter((f) => f.stockout_risk > 0.5)
+    .sort((a, b) => b.stockout_risk - a.stockout_risk);
+
+  function toggleSection(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function handleExport() {
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
@@ -182,37 +260,125 @@ export function NLGExecutiveSummary({
     URL.revokeObjectURL(url);
   }
 
+  async function handleShareWithFinance() {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.show("Briefing copied to clipboard — ready to paste for Finance.", {
+        type: "success",
+      });
+    } catch {
+      toast.show("Copy failed — download the briefing instead.", { type: "error" });
+      handleExport();
+    }
+  }
+
   return (
-    <div className="nlg-executive-summary">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <h2>Weekly Executive Summary</h2>
-        <span style={{ flex: 1 }} />
-        <button
-          type="button"
-          aria-pressed={language === "en"}
-          onClick={() => setLanguage("en")}
-        >
-          English
-        </button>
-        <button
-          type="button"
-          aria-pressed={language === "ny"}
-          onClick={() => setLanguage("ny")}
-        >
-          Chichewa
-        </button>
-        <button type="button" onClick={handleExport}>
-          Export as Text
-        </button>
+    <div className="nlg-executive-summary exec-card">
+      <header className="exec-header">
+        <div>
+          <h2>{t("weeklyExecSummary")}</h2>
+          <p className="exec-header-meta">
+            {language === "ny"
+              ? `Sabata ${isoWeek(date).week}, Chaka ${isoWeek(date).year}`
+              : `Week ${isoWeek(date).week}, ${isoWeek(date).year}`}
+            {" • "}
+            {t("generatedByAi")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <LanguageToggle variant="compact" />
+          <button type="button" className="btn-primary exec-export-btn" onClick={handleExport}>
+            <Icon name="Download" size={14} />
+            <span className="hidden sm:inline">{t("exportText")}</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="exec-body">
+        {/* Critical banner — surfaces immediately for scanning eyes */}
+        {criticalAlerts.length > 0 && (
+          <div className="exec-critical-banner" role="alert">
+            <Icon name="Warning" size={20} weight="fill" className="shrink-0" />
+            <div>
+              <p className="exec-critical-title">
+                {criticalAlerts.length} critical alert{criticalAlerts.length === 1 ? "" : "s"} require action
+              </p>
+              <p className="exec-critical-detail">
+                {listNames(criticalAlerts.slice(0, 3).map((a) => `${a.ta_name} (${a.disease})`))}
+                {" — "}
+                {criticalAlerts.reduce((s, a) => s + a.predicted_cases, 0).toLocaleString()} predicted cases.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Section cards */}
+        <div className="exec-grid">
+          {sections.map((section) => {
+            const style = SECTION_STYLE[section.id];
+            const badge = buildBadge(section.id, data);
+            const isCollapsed = collapsed.has(section.id);
+            return (
+              <section
+                key={section.id}
+                className={`exec-section ${isCollapsed ? "exec-section--collapsed" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="exec-section-header"
+                  onClick={() => toggleSection(section.id)}
+                  aria-expanded={!isCollapsed}
+                >
+                  <span className={`exec-icon ${style?.iconClass ?? ""}`}>
+                    {style && <Icon name={style.icon} size={16} />}
+                  </span>
+                  <span className="exec-section-title">
+                    <h3>{section.heading[language]}</h3>
+                    {badge && <span className={`exec-badge ${BADGE_TONE_CLASS[badge.tone]}`}>{badge.text}</span>}
+                  </span>
+                  <Icon name={isCollapsed ? "CaretDown" : "CaretUp"} size={14} />
+                </button>
+                {!isCollapsed && <p className="exec-section-body">{section.body[language]}</p>}
+              </section>
+            );
+          })}
+        </div>
+
+        {/* AI recommendation */}
+        {(topStockouts.length > 0 || criticalAlerts.length > 0) && (
+          <div className="exec-ai-recommendation">
+            <span className="exec-ai-icon">
+              <Icon name="Sparkle" size={16} />
+            </span>
+            <div>
+              <p className="exec-ai-title">
+                {t("aiRecommendation")}
+              </p>
+              <p className="exec-ai-text">
+                {topStockouts.length > 0
+                  ? language === "ny"
+                    ? `Sankhanitsani zinthu ku ${topStockouts[0].district} chifukwa cha chiopsezo cha stockout ( ${Math.round(topStockouts[0].stockout_risk * 100)}% ). Yesani ndondomeko ya CHUMA.`
+                    : `Reallocate emergency stock to ${topStockouts[0].district}: ${topStockouts[0].commodity} carries a ${Math.round(topStockouts[0].stockout_risk * 100)}% stockout risk. Model the intervention before committing budget.`
+                  : language === "ny"
+                    ? "Yankha mapepala ochenjera otsatirawa musanathe sabata ino."
+                    : "Acknowledge the critical alerts above before end of week; DRRT readiness is recommended."}
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  className="btn-primary exec-action-btn"
+                  onClick={() => navigate("/chuma")}
+                >
+                  {t("modelInChuma")}
+                </button>
+                <button type="button" className="btn-secondary exec-action-btn" onClick={handleShareWithFinance}>
+                  {t("shareWithFinance")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <article className="briefing-body" style={{ lineHeight: 1.6 }}>
-        {sections.map((section) => (
-          <section key={section.heading.en}>
-            <h3>{section.heading[language]}</h3>
-            <p>{section.body[language]}</p>
-          </section>
-        ))}
-      </article>
     </div>
   );
 }

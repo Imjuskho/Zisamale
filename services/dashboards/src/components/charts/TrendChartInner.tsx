@@ -46,12 +46,12 @@ export default function TrendChartInner({
       <h3 className="chart-title">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={merged} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E3D9C6" />
           <Area
             type="monotone"
             dataKey="ci_upper"
             stroke="none"
-            fill="#0f7b8a"
+            fill="#17646C"
             fillOpacity={0.2}
             name="95% CI Upper"
             isAnimationActive={false}
@@ -60,7 +60,7 @@ export default function TrendChartInner({
             type="monotone"
             dataKey="ci_lower"
             stroke="none"
-            fill="#f5f5f0"
+            fill="#FFFDF8"
             fillOpacity={1}
             name="95% CI Lower"
             isAnimationActive={false}
@@ -68,7 +68,7 @@ export default function TrendChartInner({
           <Line
             type="monotone"
             dataKey="predicted"
-            stroke="#0f7b8a"
+            stroke="#17646C"
             strokeWidth={2}
             strokeDasharray="8 4"
             dot={false}
@@ -78,35 +78,35 @@ export default function TrendChartInner({
           <Line
             type="monotone"
             dataKey="actual"
-            stroke="#1a1a2e"
+            stroke="#29241C"
             strokeWidth={2.5}
-            dot={{ r: 3, fill: "#1a1a2e" }}
+            dot={{ r: 3, fill: "#29241C" }}
             name="Actual"
             connectNulls
           />
           {showThreshold && lastActualWeek && (
             <ReferenceLine
               x={lastActualWeek}
-              stroke="#c62828"
+              stroke="#C62828"
               strokeDasharray="4 4"
               strokeWidth={1.5}
-              label={{ value: "Now", position: "top", fontSize: 11, fill: "#c62828" }}
+              label={{ value: "Now", position: "top", fontSize: 11, fill: "#C62828" }}
             />
           )}
           <XAxis
             dataKey="week"
-            tick={{ fontSize: 11, fill: "#666" }}
+            tick={{ fontSize: 11, fill: "#776D5C" }}
             interval={Math.max(0, Math.floor(merged.length / 8))}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "#666" }}
+            tick={{ fontSize: 11, fill: "#776D5C" }}
             domain={[0, "auto"]}
             allowDataOverflow={false}
           />
           <Tooltip
             contentStyle={{
               borderRadius: 8,
-              border: "1px solid #e0e0e0",
+              border: "1px solid #E3D9C6",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
               fontSize: 13,
             }}

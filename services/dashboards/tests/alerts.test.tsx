@@ -116,12 +116,42 @@ describe("AlertCommandCenter", () => {
     expect(screen.queryByText("Makhanga")).not.toBeInTheDocument();
   });
 
+  it("offers undo after dismissing an alert", async () => {
+    render(<AlertCommandCenter alerts={[mockAlerts[0]]} now={FIXED_NOW} />);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByText("Makhanga")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText("Makhanga")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  it("offers clear-filters recovery from the filtered empty state", () => {
+    render(<AlertCommandCenter alerts={mockAlerts} now={FIXED_NOW} />);
+    fireEvent.change(screen.getByLabelText("Disease"), { target: { value: "measles" } });
+    expect(screen.getByText("No alerts match the current filters.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear all filters" }));
+    expect(screen.getByText("Makhanga")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Clear all filters" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a plain empty state when there are no alerts at all", () => {
+    render(<AlertCommandCenter alerts={[]} now={FIXED_NOW} />);
+    expect(
+      screen.getByText(/No alerts right now/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Clear all filters" })
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the outbreak timeline for the selected alert", () => {
     render(<AlertCommandCenter alerts={mockAlerts} now={FIXED_NOW} />);
     expect(screen.getByText(/Outbreak Timeline — Makhanga/)).toBeInTheDocument();
     const choleraCard = screen.getByText("Chapananga").closest("article")!;
     fireEvent.click(
-      within(choleraCard).getByRole("button", { name: "View Timeline" })
+      within(choleraCard).getByRole("button", { name: "View timeline" })
     );
     expect(screen.getByText(/Outbreak Timeline — Chapananga/)).toBeInTheDocument();
   });
