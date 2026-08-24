@@ -82,6 +82,7 @@ export function DHODashboard() {
     <div className="dashboard dho-dashboard">
       <header className="dashboard-header">
         <div>
+          <p className="dashboard-kicker">District Operations</p>
           <h1>District Health Office Dashboard</h1>
           <p>
             {user?.district || "District"} Health Office

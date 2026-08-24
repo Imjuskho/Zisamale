@@ -118,7 +118,7 @@
 .skeleton-map-area {
   height: 400px;
   margin-top: 12px;
-  background: #f0f0f0;
+  background: var(--color-bg-muted);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -136,7 +136,7 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: #f5f5f0;
+  background: var(--color-surface-bg);
 }
 
 .main-content {
@@ -154,7 +154,7 @@
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
-  background: #f5f5f0;
+  background: var(--color-surface-bg);
 }
 
 .error-boundary-card {
@@ -189,7 +189,7 @@
 }
 
 .error-boundary-details pre {
-  background: #f5f5f0;
+  background: var(--color-surface-bg);
   padding: 12px;
   border-radius: 8px;
   font-size: 12px;
@@ -205,13 +205,13 @@
   left: 0;
   width: 280px;
   height: 100vh;
-  background: var(--color-surface);
+  background: var(--color-surface-bg);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   z-index: 30;
   overflow-y: auto;
-  transition: background 0.2s;
+  transition: background-color 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .sidebar-brand {
@@ -262,10 +262,10 @@
   padding: 10px 16px;
   border-radius: 10px;
   text-decoration: none;
-  color: #4a4a4a;
+  color: var(--color-text-secondary);
   font-size: 15px;
   font-weight: 500;
-  transition: all 0.15s;
+  transition: background-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), color 0.18s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   border: none;
   background: none;
@@ -274,7 +274,7 @@
 }
 
 .sidebar-link:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-muted);
   color: var(--color-text);
 }
 
@@ -308,7 +308,7 @@
   border-radius: 10px;
   border: none;
   background: none;
-  color: #4a4a4a;
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -317,7 +317,7 @@
 }
 
 .theme-toggle:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-muted);
   color: var(--color-text);
 }
 
@@ -390,7 +390,7 @@
   border-radius: 8px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-muted);
-  color: #4a4a4a;
+  color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -400,8 +400,8 @@
 }
 
 .theme-toggle:hover {
-  background: #f0f0f0;
-  border-color: #ccc;
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
 }
 
 /* ─── Dashboard Layout ──────────────────────────────────────────── */
@@ -411,24 +411,33 @@
 }
 
 .dashboard-header {
-  margin-bottom: 28px;
+  padding-bottom: 20px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-clay, #A8502F);
+  margin: 0 0 8px;
 }
 
 .dashboard-header h1 {
-  font-size: 24px;
-  font-weight: 700;
   color: var(--color-text);
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
 }
 
 .dashboard-header p {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-muted);
   margin: 0;
 }
 
 .dashboard section {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
 .dashboard section > h2,
@@ -480,7 +489,7 @@
   border-radius: 8px;
   margin-top: 12px;
   font-size: 13px;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .model-metrics h3 {
@@ -584,25 +593,25 @@
 .alert-filters select,
 .alert-filters input {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 13px;
   background: var(--color-bg-muted);
   color: var(--color-text);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .alert-filters select:focus,
 .alert-filters input:focus {
-  border-color: #0f7b8a;
-  box-shadow: 0 0 0 2px rgba(15, 123, 138, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(168, 80, 47, 0.14);
 }
 
 .alert-empty {
   padding: 48px 24px;
   text-align: center;
-  color: #aaa;
+  color: var(--color-text-muted);
   font-size: 15px;
 }
 
@@ -623,7 +632,23 @@
 }
 
 .alert-command-card:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(41, 36, 28, 0.1);
+}
+
+/* Focal point: a critical alert dominates the view */
+.alert-command-center .alert-command-card.alert-red {
+  box-shadow:
+    0 10px 24px rgba(198, 40, 40, 0.13),
+    0 2px 6px rgba(41, 36, 28, 0.08);
+}
+
+.alert-command-card.alert-red strong {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.alert-stats {
+  font-variant-numeric: tabular-nums;
 }
 
 .alert-red {
@@ -757,7 +782,7 @@
 .data-table-search input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
   outline: none;
@@ -998,7 +1023,7 @@
 .household-table tbody td {
   padding: 8px 16px;
   border-bottom: 1px solid var(--color-border-light);
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .chw-legend {
@@ -1042,18 +1067,18 @@
 
 .nlg-executive-summary button {
   padding: 6px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-bg-muted);
   font-size: 13px;
   cursor: pointer;
-  color: #555;
+  color: var(--color-text-secondary);
   transition: all 0.15s;
 }
 
 .nlg-executive-summary button:hover {
-  background: #f0f0f0;
-  border-color: #bbb;
+  background: var(--color-bg-muted);
+  border-color: var(--color-border);
 }
 
 /* ─── NLG Summary (legacy) ─────────────────────────────────────── */
@@ -1107,7 +1132,7 @@
 .budget-modeler input[type="number"] {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
   background: var(--color-bg-muted);
@@ -1360,7 +1385,7 @@
 
 .alert-body {
   font-size: 14px;
-  color: #555;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -1378,7 +1403,7 @@
 .alert-actions button {
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
   font-size: 13px;
   cursor: pointer;
@@ -1386,7 +1411,7 @@
 }
 
 .alert-actions button:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-muted);
 }
 
 /* ─── PDF Export ─────────────────────────────────────────────────── */
@@ -1394,7 +1419,7 @@
 .pdf-export-btn {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
   font-size: 13px;
   font-weight: 500;
@@ -1403,7 +1428,7 @@
 }
 
 .pdf-export-btn:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-muted);
 }
 
 /* ─── Login Page ─────────────────────────────────────────────────── */
@@ -1737,9 +1762,31 @@
 
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+/* KPI anatomy: tracked micro-label, dominant tabular figure, pill delta */
+.kpi-row .card .text-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.kpi-row .card .text-data {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.kpi-row .kpi-trend-value {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-bg-muted, rgba(41, 36, 28, 0.06));
 }
 
 .ws-status-inline {
@@ -1783,7 +1830,7 @@
   }
 
   .dashboard-header h1 {
-    font-size: 20px;
+    font-size: clamp(1.5rem, 1.15rem + 1vw, 1.8rem);
   }
 
   .login-shell {
@@ -2764,7 +2811,7 @@ body.has-offline-banner {
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+  border-bottom: 1px solid var(--color-border-light);
 }
 .facility-staff-dot {
   width: 8px;
@@ -3573,9 +3620,9 @@ body.has-offline-banner {
   gap: 6px;
   width: 100%;
   padding: 8px 12px;
-  background: #f5f5f0;
+  background: var(--color-bg-muted);
   border: none;
-  border-bottom: 1px solid #e0e0d8;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -3789,7 +3836,7 @@ body.has-offline-banner {
   flex-direction: column;
   align-items: center;
   padding: 4px;
-  background: #f5f5f0;
+  background: var(--color-bg-muted);
   border-radius: 4px;
 }
 .chw-coverage-num { font-size: 20px; font-weight: 700; }
@@ -3876,7 +3923,7 @@ body.has-offline-banner {
   justify-content: space-between;
   align-items: center;
   padding: 4px 6px;
-  background: #f5f5f0;
+  background: var(--color-bg-muted);
   border-radius: 4px;
   font-size: 11px;
 }

@@ -70,6 +70,7 @@ export function CHWDashboard() {
     <div className="dashboard chw-dashboard">
       <header className="dashboard-header">
         <div>
+          <p className="dashboard-kicker">Field Work</p>
           <h1>My Dashboard</h1>
           <p>
             {user?.name || "Community Health Worker"}

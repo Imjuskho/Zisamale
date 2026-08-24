@@ -81,6 +81,7 @@ export function MoHPDashboard() {
   return (
     <div className={`dashboard mohp-dashboard ${darkMode ? "dark" : ""}`}>
       <header className="dashboard-header">
+        <p className="dashboard-kicker">National Programme</p>
         <h1>Ministry of Health Dashboard</h1>
         <p>National Surveillance &amp; Policy Tracking</p>
       </header>

@@ -15,6 +15,7 @@ export function CHUMADashboard() {
   return (
     <div className="dashboard chuma-dashboard">
       <header className="dashboard-header">
+        <p className="dashboard-kicker">Policy &amp; Forecasting</p>
         <h1>CHUMA-AI Policy Dashboard</h1>
         <p>Resource Forecasting &amp; Budget Modelling</p>
       </header>
