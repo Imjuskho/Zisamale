@@ -2,14 +2,31 @@ package com.zisamale.data.session
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.zisamale.security.KeystoreCipher
 
+/**
+ * Session storage. The auth token is encrypted with an AndroidKeyStore
+ * AES/GCM key before it touches disk; identity fields are non-secret and
+ * stored as plaintext for cheap reads.
+ */
 class SessionStore(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     var token: String?
-        get() = prefs.getString(KEY_TOKEN, null)
-        set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
+        get() = prefs.getString(KEY_TOKEN, null)?.let { blob ->
+            try {
+                String(KeystoreCipher.decrypt(ALIAS, blob))
+            } catch (_: Exception) {
+                null // keystore key lost — force re-login
+            }
+        }
+        set(value) {
+            prefs.edit().putString(
+                KEY_TOKEN,
+                value?.takeIf { it.isNotBlank() }?.let { KeystoreCipher.encrypt(ALIAS, it.toByteArray()) }
+            ).apply()
+        }
 
     var userId: String?
         get() = prefs.getString(KEY_USER_ID, null)
@@ -43,5 +60,6 @@ class SessionStore(context: Context) {
         private const val KEY_CHW_ID = "chw_id"
         private const val KEY_NAME = "name"
         private const val KEY_ROLE = "role"
+        private const val ALIAS = "zisamale_session_key"
     }
 }

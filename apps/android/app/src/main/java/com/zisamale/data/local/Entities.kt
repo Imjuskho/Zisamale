@@ -115,3 +115,15 @@ data class ReferralEntity(
     val status: String = "pending",
     val created_at: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "photo_queue")
+data class PhotoEntity(
+    @PrimaryKey val photo_id: String,
+    val visit_id: String,
+    /** Absolute path of the compressed JPEG staged under filesDir/photos. */
+    val local_path: String,
+    val remote_file_id: String? = null,
+    val bytes: Long = 0,
+    val sync_status: String = "pending",
+    val created_at: Long = System.currentTimeMillis()
+)

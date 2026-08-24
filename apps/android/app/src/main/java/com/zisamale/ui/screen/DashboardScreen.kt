@@ -28,7 +28,8 @@ data class PriorityVisitItem(
 fun DashboardScreen(
     chwName: String = "CHW",
     visits: List<PriorityVisitItem> = emptyList(),
-    onVisitClick: (String, String) -> Unit = { _, _ -> }
+    onVisitClick: (String, String) -> Unit = { _, _ -> },
+    onHouseholdsClick: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -59,7 +60,16 @@ fun DashboardScreen(
                 }
             }
 
-            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = onHouseholdsClick, modifier = Modifier.weight(1f)) {
+                        Text("Households")
+                    }
+                }
+
+                LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
                 items(visits) { visit ->
                     VisitCard(visit = visit, onClick = { onVisitClick(visit.householdId, visit.visitType) })
                 }

@@ -44,6 +44,25 @@ class BatteryAwareSync @Inject constructor(
     private val engine = SyncEngineImpl()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     @Volatile private var lastAutoSync: Instant = Instant.EPOCH
+
+    // Pilot diagnostics ring (M5): sampled at most every 10 minutes.
+    @Volatile private var lastSampleAt: Instant? = null
+    private var dogSamples: List<com.zisamale.monitoring.BatterySample> = emptyList()
+
+    fun recentSamples(): List<com.zisamale.monitoring.BatterySample> =
+        synchronized(this) { dogSamples.toList() }
+
+    private fun sampleConditions(syncAllowed: Boolean) {
+        val now = Instant.now()
+        if (!com.zisamale.monitoring.BatteryDog.shouldSample(lastSampleAt, now)) return
+        lastSampleAt = now
+        synchronized(this) {
+            dogSamples = com.zisamale.monitoring.BatteryDog.record(
+                dogSamples,
+                com.zisamale.monitoring.BatterySample(now, batteryLevel(), isCharging(), networkQuality(), syncAllowed)
+            )
+        }
+    }
     private var loopJob: Job? = null
 
     fun start() {
@@ -116,7 +135,9 @@ class BatteryAwareSync @Inject constructor(
     }
 
     suspend fun syncIfEligible(force: Boolean = false): Boolean {
-        if (!force && !shouldSync()) return false
+        val allowed = force || shouldSync()
+        sampleConditions(allowed)
+        if (!allowed) return false
         runCatching { legacySync.syncAll() }
         engine.pushDelta()
         engine.pullDelta(lastAutoSync)

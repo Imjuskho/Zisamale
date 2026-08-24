@@ -1,16 +1,27 @@
 package com.zisamale.ui
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -20,12 +31,16 @@ import com.zisamale.data.session.SessionStore
 import com.zisamale.data.sync.SyncManager
 import com.zisamale.ml.VisitAdvice
 import com.zisamale.ml.VisitAdvisor
+import com.zisamale.security.BiometricGate
 import com.zisamale.ui.navigation.Screen
 import com.zisamale.ui.screen.DashboardScreen
 import com.zisamale.ui.screen.FacilityOption
+import com.zisamale.ui.screen.HouseholdProfileScreen
+import com.zisamale.ui.screen.HouseholdRegistryScreen
 import com.zisamale.ui.screen.LoginScreen
 import com.zisamale.ui.screen.PriorityVisitItem
 import com.zisamale.ui.screen.ReferralFormScreen
+import com.zisamale.ui.screen.RegisterHouseholdScreen
 import com.zisamale.ui.screen.VisitFormScreen
 import com.zisamale.ui.theme.ZisamaleTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,16 +51,33 @@ import java.util.UUID
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @Inject lateinit var syncManager: SyncManager
     @Inject lateinit var sessionStore: SessionStore
     @Inject lateinit var db: ZisamaleDatabase
+    @Inject lateinit var edgeAi: com.zisamale.ml.EdgeAI
+    @Inject lateinit var batteryAwareSync: com.zisamale.sync.BatteryAwareSync
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             ZisamaleTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
+                    // Offline re-entry gate: a live session must pass the device
+                    // screen-lock challenge before any PHI is rendered.
+                    var locked by remember { mutableStateOf(sessionStore.isLoggedIn) }
+                    if (locked) {
+                        LockScreen(
+                            onUnlocked = { locked = false },
+                            onSignOut = {
+                                sessionStore.clear()
+                                locked = false
+                                recreate()
+                            }
+                        )
+                        return@Surface
+                    }
+
                     val navController = rememberNavController()
                     val scope = rememberCoroutineScope()
                     var loginError by remember { mutableStateOf<String?>(null) }
@@ -65,6 +97,7 @@ class MainActivity : ComponentActivity() {
                                         try {
                                             syncManager.login(username, password)
                                             visits = syncManager.fetchPriorityList()
+                                            com.zisamale.sync.SyncWorker.kickNow(this@MainActivity)
                                             navController.navigate(Screen.Dashboard.route) {
                                                 popUpTo(Screen.Login.route) { inclusive = true }
                                             }
@@ -78,17 +111,96 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Screen.Dashboard.route) {
+                            val notifPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+                                androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                            ) { }
                             LaunchedEffect(Unit) {
                                 visits = syncManager.fetchPriorityList()
                                 syncManager.syncAll()
+                                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        android.Manifest.permission.POST_NOTIFICATIONS
+                                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                }
                             }
                             DashboardScreen(
                                 chwName = sessionStore.displayName ?: "CHW",
                                 visits = visits,
                                 onVisitClick = { id, type ->
                                     navController.navigate(Screen.VisitForm.createRoute(id, type))
+                                },
+                                onHouseholdsClick = {
+                                    navController.navigate(Screen.HouseholdRegistry.route)
                                 }
                             )
+                        }
+                        composable(Screen.HouseholdRegistry.route) {
+                            var households by remember {
+                                mutableStateOf<List<com.zisamale.data.local.HouseholdEntity>>(emptyList())
+                            }
+                            LaunchedEffect(Unit) {
+                                households = db.householdDao().getByChwId(sessionStore.catchmentId())
+                            }
+                            HouseholdRegistryScreen(
+                                households = households,
+                                onRegisterClick = { navController.navigate(Screen.RegisterHousehold.route) },
+                                onOpenHousehold = { id ->
+                                    navController.navigate(Screen.HouseholdProfile.createRoute(id))
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.RegisterHousehold.route) {
+                            RegisterHouseholdScreen(
+                                onSubmit = { draft ->
+                                    scope.launch {
+                                        val chwId = sessionStore.catchmentId()
+                                        db.householdDao().upsertAll(
+                                            listOf(
+                                                com.zisamale.data.local.HouseholdEntity(
+                                                    household_id = UUID.randomUUID().toString(),
+                                                    chw_id = chwId,
+                                                    gps_lat = draft.gps?.lat,
+                                                    gps_lon = draft.gps?.lon,
+                                                    ta_name = draft.taName,
+                                                    village_name = draft.villageName,
+                                                    water_source = draft.waterSource,
+                                                    distance_to_facility_km = draft.distanceKm,
+                                                    household_size = draft.householdSize,
+                                                    sync_status = "pending"
+                                                )
+                                            )
+                                        )
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onCancel = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.HouseholdProfile.route) { backStackEntry ->
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
+                            var household by remember { mutableStateOf<com.zisamale.data.local.HouseholdEntity?>(null) }
+                            var pregnancy by remember { mutableStateOf<com.zisamale.data.local.PregnancyEntity?>(null) }
+                            var children by remember { mutableStateOf<List<com.zisamale.data.local.ChildEntity>>(emptyList()) }
+                            LaunchedEffect(householdId) {
+                                household = db.householdDao().getById(householdId)
+                                pregnancy = db.pregnancyDao().getActiveByHousehold(householdId)
+                                children = db.childDao().getByHousehold(householdId)
+                            }
+                            household?.let { h ->
+                                HouseholdProfileScreen(
+                                    household = h,
+                                    pregnancy = pregnancy,
+                                    children = children,
+                                    onStartVisit = { type ->
+                                        navController.navigate(Screen.VisitForm.createRoute(householdId, type))
+                                    },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
                         }
                         composable(Screen.VisitForm.route) { backStackEntry ->
                             val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
@@ -108,7 +220,8 @@ class MainActivity : ComponentActivity() {
                                     null
                                 }
                                 advice = VisitAdvisor.advise(
-                                    visitType, household, pregnancy, child, dangerSigns
+                                    visitType, household, pregnancy, child, dangerSigns,
+                                    edgeAi = edgeAi
                                 )
                             }
                             VisitFormScreen(
@@ -140,10 +253,39 @@ class MainActivity : ComponentActivity() {
                                                 chw_override_reason = submit.overrideReason,
                                                 ai_recommendation = recJson,
                                                 ai_risk_score = submit.advice?.score?.riskScore,
-                                                sync_status = "pending"
+                                                sync_status = "pending",
+                                                photos_queued = submit.photos.size
                                             )
                                         )
+                                        // Stage photos for the encrypted upload queue (M4).
+                                        val photosDir = java.io.File(filesDir, "photos")
+                                        submit.photos.forEach { raw ->
+                                            com.zisamale.util.PhotoCompressor.compressToJpeg(raw, photosDir)?.let { compressed ->
+                                                raw.delete()
+                                                db.photoDao().insert(
+                                                    com.zisamale.data.local.PhotoEntity(
+                                                        photo_id = UUID.randomUUID().toString(),
+                                                        visit_id = visitId,
+                                                        local_path = compressed.absolutePath,
+                                                        bytes = compressed.length()
+                                                    )
+                                                )
+                                            }
+                                        }
                                         syncManager.syncPendingVisits()
+                                        edgeAi.drainTelemetry().forEach { record ->
+                                            com.zisamale.data.remote.TelemetryBuffer.enqueue(
+                                                com.zisamale.data.remote.ModelTelemetryRecordDto(
+                                                    kind = record.kind,
+                                                    model_version = record.modelVersion,
+                                                    source = record.source,
+                                                    inference_count = record.inferenceCount,
+                                                    fallback_count = record.fallbackCount,
+                                                    latency_ms_avg = record.latencyMsAvg
+                                                )
+                                            )
+                                        }
+                                        com.zisamale.sync.SyncWorker.kickNow(this@MainActivity)
                                         navController.navigate(Screen.ReferralForm.createRoute(visitId))
                                     }
                                 }
@@ -151,6 +293,16 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.ReferralForm.route) { backStackEntry ->
                             val visitId = backStackEntry.arguments?.getString("visitId") ?: ""
+                            var pendingSms by remember { mutableStateOf<android.util.Pair<String, String>?>(null) }
+                            val smsPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                            ) { granted ->
+                                val sms = pendingSms
+                                pendingSms = null
+                                if (granted && sms != null) {
+                                    com.zisamale.util.SmsFallback.send(this@MainActivity, sms.first, sms.second)
+                                }
+                            }
                             ReferralFormScreen(
                                 visitId = visitId,
                                 facilities = listOf(
@@ -158,8 +310,48 @@ class MainActivity : ComponentActivity() {
                                     FacilityOption("f2", "Makhanga Health Centre", 5.0f, true, 7.2f),
                                     FacilityOption("f3", "Thyolo District Hospital", 25.0f, false, 5.8f)
                                 ),
-                                onSubmit = { _, _ ->
+                                onSubmit = { facilityId, urgency, reason ->
                                     scope.launch {
+                                        val visit = db.visitDao().getById(visitId)
+                                        val household = visit?.let { db.householdDao().getById(it.household_id) }
+                                        val referralId = UUID.randomUUID().toString()
+                                        val referralCode = "REF-${referralId.takeLast(8).uppercase()}"
+                                        db.referralDao().insert(
+                                            com.zisamale.data.local.ReferralEntity(
+                                                referral_id = referralId,
+                                                visit_id = visitId,
+                                                patient_id = visit?.pregnancy_id ?: visit?.child_id
+                                                    ?: visit?.household_id.orEmpty(),
+                                                patient_type = visit?.visit_type ?: "routine",
+                                                referral_reason = reason,
+                                                urgency = urgency,
+                                                selected_facility_id = facilityId,
+                                                chw_id = sessionStore.catchmentId(),
+                                                referral_code = referralCode
+                                            )
+                                        )
+                                        // 48h arrival follow-up (survives reboots via WorkManager).
+                                        com.zisamale.sync.FollowUpWorker.schedule(this@MainActivity, referralId)
+                                        // SMS last resort for RED referrals with no data network.
+                                        if (urgency == "emergency" &&
+                                            batteryAwareSync.networkQuality() == com.zisamale.sync.NetworkQuality.NONE
+                                        ) {
+                                            val text = com.zisamale.util.SmsFallback.redMessage(
+                                                referralCode, household?.village_name, null
+                                            )
+                                            if (com.zisamale.util.SmsFallback.canSend(this@MainActivity)) {
+                                                com.zisamale.util.SmsFallback.send(
+                                                    this@MainActivity,
+                                                    com.zisamale.util.SmsFallback.FACILITY_HOTLINE_MSISDN,
+                                                    text
+                                                )
+                                            } else {
+                                                pendingSms = android.util.Pair(
+                                                    com.zisamale.util.SmsFallback.FACILITY_HOTLINE_MSISDN, text
+                                                )
+                                                smsPermissionLauncher.launch(android.Manifest.permission.SEND_SMS)
+                                            }
+                                        }
                                         syncManager.syncAll()
                                         visits = syncManager.fetchPriorityList()
                                         navController.navigate(Screen.Dashboard.route) {
@@ -172,6 +364,68 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Full-screen device-unlock challenge shown before any session data renders.
+ * Auto-prompts once; a manual retry button covers cancellation. If the device
+ * has no screen lock at all, the only escape is signing out (the cached
+ * database is encrypted regardless).
+ */
+@androidx.compose.runtime.Composable
+private fun LockScreen(
+    onUnlocked: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    val activity = androidx.compose.ui.platform.LocalContext.current as? FragmentActivity
+    var status by remember { mutableStateOf<String?>(null) }
+
+    fun challenge() {
+        if (activity == null) {
+            status = "Device unlock unavailable"
+            return
+        }
+        when (BiometricGate.availability(activity)) {
+            BiometricGate.Availability.Ready,
+            is BiometricGate.Availability.TryCredentialOnly ->
+                BiometricGate.authenticate(
+                    activity,
+                    title = "Unlock Zisamale",
+                    subtitle = "Confirm it's you to open the clinic register",
+                    onSuccess = onUnlocked,
+                    onError = { msg -> if (msg.isNotEmpty()) status = msg }
+                )
+            BiometricGate.Availability.NoCredential ->
+                status = "No screen lock is set up. Sign out, enable a screen lock, then sign in again."
+        }
+    }
+
+    LaunchedEffect(Unit) { challenge() }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Zisamale", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Locked — confirm your screen lock to continue",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            "Zitseka — tsimikizirani kuti ndi inu",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = { challenge() }) { Text("Unlock / Tsegulani") }
+        Spacer(Modifier.height(12.dp))
+        androidx.compose.material3.TextButton(onClick = onSignOut) { Text("Sign out / Tulukani") }
+        status?.let {
+            Spacer(Modifier.height(16.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -3,10 +3,31 @@ package com.zisamale.ml
 import android.content.Context
 import com.zisamale.domain.model.RiskLevel
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
-enum class ScoringSource { TFLITE_MODEL, RULE_BASED }
+enum class ScoringSource { BUNDLED_MODEL, RULE_BASED }
 
-enum class ModelKind { PREGNANCY, CHILD }
+/** One drained batch of edge inference stats for the /ml/telemetry endpoint. */
+data class EdgeTelemetryRecord(
+    val kind: String,
+    val modelVersion: String,
+    val source: String,
+    val inferenceCount: Long,
+    val fallbackCount: Long,
+    val latencyMsAvg: Double?
+)
+
+class TelemetryCounters(
+    val inferences: AtomicLong = AtomicLong(),
+    val fallbacks: AtomicLong = AtomicLong(),
+    val totalNanos: AtomicLong = AtomicLong()
+)
+
+enum class ModelKind(val assetName: String) {
+    PREGNANCY("risk_pregnancy_v%d.zgb".format(EdgeAI.MODEL_VERSION)),
+    CHILD("risk_child_v%d.zgb".format(EdgeAI.MODEL_VERSION))
+}
 
 data class FactorContribution(
     val featureIndex: Int,
@@ -23,10 +44,11 @@ data class RiskResult(
 )
 
 /**
- * On-device risk scoring. Prefers a bundled TFLite model (loaded reflectively so the
- * app does not hard-depend on the TF Lite artifact); falls back to deterministic
- * rule-based scoring that mirrors RiskScorer whenever the model is unavailable,
- * corrupt, or fails at inference time.
+ * On-device risk scoring. Prefers the bundled gradient-boosted tree ensembles
+ * trained by services/ml/pipelines/train_edge_models.py (loaded into a pure-
+ * Kotlin [TreeEnsembleModel]); falls back to deterministic rule-based scoring
+ * that mirrors RiskScorer whenever the model is unavailable, corrupt, or fails
+ * at inference time.
  *
  * Pregnancy feature vector (10 floats):
  *   0 ageYears, 1 parity, 2 priorStillbirths, 3 priorCsections,
@@ -35,13 +57,15 @@ data class RiskResult(
  * Child feature vector (7 floats):
  *   0 ageMonths, 1 muac, 2 weightKg, 3 heightCm,
  *   4 fever(0/1), 5 cough(0/1), 6 diarrhea(0/1)
+ *
+ * Explainability note: factor attribution currently comes from the clinical
+ * protocol rules (same weights used to label the training cohort). A SHAP/
+ * gain-based attribution export can replace this without touching callers.
  */
 class EdgeAI(private val context: Context? = null) {
 
     companion object {
         const val MODEL_VERSION = 3
-        const val PREGNANCY_MODEL_ASSET = "models/risk_pregnancy_v$MODEL_VERSION.tflite"
-        const val CHILD_MODEL_ASSET = "models/risk_child_v$MODEL_VERSION.tflite"
 
         const val PREGNANCY_FEATURE_COUNT = 10
         const val CHILD_FEATURE_COUNT = 7
@@ -93,17 +117,58 @@ class EdgeAI(private val context: Context? = null) {
         )
     }
 
-    private var pregnancyInterpreter: Any? = null
-    private var childInterpreter: Any? = null
+    private var pregnancyModel: TreeEnsembleModel? = null
+    private var childModel: TreeEnsembleModel? = null
+
+    private val pregnancyCounters = TelemetryCounters()
+    private val childCounters = TelemetryCounters()
+    private val telemetryDraining = AtomicBoolean(false)
+
+    /**
+     * Returns and resets inference counters. Counted per scoring call (each
+     * recomputation IS an inference); latency covers model execution only.
+     */
+    fun drainTelemetry(): List<EdgeTelemetryRecord> {
+        if (!telemetryDraining.compareAndSet(false, true)) return emptyList()
+        try {
+            val records = mutableListOf(
+                buildTelemetryRecord("pregnancy", pregnancyCounters, pregnancyModel != null),
+                buildTelemetryRecord("child", childCounters, childModel != null)
+            )
+            pregnancyCounters.inferences.set(0); pregnancyCounters.fallbacks.set(0); pregnancyCounters.totalNanos.set(0)
+            childCounters.inferences.set(0); childCounters.fallbacks.set(0); childCounters.totalNanos.set(0)
+            return records
+        } finally {
+            telemetryDraining.set(false)
+        }
+    }
+
+    private fun buildTelemetryRecord(
+        kind: String,
+        counters: TelemetryCounters,
+        modelAvailable: Boolean
+    ): EdgeTelemetryRecord {
+        val inferences = counters.inferences.get()
+        val fallbacks = counters.fallbacks.get() + if (!modelAvailable && inferences > 0) inferences else 0
+        val avgMs = if (inferences > 0) counters.totalNanos.get() / inferences / 1_000_000.0 else null
+        return EdgeTelemetryRecord(
+            kind = kind,
+            modelVersion = if (modelAvailable) "edge-gbt-v$MODEL_VERSION" else "rule-based-v1",
+            source = if (modelAvailable) "bundled_model" else "rule_based",
+            inferenceCount = inferences,
+            fallbackCount = fallbacks,
+            latencyMsAvg = avgMs
+        )
+    }
 
     init {
-        pregnancyInterpreter = loadInterpreter(PREGNANCY_MODEL_ASSET, "risk_pregnancy.tflite")
-        childInterpreter = loadInterpreter(CHILD_MODEL_ASSET, "risk_child.tflite")
+        pregnancyModel = loadModel(ModelKind.PREGNANCY)
+        childModel = loadModel(ModelKind.CHILD)
     }
 
     fun isModelLoaded(kind: ModelKind): Boolean = when (kind) {
-        ModelKind.PREGNANCY -> pregnancyInterpreter != null
-        ModelKind.CHILD -> childInterpreter != null
+        ModelKind.PREGNANCY -> pregnancyModel != null
+        ModelKind.CHILD -> childModel != null
     }
 
     /** True when the server advertises a newer model than the one bundled on device. */
@@ -112,14 +177,11 @@ class EdgeAI(private val context: Context? = null) {
     fun scorePregnancy(features: FloatArray): RiskResult {
         val normalized = features.copyOf(PREGNANCY_FEATURE_COUNT)
         val contributions = pregnancyContributions(normalized)
-        val modelScore = pregnancyInterpreter?.let { runInference(it, normalized) }
-        return if (modelScore != null && modelScore.isFinite()) {
-            buildResult(
-                modelScore.coerceIn(0f, MAX_SCORE),
-                PREGNANCY_LABELS,
-                ScoringSource.TFLITE_MODEL,
-                contributions
-            )
+        val started = System.nanoTime()
+        val modelScore = pregnancyModel?.let { runModel(it, normalized) }
+        recordTelemetry(pregnancyCounters, modelScore != null, started)
+        return if (modelScore != null) {
+            buildResult(modelScore, PREGNANCY_LABELS, ScoringSource.BUNDLED_MODEL, contributions)
         } else {
             buildResult(
                 contributions.sumOf { it.weight.toDouble() }.toFloat().coerceIn(0f, MAX_SCORE),
@@ -133,14 +195,11 @@ class EdgeAI(private val context: Context? = null) {
     fun scoreChild(features: FloatArray): RiskResult {
         val normalized = features.copyOf(CHILD_FEATURE_COUNT)
         val contributions = childContributions(normalized)
-        val modelScore = childInterpreter?.let { runInference(it, normalized) }
-        return if (modelScore != null && modelScore.isFinite()) {
-            buildResult(
-                modelScore.coerceIn(0f, MAX_SCORE),
-                CHILD_LABELS,
-                ScoringSource.TFLITE_MODEL,
-                contributions
-            )
+        val started = System.nanoTime()
+        val modelScore = childModel?.let { runModel(it, normalized) }
+        recordTelemetry(childCounters, modelScore != null, started)
+        return if (modelScore != null) {
+            buildResult(modelScore, CHILD_LABELS, ScoringSource.BUNDLED_MODEL, contributions)
         } else {
             buildResult(
                 contributions.sumOf { it.weight.toDouble() }.toFloat().coerceIn(0f, MAX_SCORE),
@@ -151,7 +210,13 @@ class EdgeAI(private val context: Context? = null) {
         }
     }
 
-    // ---- Rule-based fallback -------------------------------------------------
+    private fun recordTelemetry(counters: TelemetryCounters, usedModel: Boolean, startedNanos: Long) {
+        counters.inferences.incrementAndGet()
+        counters.totalNanos.addAndGet(System.nanoTime() - startedNanos)
+        if (!usedModel) counters.fallbacks.incrementAndGet()
+    }
+
+    // ---- Rule-based fallback / factor attribution ----------------------------
 
     private fun pregnancyContributions(f: FloatArray): List<FactorContribution> {
         val contributions = mutableListOf<FactorContribution>()
@@ -192,11 +257,7 @@ class EdgeAI(private val context: Context? = null) {
         return contributions
     }
 
-    private fun add(
-        into: MutableList<FactorContribution>,
-        index: Int,
-        weight: Float
-    ) {
+    private fun add(into: MutableList<FactorContribution>, index: Int, weight: Float) {
         into.add(FactorContribution(index, "", weight))
     }
 
@@ -211,7 +272,7 @@ class EdgeAI(private val context: Context? = null) {
             .take(3)
             .map { it.copy(label = labels[it.featureIndex] ?: "feature_${it.featureIndex}") }
         return RiskResult(
-            score = score,
+            score = score.coerceIn(0f, MAX_SCORE),
             category = categorize(score),
             topFactors = topFactors,
             source = source,
@@ -226,32 +287,23 @@ class EdgeAI(private val context: Context? = null) {
         else -> RiskLevel.CRITICAL
     }
 
-    // ---- TFLite via reflection ----------------------------------------------
+    // ---- Bundled ensembles ----------------------------------------------------
 
-    private fun loadInterpreter(assetPath: String, cacheName: String): Any? = try {
+    private fun loadModel(kind: ModelKind): TreeEnsembleModel? = try {
         val ctx = context ?: return null
-        val modelFile = File(ctx.cacheDir, cacheName)
-        ctx.assets.open(assetPath).use { input ->
-            modelFile.outputStream().use { output -> input.copyTo(output) }
+        val file = File(ctx.cacheDir, kind.assetName)
+        if (!file.exists()) {
+            ctx.assets.open("models/${kind.assetName}").use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
         }
-        val interpreterClass = Class.forName("org.tensorflow.lite.Interpreter")
-        val optionsClass = Class.forName("org.tensorflow.lite.Interpreter\$Options")
-        val options = optionsClass.getDeclaredConstructor().newInstance()
-        optionsClass.getMethod("setNumThreads", Int::class.javaPrimitiveType)
-            .invoke(options, 2)
-        interpreterClass.getDeclaredConstructor(File::class.java, optionsClass)
-            .newInstance(modelFile, options)
+        TreeEnsembleModel.load(file)?.takeIf { it.version == MODEL_VERSION }
     } catch (_: Throwable) {
         null
     }
 
-    private fun runInference(interpreter: Any, features: FloatArray): Float? = try {
-        val input = Array(1) { features.copyOf(features.size) }
-        val output = Array(1) { FloatArray(1) }
-        interpreter.javaClass
-            .getMethod("run", Any::class.java, Any::class.java)
-            .invoke(interpreter, input, output)
-        output[0][0]
+    private fun runModel(model: TreeEnsembleModel, features: FloatArray): Float? = try {
+        model.predict(features).takeIf { it.isFinite() }
     } catch (_: Throwable) {
         null
     }

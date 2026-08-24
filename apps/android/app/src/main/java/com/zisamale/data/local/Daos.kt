@@ -11,6 +11,12 @@ interface HouseholdDao {
     @Query("SELECT * FROM households WHERE household_id = :id")
     suspend fun getById(id: String): HouseholdEntity?
 
+    @Query("SELECT * FROM households WHERE sync_status = 'pending' ORDER BY last_updated ASC")
+    suspend fun getUnsynced(): List<HouseholdEntity>
+
+    @Query("UPDATE households SET sync_status = :status WHERE household_id = :id")
+    suspend fun updateSyncStatus(id: String, status: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(households: List<HouseholdEntity>)
 
@@ -47,6 +53,9 @@ interface VisitDao {
     @Query("SELECT * FROM visits WHERE chw_id = :chwId ORDER BY visit_date DESC")
     suspend fun getByChwId(chwId: String): List<VisitEntity>
 
+    @Query("SELECT * FROM visits WHERE visit_id = :visitId")
+    suspend fun getById(visitId: String): VisitEntity?
+
     @Query("SELECT * FROM visits WHERE sync_status IN ('pending', 'failed')")
     suspend fun getUnsynced(): List<VisitEntity>
 
@@ -65,9 +74,27 @@ interface ReferralDao {
     @Query("SELECT * FROM referrals WHERE status IN ('pending', 'failed')")
     suspend fun getUnsynced(): List<ReferralEntity>
 
+    @Query("SELECT * FROM referrals WHERE referral_id = :referralId")
+    suspend fun getById(referralId: String): ReferralEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(referral: ReferralEntity)
 
     @Query("UPDATE referrals SET status = :status WHERE referral_id = :referralId")
     suspend fun updateStatus(referralId: String, status: String)
+}
+
+@Dao
+interface PhotoDao {
+    @Query("SELECT * FROM photo_queue WHERE sync_status IN ('pending', 'failed')")
+    suspend fun getUnsynced(): List<PhotoEntity>
+
+    @Query("SELECT COUNT(*) FROM photo_queue WHERE visit_id = :visitId")
+    suspend fun countByVisit(visitId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(photo: PhotoEntity)
+
+    @Query("UPDATE photo_queue SET sync_status = :status, remote_file_id = :remoteFileId WHERE photo_id = :photoId")
+    suspend fun updateSyncResult(photoId: String, status: String, remoteFileId: String?)
 }

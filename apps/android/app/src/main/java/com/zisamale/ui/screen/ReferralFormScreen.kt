@@ -19,7 +19,7 @@ data class FacilityOption(
 fun ReferralFormScreen(
     visitId: String,
     facilities: List<FacilityOption> = emptyList(),
-    onSubmit: (String, String) -> Unit
+    onSubmit: (facilityId: String, urgency: String, reason: String) -> Unit
 ) {
     var selectedFacility by remember { mutableStateOf<FacilityOption?>(null) }
     var urgency by remember { mutableStateOf("routine") }
@@ -92,7 +92,7 @@ fun ReferralFormScreen(
 
             Button(
                 onClick = {
-                    selectedFacility?.let { onSubmit(it.facilityId, urgency) }
+                    selectedFacility?.let { onSubmit(it.facilityId, urgency, reason.trim()) }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = selectedFacility != null && reason.isNotBlank()

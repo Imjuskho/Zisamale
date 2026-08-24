@@ -11,7 +11,8 @@ data class VisitAdvice(
     val childId: String? = null,
     val score: RiskScoreResult,
     val action: String,
-    val modelVersion: String = VisitAdvisor.MODEL_VERSION
+    val modelVersion: String = VisitAdvisor.MODEL_VERSION,
+    val chichewaFactors: List<String> = emptyList()
 ) {
     fun toRecommendationMap(): Map<String, Any> = mapOf(
         "risk_score" to score.riskScore,
@@ -24,56 +25,119 @@ data class VisitAdvice(
 
 object VisitAdvisor {
     const val MODEL_VERSION = "rule-based-v1"
+    const val EDGE_MODEL_VERSION = "edge-gbt-v${EdgeAI.MODEL_VERSION}"
 
     fun advise(
         visitType: String,
         household: HouseholdEntity?,
         pregnancy: PregnancyEntity?,
         child: ChildEntity?,
-        dangerSigns: Collection<String>
+        dangerSigns: Collection<String>,
+        edgeAi: EdgeAI? = null
     ): VisitAdvice {
         val signs = dangerSigns.toList()
         return when (visitType) {
             "pregnancy" -> {
-                val base = RiskScorer.scorePregnancy(
-                    age = pregnancy?.age,
-                    parity = pregnancy?.parity ?: 0,
-                    priorStillbirths = pregnancy?.prior_stillbirths ?: 0,
-                    priorCsections = pregnancy?.prior_csections ?: 0,
-                    bpSystolic = pregnancy?.bp_systolic,
-                    bpDiastolic = pregnancy?.bp_diastolic,
-                    hemoglobin = pregnancy?.hemoglobin,
-                    foodSecurityScore = household?.food_security_score,
-                    distanceKm = household?.distance_to_facility_km?.toFloat()
-                )
-                val scored = applyDangerSigns(base, signs)
+                val scored = if (edgeAi?.isModelLoaded(ModelKind.PREGNANCY) == true) {
+                    val features = floatArrayOf(
+                        pregnancy?.age?.toFloat() ?: -1f,
+                        (pregnancy?.parity ?: 0).toFloat(),
+                        (pregnancy?.prior_stillbirths ?: 0).toFloat(),
+                        (pregnancy?.prior_csections ?: 0).toFloat(),
+                        pregnancy?.bp_systolic?.toFloat() ?: -1f,
+                        pregnancy?.bp_diastolic?.toFloat() ?: -1f,
+                        pregnancy?.hemoglobin?.toFloat() ?: -1f,
+                        household?.food_security_score?.toFloat() ?: -1f,
+                        household?.distance_to_facility_km?.toFloat() ?: -1f,
+                        if (pregnancy?.hiv_status.equals("positive", ignoreCase = true)) 1f else 0f
+                    )
+                    val result = edgeAi.scorePregnancy(features)
+                    RiskScoreResult(
+                        riskScore = result.score,
+                        riskCategory = result.category,
+                        topFactors = result.topFactors.map { it.label }
+                    ) to ChichewaExplainer.topRiskFactors(result, ModelKind.PREGNANCY)
+                } else {
+                    val base = RiskScorer.scorePregnancy(
+                        age = pregnancy?.age,
+                        parity = pregnancy?.parity ?: 0,
+                        priorStillbirths = pregnancy?.prior_stillbirths ?: 0,
+                        priorCsections = pregnancy?.prior_csections ?: 0,
+                        bpSystolic = pregnancy?.bp_systolic,
+                        bpDiastolic = pregnancy?.bp_diastolic,
+                        hemoglobin = pregnancy?.hemoglobin,
+                        foodSecurityScore = household?.food_security_score,
+                        distanceKm = household?.distance_to_facility_km?.toFloat()
+                    )
+                    base to emptyList()
+                }
+                val applied = applyDangerSigns(scored.first, signs)
                 VisitAdvice(
                     pregnancyId = pregnancy?.pregnancy_id,
-                    score = scored,
-                    action = recommendedAction(scored, signs)
+                    score = applied,
+                    action = recommendedAction(applied, signs),
+                    modelVersion = if (scored.second.isNotEmpty()) EDGE_MODEL_VERSION else MODEL_VERSION,
+                    chichewaFactors = scored.second
                 )
             }
             "child" -> {
-                val base = RiskScorer.scoreChild(
-                    ageMonths = null,
-                    muac = child?.muac,
-                    weightKg = child?.weight_kg,
-                    heightCm = child?.height_cm,
-                    hasFever = signs.any { it.contains("Fever", ignoreCase = true) },
-                    hasCough = signs.any { it.contains("breathing", ignoreCase = true) },
-                    hasDiarrhea = false,
-                    dangerSigns = signs
-                )
+                val hasFever = signs.any { it.contains("Fever", ignoreCase = true) }
+                val hasCough = signs.any { it.contains("breathing", ignoreCase = true) }
+                val scored = if (edgeAi?.isModelLoaded(ModelKind.CHILD) == true) {
+                    val features = floatArrayOf(
+                        child?.dob?.let { dob ->
+                            ((System.currentTimeMillis() - parseDate(dob)) / DAY_MS / 30.4375).toFloat()
+                        } ?: -1f,
+                        child?.muac?.toFloat() ?: -1f,
+                        child?.weight_kg?.toFloat() ?: -1f,
+                        child?.height_cm?.toFloat() ?: -1f,
+                        if (hasFever) 1f else 0f,
+                        if (hasCough) 1f else 0f,
+                        if (signs.any { it.contains("Diarrhea", ignoreCase = true) }) 1f else 0f
+                    )
+                    val result = edgeAi.scoreChild(features)
+                    RiskScoreResult(
+                        riskScore = result.score,
+                        riskCategory = result.category,
+                        topFactors = result.topFactors.map { it.label }
+                    ) to ChichewaExplainer.topRiskFactors(result, ModelKind.CHILD)
+                } else {
+                    RiskScorer.scoreChild(
+                        ageMonths = null,
+                        muac = child?.muac,
+                        weightKg = child?.weight_kg,
+                        heightCm = child?.height_cm,
+                        hasFever = hasFever,
+                        hasCough = hasCough,
+                        hasDiarrhea = false,
+                        dangerSigns = signs
+                    ) to emptyList()
+                }
                 VisitAdvice(
                     childId = child?.child_id,
-                    score = base,
-                    action = recommendedAction(base, signs)
+                    score = scored.first,
+                    action = recommendedAction(scored.first, signs),
+                    modelVersion = if (scored.second.isNotEmpty()) EDGE_MODEL_VERSION else MODEL_VERSION,
+                    chichewaFactors = scored.second
                 )
             }
             else -> VisitAdvice(
                 score = RiskScoreResult(0f, RiskLevel.LOW, emptyList()),
                 action = "continue_routine"
             )
+        }
+    }
+
+    private const val DAY_MS = 86_400_000L
+
+    private fun parseDate(dob: String): Long = try {
+        java.time.Instant.parse(dob).toEpochMilli()
+    } catch (_: Exception) {
+        try {
+            java.time.LocalDate.parse(dob.take(10))
+                .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+            System.currentTimeMillis()
         }
     }
 

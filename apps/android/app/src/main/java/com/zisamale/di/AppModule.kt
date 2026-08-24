@@ -49,4 +49,10 @@ object DatabaseModule {
     ): SyncManager {
         return SyncManager(db, api, sessionStore)
     }
+
+    @Provides
+    @Singleton
+    fun provideEdgeAi(@ApplicationContext context: Context): com.zisamale.ml.EdgeAI {
+        return com.zisamale.ml.EdgeAI(context)
+    }
 }
