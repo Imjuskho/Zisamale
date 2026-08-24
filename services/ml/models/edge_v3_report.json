@@ -1,0 +1,38 @@
+{
+  "models": [
+    {
+      "kind": "pregnancy",
+      "model_version": 3,
+      "n_train": 6400,
+      "n_test": 1600,
+      "fit_seconds": 0.42,
+      "mae": 0.5358,
+      "rmse": 0.6649,
+      "r2": 0.8781,
+      "category_agreement": 0.8363,
+      "export_max_abs_error": 8.881784197001252e-16,
+      "zgb_bytes": 78151,
+      "onnx_bytes": 83810,
+      "init": 3.0744857843178592,
+      "learning_rate": 0.08,
+      "n_trees": 80
+    },
+    {
+      "kind": "child",
+      "model_version": 3,
+      "n_train": 4800,
+      "n_test": 1200,
+      "fit_seconds": 0.25,
+      "mae": 0.2937,
+      "rmse": 0.3772,
+      "r2": 0.9338,
+      "category_agreement": 0.9692,
+      "export_max_abs_error": 4.440892098500626e-16,
+      "zgb_bytes": 67432,
+      "onnx_bytes": 68553,
+      "init": 1.3274735770359456,
+      "learning_rate": 0.08,
+      "n_trees": 80
+    }
+  ]
+}
