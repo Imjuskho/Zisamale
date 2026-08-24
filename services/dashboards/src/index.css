@@ -137,7 +137,7 @@
   }
 
   .risk-badge-medium {
-    @apply risk-badge bg-risk-medium text-risk-medium;
+    @apply risk-badge bg-risk-medium text-zisamale-dark;
   }
 
   .risk-badge-low {

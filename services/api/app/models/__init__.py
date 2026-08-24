@@ -9,9 +9,17 @@ from app.models.referral import Referral
 from app.models.alert import Alert
 from app.models.commodity import Commodity, FacilityStock, StockoutHistory
 from app.models.surveillance import SurveillanceWeekly
+from app.models.community import (
+    ColdChainUnit,
+    CommunityPin,
+    MaternityWaitingHome,
+    SupplyTruck,
+    TraditionalBirthAttendant,
+)
 from app.models.climate import ClimateDaily
 from app.models.audit import AuditLog
 from app.models.ml_model import MLModel
+from app.models.ml_telemetry import ModelTelemetry
 
 __all__ = [
     "User",
@@ -30,6 +38,12 @@ __all__ = [
     "StockoutHistory",
     "SurveillanceWeekly",
     "ClimateDaily",
+    "CommunityPin",
+    "MaternityWaitingHome",
+    "TraditionalBirthAttendant",
+    "SupplyTruck",
+    "ColdChainUnit",
     "AuditLog",
     "MLModel",
+    "ModelTelemetry",
 ]

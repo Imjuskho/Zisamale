@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -268,3 +268,157 @@ async def list_overrides(
             item["chw_notes"] = visit.chw_notes
         overrides.append(item)
     return {"overrides": overrides}
+
+
+@router.get("/chw/performance")
+async def get_chw_performance(
+    district: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("dho", "mohp", "supervisor")),
+):
+    """CHW performance metrics for DHO/MoHP dashboards.
+
+    Returns the full CHWPerformance contract: catchment size, weekly
+    visit completion, open referrals, high-risk cases, and last sync.
+    """
+    rows = (await db.execute(text("""
+        SELECT u.user_id::text            AS chw_id,
+               u.full_name                AS chw_name,
+               COALESCE(hh.hh_count, 0)   AS household_count,
+               COALESCE(hh.catchment_pop, 0) AS catchment_population,
+               COALESCE(v.visits_week, 0) AS visits_this_week,
+               v.last_visit               AS last_visit,
+               COALESCE(r.open_refs, 0)   AS referrals_open,
+               COALESCE(hr.high_risk, 0)  AS high_risk_cases
+        FROM users u
+        LEFT JOIN (
+            SELECT chw_id,
+                   COUNT(*)                          AS hh_count,
+                   SUM(COALESCE(household_size, 1))  AS catchment_pop
+            FROM households GROUP BY chw_id
+        ) hh ON hh.chw_id = u.user_id
+        LEFT JOIN (
+            SELECT chw_id,
+                   COUNT(*) FILTER (WHERE visit_date >= CURRENT_DATE - INTERVAL '7 days') AS visits_week,
+                   MAX(visit_date) AS last_visit
+            FROM visits GROUP BY chw_id
+        ) v ON v.chw_id = u.user_id
+        LEFT JOIN (
+            SELECT chw_id, COUNT(*) AS open_refs
+            FROM referrals WHERE status = 'pending' GROUP BY chw_id
+        ) r ON r.chw_id = u.user_id
+        LEFT JOIN (
+            SELECT h.chw_id, COUNT(DISTINCT c.child_id) AS high_risk
+            FROM children c
+            JOIN households h ON h.household_id = c.household_id
+            WHERE c.risk_category IN ('medium', 'high')
+            GROUP BY h.chw_id
+        ) hr ON hr.chw_id = u.user_id
+        WHERE u.role = 'chw' AND u.is_active = TRUE
+          AND (CAST(:district AS uuid) IS NULL OR u.district_id = CAST(:district AS uuid))
+        ORDER BY u.full_name
+    """), {"district": district})).mappings().all()
+
+    perf_list = []
+    for r in rows:
+        household_count = int(r["household_count"] or 0)
+        last_visit = r["last_visit"]
+        perf_list.append({
+            "chw_id": r["chw_id"],
+            "chw_name": r["chw_name"],
+            "catchment_population": int(r["catchment_population"] or 0),
+            # One catchment visit per household per week is the protocol target.
+            "visits_this_week": int(r["visits_this_week"] or 0),
+            "expected_visits_weekly": max(household_count, 1),
+            "high_risk_cases": int(r["high_risk_cases"] or 0),
+            "referrals_open": int(r["referrals_open"] or 0),
+            "last_sync_at": (last_visit or datetime.now(timezone.utc)).isoformat(),
+        })
+
+    return {"chws": perf_list}
+
+
+@router.get("/chw/{chw_id}/households")
+async def get_chw_households(
+    chw_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """Households assigned to a CHW, in the dashboard's Household contract.
+
+    members / under_five / high_risk / last_visit_at are derived from
+    child and visit records; head_of_household falls back to the village
+    label because the schema has no household-head column.
+    """
+    assert_chw_scope(user, chw_id)
+
+    rows = (await db.execute(text("""
+        SELECT h.household_id::text     AS household_id,
+               COALESCE(h.village_name, 'Unnamed village') AS head_of_household,
+               h.village_name, h.ta_name,
+               COALESCE(h.household_size, 1)               AS members,
+               COUNT(DISTINCT c.child_id) FILTER (
+                   WHERE c.dob IS NOT NULL
+                     AND c.dob > CURRENT_DATE - INTERVAL '5 years'
+               )                                            AS under_five,
+               BOOL_OR(c.risk_category IN ('high', 'medium')) AS high_risk,
+               MAX(v.visit_date)                            AS last_visit_at,
+               h.water_source, h.sanitation_type,
+               h.food_security_score, h.distance_to_facility_km,
+               h.gps_lat, h.gps_lon
+        FROM households h
+        LEFT JOIN children c ON c.household_id = h.household_id
+        LEFT JOIN visits v ON v.household_id = h.household_id
+        WHERE h.chw_id = :chw_id
+        GROUP BY h.household_id, h.village_name, h.ta_name, h.household_size,
+                 h.water_source, h.sanitation_type, h.food_security_score,
+                 h.distance_to_facility_km, h.gps_lat, h.gps_lon
+        ORDER BY h.village_name NULLS LAST
+    """), {"chw_id": chw_id})).mappings().all()
+
+    def _iso(dt):
+        return dt.isoformat() if dt else None
+
+    return {
+        "households": [
+            {
+                "household_id": r["household_id"],
+                "head_of_household": r["head_of_household"],
+                "members": int(r["members"] or 1),
+                "under_five": int(r["under_five"] or 0),
+                "high_risk": bool(r["high_risk"]),
+                "last_visit_at": _iso(r["last_visit_at"]),
+                "village_name": r["village_name"],
+                "ta_name": r["ta_name"],
+                "household_size": int(r["members"] or 1),
+                "water_source": r["water_source"],
+                "sanitation_type": r["sanitation_type"],
+                "food_security_score": r["food_security_score"],
+                "distance_to_facility_km": r["distance_to_facility_km"],
+                "gps_lat": r["gps_lat"],
+                "gps_lon": r["gps_lon"],
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.post("/chuma/budget-model")
+async def run_budget_model(
+    body: dict,
+    user: dict = Depends(require_role("dho", "mohp")),
+):
+    """CHUMA budget scenario model — placeholder for ML integration."""
+    scenario = body.get("scenario", "baseline")
+    district = body.get("district_id")
+    return {
+        "scenario": scenario,
+        "district_id": district,
+        "projected_budget_mwk": 450_000_000,
+        "recommended_allocations": [
+            {"category": "ACTs", "amount_mwk": 120_000_000, "rationale": "Malaria peak season"},
+            {"category": "RDTs", "amount_mwk": 45_000_000, "rationale": "Diagnostic capacity"},
+            {"category": "Maternity supplies", "amount_mwk": 80_000_000, "rationale": "High maternal mortality"},
+        ],
+        "executive_summary": f"Budget scenario '{scenario}' for {district or 'national'} level.",
+    }

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
 import { login } from "../store/dashboardSlice";
 import { api } from "../services/api";
+import { t } from "../i18n";
 import type { UserRole } from "../types";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -29,11 +30,12 @@ export function LoginPage() {
   const [role, setRole] = useState<UserRole>("dho");
   const [error, setError] = useState("");
 
-  if (isAuthenticated) {
-    const stored = localStorage.getItem("zisamale-role") as UserRole | null;
-    navigate(ROLE_ROUTES[stored ?? "dho"], { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      const stored = localStorage.getItem("zisamale-role") as UserRole | null;
+      navigate(ROLE_ROUTES[stored ?? "dho"], { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,11 +73,12 @@ export function LoginPage() {
 
   return (
     <div className="login-page" style={{ maxWidth: 400, margin: "80px auto", padding: 24 }}>
-      <h1>Zisamale Login</h1>
+      <h1>{t("appName")}</h1>
+      <p className="login-subtitle">{t("welcome", "ny")}</p>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 12 }}>
           <label htmlFor="login-email" style={{ display: "block", marginBottom: 4 }}>
-            Email
+            {t("email")}
           </label>
           <input
             id="login-email"
@@ -88,7 +91,7 @@ export function LoginPage() {
         </div>
         <div style={{ marginBottom: 12 }}>
           <label htmlFor="login-password" style={{ display: "block", marginBottom: 4 }}>
-            Password
+            {t("password")}
           </label>
           <input
             id="login-password"
@@ -122,7 +125,7 @@ export function LoginPage() {
           </p>
         )}
         <button type="submit" style={{ width: "100%", padding: 10 }}>
-          Sign In
+          {t("signIn")}
         </button>
       </form>
     </div>

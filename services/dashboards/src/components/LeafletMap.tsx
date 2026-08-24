@@ -1,25 +1,15 @@
 /**
- * Interactive district risk map built on Leaflet + React-Leaflet.
+ * MOYO MAP — Spatial Health Intelligence System
+ *
+ * The primary decision-making interface for Zisamale.
+ * Integrates facility intelligence, CHW presence, community voice,
+ * outbreak prediction, climate overlays, and smart referral routing.
  *
  * Tiles: OpenStreetMap raster tiles — free, no API key required.
- *
- * OFFLINE TILE CACHING
- * --------------------
- * Leaflet only caches tiles in memory for the current session. For
- * offline-first field deployments (DHO laptops, CHW tablets with
- * intermittent connectivity), persistent caching must happen at the
- * service-worker / HTTP-cache layer:
- *   1. Register a service worker (e.g. Workbox) that intercepts requests to
- *      `tile.openstreetmap.org` and serves them from CacheStorage with a
- *      cache-first strategy.
- *   2. Pre-warm that cache for Malawi's bounding box
- *      [[-17.25, 32.6], [-9.2, 36.0]] at zoom levels 6-10 (a few thousand
- *      tiles, well within CacheStorage quotas).
- *   3. Alternatively, host an MBTiles/tileserver-gl endpoint on the district
- *      LAN and pass `tileUrl="http://<lan-host>/tiles/{z}/{x}/{y}.png"`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import type { Layer, PathOptions } from "leaflet";
 import type {
   Feature,
@@ -30,27 +20,38 @@ import type {
 } from "geojson";
 import "leaflet/dist/leaflet.css";
 
-export interface DistrictRiskProps {
+import type {
+  Facility,
+  CHWLocation,
+  CommunityPin,
+  OutbreakPrediction,
+  ClimateOverlayType,
+  ReferralRequest,
+  MapLayer,
+  UserRole,
+  DistrictRiskInput,
+} from "../types";
+import { createFacilityIcon } from "./map/FacilityIntelligenceMarker";
+import { FacilityPanel } from "./map/FacilityPanel";
+import { ReferralEngine } from "./map/ReferralEngine";
+import { CHWPresenceLayer } from "./map/CHWPresenceLayer";
+import { CommunityVoicePins } from "./map/CommunityVoicePins";
+import { OutbreakTimeSlider } from "./map/OutbreakTimeSlider";
+import { ClimateOverlayPanel } from "./map/ClimateOverlay";
+import { MapToolbar } from "./map/MapToolbar";
+
+/* ------------------------------------------------------------------ */
+/* GeoJSON helpers (from original LeafletMap)                          */
+/* ------------------------------------------------------------------ */
+
+interface DistrictRiskProps {
   district_id: string;
   name: string;
-  /** Composite risk score in [0, 1]. */
   risk_score: number;
   facility_count: number;
 }
 
 type DistrictFeature = Feature<Polygon, DistrictRiskProps>;
-
-/** Input shape callers may use to override sample risk values by name. */
-export interface DistrictRiskInput {
-  district_id?: string;
-  name: string;
-  risk_score: number;
-  facility_count?: number;
-}
-
-/* ------------------------------------------------------------------ */
-/* Color scale                                                         */
-/* ------------------------------------------------------------------ */
 
 const COLORS = {
   green: "#22c55e",
@@ -60,23 +61,19 @@ const COLORS = {
   nodata: "#94a3b8",
 } as const;
 
-export function riskToColor(risk: number): string {
+function riskToColor(risk: number): string {
   if (risk < 0.3) return COLORS.green;
   if (risk < 0.6) return COLORS.yellow;
   if (risk < 0.8) return COLORS.orange;
   return COLORS.red;
 }
 
-export function riskToLabel(risk: number): string {
+function riskToLabel(risk: number): string {
   if (risk < 0.3) return "Low";
   if (risk < 0.6) return "Moderate";
   if (risk < 0.8) return "High";
   return "Critical";
 }
-
-/* ------------------------------------------------------------------ */
-/* Simplified sample GeoJSON for Malawi districts                      */
-/* ------------------------------------------------------------------ */
 
 interface DistrictMeta {
   name: string;
@@ -85,12 +82,6 @@ interface DistrictMeta {
   facilities: number;
 }
 
-/**
- * Approximate district centroids and placeholder risk/facility figures.
- * Replace `risk`/`facilities` at runtime via the `districts` prop; replace
- * these coarse hexagon footprints with real GADM/OSM boundaries when a
- * boundaries endpoint is available (`GET /api/v1/districts/boundaries`).
- */
 const DISTRICT_META: DistrictMeta[] = [
   { name: "Chitipa", centroid: [-10.05, 33.3], risk: 0.22, facilities: 18 },
   { name: "Karonga", centroid: [-9.93, 33.93], risk: 0.35, facilities: 21 },
@@ -126,12 +117,9 @@ function hexRing([lat, lon]: [number, number], radius = 0.26): [number, number][
   const points: [number, number][] = [];
   for (let i = 0; i < 6; i += 1) {
     const angle = (Math.PI / 3) * i + Math.PI / 6;
-    points.push([
-      lat + radius * Math.sin(angle),
-      lon + radius * Math.cos(angle) * 0.85,
-    ]);
+    points.push([lat + radius * Math.sin(angle), lon + radius * Math.cos(angle) * 0.85]);
   }
-  points.push(points[0]); // close the ring
+  points.push(points[0]);
   return points;
 }
 
@@ -156,18 +144,15 @@ function buildSampleGeoJSON(): FeatureCollection<Polygon, DistrictRiskProps> {
   };
 }
 
-export const MALAWI_DISTRICTS_GEOJSON = buildSampleGeoJSON();
+const MALAWI_DISTRICTS_GEOJSON = buildSampleGeoJSON();
 
 const DISTRICT_CENTERS: Record<string, [number, number]> = Object.fromEntries(
   DISTRICT_META.map((m) => [slugify(m.name), m.centroid])
 );
 
-/** Merge caller-supplied risk data into the sample geometries by name. */
 function mergeRiskData(districts?: DistrictRiskInput[]): FeatureCollection<Polygon, DistrictRiskProps> {
   if (!districts || districts.length === 0) return MALAWI_DISTRICTS_GEOJSON;
-  const overrides = new Map(
-    districts.map((d) => [d.name.toLowerCase(), d] as const)
-  );
+  const overrides = new Map(districts.map((d) => [d.name.toLowerCase(), d] as const));
   return {
     ...MALAWI_DISTRICTS_GEOJSON,
     features: MALAWI_DISTRICTS_GEOJSON.features.map((feature) => {
@@ -179,9 +164,7 @@ function mergeRiskData(districts?: DistrictRiskInput[]): FeatureCollection<Polyg
           ...feature.properties,
           ...(override.district_id ? { district_id: override.district_id } : {}),
           risk_score: override.risk_score,
-          ...(override.facility_count !== undefined
-            ? { facility_count: override.facility_count }
-            : {}),
+          ...(override.facility_count !== undefined ? { facility_count: override.facility_count } : {}),
         },
       };
     }),
@@ -189,131 +172,275 @@ function mergeRiskData(districts?: DistrictRiskInput[]): FeatureCollection<Polyg
 }
 
 /* ------------------------------------------------------------------ */
-/* Map helpers                                                         */
+/* Map controller                                                     */
 /* ------------------------------------------------------------------ */
 
 export const MALAWI_CENTER: [number, number] = [-13.9625, 33.7741];
 const DEFAULT_ZOOM = 7;
-
 const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const OSM_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-function popupHtml(props: DistrictRiskProps): string {
-  const pct = Math.round(props.risk_score * 100);
-  return [
-    `<strong>${props.name}</strong>`,
-    `Risk: ${riskToLabel(props.risk_score)} (${pct}%)`,
-    `Facilities: ${props.facility_count}`,
-  ].join("<br/>");
-}
-
-function MapController({
-  zoom,
-  selectedId,
-}: {
-  zoom: number;
-  selectedId: string | null;
-}) {
+function MapController({ zoom, selectedId }: { zoom: number; selectedId: string | null }) {
   const map = useMap();
-
-  useEffect(() => {
-    map.setZoom(zoom);
-  }, [map, zoom]);
-
+  useEffect(() => { map.setZoom(zoom); }, [map, zoom]);
   useEffect(() => {
     if (!selectedId) return;
     const center = DISTRICT_CENTERS[selectedId];
     if (center) map.flyTo(center, Math.max(zoom, 9), { duration: 0.8 });
   }, [map, selectedId, zoom]);
-
   return null;
 }
 
-export function MapLegend() {
+function FacilityMarkers({ facilities, onSelect }: { facilities: Facility[]; onSelect: (f: Facility) => void }) {
+  return (
+    <>
+      {facilities.map((facility) => (
+        <Marker
+          key={facility.facility_id}
+          position={[facility.lat, facility.lng]}
+          icon={createFacilityIcon(facility)}
+          eventHandlers={{
+            click: () => onSelect(facility),
+          }}
+        >
+          <Popup>
+            <strong>{facility.name}</strong>
+            <br />
+            {facility.facility_type.replace(/_/g, " ")}
+            <br />
+            {facility.status}
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  );
+}
+
+function CHWMarkers({ chws }: { chws: CHWLocation[] }) {
+  return (
+    <>
+      {chws
+        .filter((c) => c.presence_level !== "ghost" && c.lat != null && c.lng != null)
+        .map((chw) => {
+          const isStale = Math.round((Date.now() - new Date(chw.last_sync_at).getTime()) / 3600000) > 48;
+          const isEmergency = chw.status === "emergency";
+          const color = isEmergency ? "#c62828" : isStale ? "#e65100" : "#0f7b8a";
+
+          return (
+            <div key={chw.chw_id}>
+              <Marker
+                position={[chw.lat!, chw.lng!]}
+                icon={L.divIcon({
+                  html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 ${isEmergency ? "12px" : "6px"} ${color}40;"></div>`,
+                  className: "",
+                  iconSize: [16, 16],
+                  iconAnchor: [8, 8],
+                })}
+              >
+                <Popup>
+                  <strong>{chw.chw_name}</strong><br />
+                  {chw.ta_name}<br />
+                  Visits today: {chw.visits_today}<br />
+                  Last sync: {new Date(chw.last_sync_at).toLocaleString()}
+                </Popup>
+              </Marker>
+            </div>
+          );
+        })}
+    </>
+  );
+}
+
+function CommunityPinMarkers({ pins }: { pins: CommunityPin[] }) {
+  const COLORS: Record<string, string> = {
+    dry_water_point: "#0f7b8a",
+    drug_stockout: "#c62828",
+    road_blocked: "#e65100",
+    disease_report: "#c62828",
+    good_news: "#2d7d46",
+  };
+
+  const ICONS: Record<string, string> = {
+    dry_water_point: "💧",
+    drug_stockout: "💊",
+    road_blocked: "🚧",
+    disease_report: "⚠️",
+    good_news: "✅",
+  };
+
+  return (
+    <>
+      {pins.filter((p) => p.status !== "dismissed").map((pin) => (
+        <Marker
+          key={pin.pin_id}
+          position={[pin.lat, pin.lng]}
+          icon={L.divIcon({
+            html: `<div style="width:24px;height:24px;border-radius:50%;background:${COLORS[pin.pin_type]};display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${ICONS[pin.pin_type]}</div>`,
+            className: "",
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          })}
+        >
+          <Popup>
+            <strong>{pin.pin_type.replace(/_/g, " ")}</strong><br />
+            {pin.description}<br />
+            <em>{pin.village}</em> — {pin.status}
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  );
+}
+
+function OutbreakHeatLayer({ predictions, week }: { predictions: OutbreakPrediction[]; week: number }) {
+  const weekPreds = predictions.filter((p) => p.week_offset === week);
+
+  return (
+    <>
+      {weekPreds.map((pred, i) => {
+        const size = Math.max(20, pred.risk_score * 80);
+        const color = pred.risk_score > 0.7 ? "#c62828" : pred.risk_score > 0.4 ? "#e65100" : "#f9a825";
+        return (
+          <Marker
+            key={`outbreak-${i}`}
+            position={[pred.lat, pred.lng]}
+            icon={L.divIcon({
+              html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};opacity:0.4;animation:moyo-pulse 2s infinite;"></div>`,
+              className: "",
+              iconSize: [size, size],
+              iconAnchor: [size / 2, size / 2],
+            })}
+          >
+            <Popup>
+              {pred.disease} — Risk: {Math.round(pred.risk_score * 100)}%
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Legend                                                              */
+/* ------------------------------------------------------------------ */
+
+function MapLegend() {
   const items = [
     { label: "Low (<30%)", color: COLORS.green },
-    { label: "Moderate (30\u201360%)", color: COLORS.yellow },
-    { label: "High (60\u201380%)", color: COLORS.orange },
+    { label: "Moderate (30–60%)", color: COLORS.yellow },
+    { label: "High (60–80%)", color: COLORS.orange },
     { label: "Critical (>80%)", color: COLORS.red },
     { label: "No data", color: COLORS.nodata },
   ];
+
+  const facilityLegend = [
+    { label: "District Hospital", color: "#1e40af" },
+    { label: "Community Hospital", color: "#0f7b8a" },
+    { label: "Health Centre", color: "#2d7d46" },
+    { label: "Private", color: "#7c3aed" },
+  ];
+
   return (
-    <div
-      className="map-legend"
-      style={{
-        position: "absolute",
-        bottom: 12,
-        left: 12,
-        zIndex: 1000,
-        background: "rgba(255,255,255,0.92)",
-        borderRadius: 8,
-        padding: "8px 12px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        fontSize: 12,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-      }}
-      aria-label="Risk color legend"
-    >
-      {items.map((item) => (
-        <span key={item.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 13,
-              height: 13,
-              borderRadius: 3,
-              backgroundColor: item.color,
-              border: "1px solid #64748b",
-            }}
-          />
-          {item.label}
-        </span>
-      ))}
+    <div className="map-legend" aria-label="Map legend">
+      <div className="map-legend-section">
+        <span className="map-legend-title">District Risk</span>
+        {items.map((item) => (
+          <span key={item.label} className="map-legend-item">
+            <span className="map-legend-swatch" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      <div className="map-legend-section">
+        <span className="map-legend-title">Facilities</span>
+        {facilityLegend.map((item) => (
+          <span key={item.label} className="map-legend-item">
+            <span className="map-legend-dot" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      <div className="map-legend-section">
+        <span className="map-legend-title">Facility Status</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#22c55e" }} /> Operational</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#f59e0b" }} /> Partial</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#ef4444" }} /> Closed</span>
+      </div>
+      <div className="map-legend-section">
+        <span className="map-legend-title">CHW Presence</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#0f7b8a" }} /> Active</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#e65100" }} /> Stale (&gt;48h)</span>
+        <span className="map-legend-item"><span className="map-legend-dot" style={{ backgroundColor: "#c62828" }} /> Emergency</span>
+      </div>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Main component                                                      */
+/* Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-interface LeafletMapProps {
-  /** Risk overrides merged onto the sample Malawi geometries by name. */
+export interface LeafletMapProps {
   districts?: DistrictRiskInput[];
+  facilities?: Facility[];
+  chws?: CHWLocation[];
+  communityPins?: CommunityPin[];
+  outbreakPredictions?: OutbreakPrediction[];
   center?: [number, number];
   zoom?: number;
   height?: number;
-  tileUrl?: string;
   showLegend?: boolean;
+  role?: UserRole;
   onSelectDistrict?: (props: DistrictRiskProps) => void;
+  onRefer?: (facility: Facility) => void;
+  onCall?: (facility: Facility) => void;
+  onCheckInRequest?: (chwId: string) => void;
+  onVerifyPin?: (pinId: string) => void;
+  onDismissPin?: (pinId: string) => void;
+  onReportPin?: (type: string) => void;
 }
 
 export function LeafletMap({
   districts,
+  facilities = [],
+  chws = [],
+  communityPins = [],
+  outbreakPredictions = [],
   center = MALAWI_CENTER,
   zoom = DEFAULT_ZOOM,
-  height = 480,
-  tileUrl = OSM_TILE_URL,
+  height = 520,
   showLegend = true,
+  role,
   onSelectDistrict,
+  onRefer,
+  onCall,
+  onCheckInRequest,
+  onVerifyPin,
+  onDismissPin,
+  onReportPin,
 }: LeafletMapProps) {
-  const [selected, setSelected] = useState<DistrictRiskProps | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<DistrictRiskProps | null>(null);
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [referralRequest, setReferralRequest] = useState<ReferralRequest | null>(null);
+  const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(
+    new Set(["districts", "facilities"])
+  );
+  const [predictionWeek, setPredictionWeek] = useState(0);
+  const [activeClimateOverlays, setActiveClimateOverlays] = useState<Set<ClimateOverlayType>>(new Set());
+  const [printMode, setPrintMode] = useState(false);
+
   const data = useMemo(() => mergeRiskData(districts), [districts]);
 
-  // Keep a stable onEachFeature binding (react-leaflet binds handlers once at
-  // layer creation); route through a ref so callbacks never go stale.
   const selectRef = useRef<(props: DistrictRiskProps) => void>(() => undefined);
   selectRef.current = (props) => {
-    setSelected(props);
+    setSelectedDistrict(props);
     onSelectDistrict?.(props);
   };
 
   const onEachFeature = useCallback(
     (feature: DistrictFeature, layer: Layer) => {
-      layer.bindPopup(popupHtml(feature.properties));
+      layer.bindPopup(`<strong>${feature.properties.name}</strong><br/>Risk: ${riskToLabel(feature.properties.risk_score)} (${Math.round(feature.properties.risk_score * 100)}%)<br/>Facilities: ${feature.properties.facility_count}`);
       layer.on("click", () => selectRef.current(feature.properties));
     },
     []
@@ -322,7 +449,7 @@ export function LeafletMap({
   const styleFn = useCallback(
     (feature?: Feature<Geometry, DistrictRiskProps>): PathOptions => {
       const props = feature?.properties;
-      const isSelected = !!props && props.district_id === selected?.district_id;
+      const isSelected = !!props && props.district_id === selectedDistrict?.district_id;
       return {
         color: isSelected ? "#0284c7" : "#475569",
         weight: isSelected ? 3 : 1,
@@ -330,73 +457,194 @@ export function LeafletMap({
         fillOpacity: 0.65,
       };
     },
-    [selected]
+    [selectedDistrict]
   );
 
-  function handleInfoPanelDismiss() {
-    setSelected(null);
+  function toggleLayer(layer: MapLayer) {
+    setActiveLayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(layer)) next.delete(layer);
+      else next.add(layer);
+      return next;
+    });
   }
 
+  function toggleClimateOverlay(overlay: ClimateOverlayType) {
+    setActiveClimateOverlays((prev) => {
+      const next = new Set(prev);
+      if (next.has(overlay)) next.delete(overlay);
+      else next.add(overlay);
+      return next;
+    });
+  }
+
+  const handlePrint = useCallback(() => {
+    window.print();
+    setPrintMode(true);
+    setTimeout(() => setPrintMode(false), 1000);
+  }, []);
+
+  const handleExportSMS = useCallback(() => {
+    const activeFacilities = facilities.filter((f) => f.status !== "closed");
+    const topFacilities = activeFacilities.slice(0, 3).map((f) => {
+      const beds = f.beds.reduce((s, b) => s + b.available, 0);
+      const hasMgSO4 = f.stock.some((s) => s.commodity.toLowerCase().includes("mgso4") && s.status !== "critical");
+      const road = f.roads.find((r) => r.route === "Primary");
+      return `${f.name}: ${beds} beds, MgSO4 ${hasMgSO4 ? "YES" : "NO"}, Road ${road?.status.replace("_", " ") ?? "unknown"}`;
+    });
+    const sms = `Zisamale Health Status:\n${topFacilities.join("\n")}`;
+    navigator.clipboard?.writeText(sms).then(() => alert("SMS summary copied to clipboard."));
+  }, [facilities]);
+
+  function handleSelectFacility(facility: Facility) {
+    setReferralRequest(null);
+    setSelectedFacility(null);
+    onRefer?.(facility);
+  }
+
+  const referralFacilities = useMemo(() => {
+    if (!referralRequest) return facilities;
+    return facilities.filter((f) => f.status !== "closed");
+  }, [referralRequest, facilities]);
+
   return (
-    <div className="leaflet-map">
-      <h2>District Risk Map</h2>
-      <div style={{ position: "relative", height }}>
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          scrollWheelZoom
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer url={tileUrl} attribution={OSM_ATTRIBUTION} />
-          <GeoJSON
-            data={data}
-            style={styleFn as (feature?: Feature<Geometry, GeoJsonProperties>) => PathOptions}
-            onEachFeature={
-              onEachFeature as (
-                feature: Feature<Geometry, GeoJsonProperties>,
-                layer: Layer
-              ) => void
-            }
-          />
-          <MapController zoom={zoom} selectedId={selected?.district_id ?? null} />
-        </MapContainer>
-        {showLegend && <MapLegend />}
-        {selected && (
-          <div
-            className="map-info-panel"
-            role="status"
-            aria-live="polite"
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              zIndex: 1000,
-              background: "rgba(255,255,255,0.95)",
-              borderRadius: 8,
-              padding: "10px 14px",
-              minWidth: 180,
-              fontSize: 13,
-              lineHeight: 1.5,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-            }}
-          >
-            <strong>{selected.name}</strong>
-            <br />
-            Risk level: {riskToLabel(selected.risk_score)} (
-            {Math.round(selected.risk_score * 100)}%)
-            <br />
-            Facilities: {selected.facility_count}
-            <br />
-            <button
-              type="button"
-              onClick={handleInfoPanelDismiss}
-              style={{ marginTop: 6, fontSize: 12 }}
-            >
-              Close
-            </button>
-          </div>
-        )}
+    <div className={`leaflet-map moyo-map ${printMode ? "moyo-map--print" : ""}`}>
+      <div className="moyo-map-header">
+        <h2>Moyo Map — Spatial Health Intelligence</h2>
+        <span className="moyo-map-subtitle">Real-time decision support for health delivery</span>
       </div>
+
+      <div className="moyo-map-body">
+        <div className="leaflet-map-container" style={{ position: "relative", height }}>
+          <MapContainer
+            center={center}
+            zoom={zoom}
+            scrollWheelZoom
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+
+            {/* District risk choropleth */}
+            {activeLayers.has("districts") && (
+              <GeoJSON
+                data={data}
+                style={styleFn as (feature?: Feature<Geometry, GeoJsonProperties>) => PathOptions}
+                onEachFeature={onEachFeature as (
+                  feature: Feature<Geometry, GeoJsonProperties>,
+                  layer: Layer
+                ) => void}
+              />
+            )}
+
+            {/* Facility intelligence markers */}
+            {activeLayers.has("facilities") && (
+              <FacilityMarkers facilities={facilities} onSelect={setSelectedFacility} />
+            )}
+
+            {/* CHW presence layer */}
+            {activeLayers.has("chw_presence") && (
+              <CHWMarkers chws={chws} />
+            )}
+
+            {/* Community voice pins */}
+            {activeLayers.has("community_pins") && (
+              <CommunityPinMarkers pins={communityPins} />
+            )}
+
+            {/* Outbreak prediction heat */}
+            {activeLayers.has("outbreak预测") && (
+              <OutbreakHeatLayer predictions={outbreakPredictions} week={predictionWeek} />
+            )}
+
+            <MapController zoom={zoom} selectedId={selectedDistrict?.district_id ?? null} />
+          </MapContainer>
+
+          {showLegend && <MapLegend />}
+
+          {/* Toolbar overlay */}
+          <MapToolbar
+            activeLayers={activeLayers}
+            onToggleLayer={toggleLayer}
+            onPrint={handlePrint}
+            onExportSMS={handleExportSMS}
+            role={role}
+          />
+
+          {/* CHW Presence sidebar */}
+          {activeLayers.has("chw_presence") && (
+            <CHWPresenceLayer
+              chws={chws}
+              supervisorView={role === "dho" || role === "mohp"}
+              onCheckInRequest={onCheckInRequest}
+            />
+          )}
+
+          {/* Community Voice sidebar */}
+          {activeLayers.has("community_pins") && (
+            <CommunityVoicePins
+              pins={communityPins}
+              onVerify={onVerifyPin}
+              onDismiss={onDismissPin}
+              onReport={onReportPin as any}
+            />
+          )}
+
+          {/* Climate overlay panel */}
+          <ClimateOverlayPanel
+            activeOverlays={activeClimateOverlays}
+            onToggle={toggleClimateOverlay}
+          />
+
+          {/* Outbreak time slider */}
+          {activeLayers.has("outbreak预测") && (
+            <OutbreakTimeSlider
+              predictions={outbreakPredictions}
+              currentWeek={predictionWeek}
+              onWeekChange={setPredictionWeek}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Facility slide-out panel */}
+      {selectedFacility && (
+        <FacilityPanel
+          facility={selectedFacility}
+          onClose={() => setSelectedFacility(null)}
+          onRefer={() => {
+            setReferralRequest({
+              patient_lat: center[0],
+              patient_lng: center[1],
+              condition: "obstetric",
+              intervention_required: "general",
+              urgency: "urgent",
+            });
+            setSelectedFacility(null);
+          }}
+          onCall={onCall}
+        />
+      )}
+
+      {/* Referral engine overlay */}
+      {referralRequest && (
+        <ReferralEngine
+          request={referralRequest}
+          facilities={referralFacilities}
+          onSelectFacility={handleSelectFacility}
+          onDismiss={() => setReferralRequest(null)}
+        />
+      )}
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Re-export subcomponents for convenience                             */
+/* ------------------------------------------------------------------ */
+export { FacilityPanel } from "./map/FacilityPanel";
+export { ReferralEngine } from "./map/ReferralEngine";
+export { CHWPresenceLayer } from "./map/CHWPresenceLayer";
+export { CommunityVoicePins } from "./map/CommunityVoicePins";
+export { OutbreakTimeSlider } from "./map/OutbreakTimeSlider";
+export { ClimateOverlayPanel } from "./map/ClimateOverlay";
+export { MapToolbar } from "./map/MapToolbar";

@@ -272,7 +272,7 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
                     Predicted cases: <strong>{alert.predicted_cases}</strong>
                   </span>
                   <span>
-                    95% CI: [{alert.confidence_interval[0]}, {alert.confidence_interval[1]}]
+                    95% CI: [{alert.confidence_interval?.[0] ?? "N/A"}, {alert.confidence_interval?.[1] ?? "N/A"}]
                   </span>
                 </div>
                 <footer style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

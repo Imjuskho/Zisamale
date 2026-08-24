@@ -57,7 +57,7 @@ async def get_district_alerts(
     }
 
 
-@router.post("/alerts/{alert_id}/respond")
+@router.post("/alerts/{alert_id}/actions")
 async def respond_to_alert(
     alert_id: str,
     body: AlertRespond,

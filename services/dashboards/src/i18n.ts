@@ -1,131 +1,133 @@
 /** Chichewa ↔ English bilingual strings for the Zisamale design system. */
 
+export type Language = "en" | "ny";
+
 export const strings = {
   // App
-  appName: { en: "Zisamale", cy: "Zisamale" },
-  welcome: { en: "Welcome to Zisamale", cy: "Takulandirani ku Zisamale!" },
+  appName: { en: "Zisamale", ny: "Zisamale" },
+  welcome: { en: "Welcome to Zisamale", ny: "Takulandirani ku Zisamale!" },
 
   // Navigation
-  overview: { en: "Overview", cy: "Onse" },
-  riskMap: { en: "Risk Map", cy: "Chithunzi cha Mataro" },
-  chws: { en: "CHWs", cy: "ASHA" },
-  trends: { en: "Trends", cy: "Malingaliro" },
-  alerts: { en: "Alerts", cy: "Xenjelo" },
-  settings: { en: "Settings", cy: "Zosankha" },
+  overview: { en: "Overview", ny: "Onse" },
+  riskMap: { en: "Risk Map", ny: "Chithunzi cha Mataro" },
+  chws: { en: "CHWs", ny: "ASHA" },
+  trends: { en: "Trends", ny: "Malingaliro" },
+  alerts: { en: "Alerts", ny: "Xenjelo" },
+  settings: { en: "Settings", ny: "Zosankha" },
 
   // Risk levels
-  riskCritical: { en: "Critical", cy: "YAMBIKANI" },
-  riskHigh: { en: "High Risk", cy: "CHANGU" },
-  riskMedium: { en: "Medium Risk", cy: "CHIDULE" },
-  riskLow: { en: "Low Risk", cy: "BWINO" },
+  riskCritical: { en: "Critical", ny: "YAMBIKANI" },
+  riskHigh: { en: "High Risk", ny: "CHANGU" },
+  riskMedium: { en: "Medium Risk", ny: "CHIDULE" },
+  riskLow: { en: "Low Risk", ny: "BWINO" },
 
   // Actions
-  visitNow: { en: "Visit Now", cy: "Pitani Tsopano" },
-  acknowledge: { en: "Acknowledge", cy: "Dziwitsani" },
-  deployDRRT: { en: "Deploy DRRT", cy: "Tumizani Gulu" },
-  requestSupplies: { en: "Request Supplies", cy: "Funsani Zida" },
-  tryAgain: { en: "Try Again", cy: "Yesereni" },
-  save: { en: "Save", cy: "Sungani" },
-  cancel: { en: "Cancel", cy: "Ganizirani" },
-  signIn: { en: "Sign In", cy: "Lowelani" },
-  signOut: { en: "Sign Out", cy: "Tulukani" },
-  syncNow: { en: "Sync Now", cy: "Sungani Tsopano" },
-  continueWorking: { en: "Continue Working", cy: "Pitirizani Ntchito" },
+  visitNow: { en: "Visit Now", ny: "Pitani Tsopano" },
+  acknowledge: { en: "Acknowledge", ny: "Dziwitsani" },
+  deployDRRT: { en: "Deploy DRRT", ny: "Tumizani Gulu" },
+  requestSupplies: { en: "Request Supplies", ny: "Funsani Zida" },
+  tryAgain: { en: "Try Again", ny: "Yesereni" },
+  save: { en: "Save", ny: "Sungani" },
+  cancel: { en: "Cancel", ny: "Ganizirani" },
+  signIn: { en: "Sign In", ny: "Lowelani" },
+  signOut: { en: "Sign Out", ny: "Tulukani" },
+  syncNow: { en: "Sync Now", ny: "Sungani Tsopano" },
+  continueWorking: { en: "Continue Working", ny: "Pitirizani Ntchito" },
 
   // Sync status
-  syncing: { en: "Saving things...", cy: "Kusunga zinthu..." },
-  syncComplete: { en: "Saved!", cy: "Zasungidwa!" },
+  syncing: { en: "Saving things...", ny: "Kusunga zinthu..." },
+  syncComplete: { en: "Saved!", ny: "Zasungidwa!" },
   syncFailed: {
     en: "We couldn't save. Is your phone on the internet?",
-    cy: "Sitinathe kusunga. Foni yanuyo ili pa intaneti?",
+    ny: "Sitinathe kusunga. Foni yanuyo ili pa intaneti?",
   },
 
   // Offline
-  offlineTitle: { en: "You are offline", cy: "Muli pa intaneti" },
+  offlineTitle: { en: "You are offline", ny: "Muli pa intaneti" },
   offlineBody: {
     en: "Your data is safe. Sync when you have signal.",
-    cy: "Zinthu zanu zili bwino. Sungani pamene muli ndi siginecha.",
+    ny: "Zinthu zanu zili bwino. Sungani pamene muli ndi siginecha.",
   },
 
   // Empty states
-  noVisitsToday: { en: "No visits today", cy: "Lero mulibe alendo" },
-  noVisitsSubtext: { en: "You look like you know.", cy: "Mukuwoneka ngati mukudziwa." },
+  noVisitsToday: { en: "No visits today", ny: "Lero mulibe alendo" },
+  noVisitsSubtext: { en: "You look like you know.", ny: "Mukuwoneka ngati mukudziwa." },
 
   // Error
   errorGeneric: {
     en: "Something went wrong. Let's try again.",
-    cy: "Pali vuto. Tiyeserenso.",
+    ny: "Pali vuto. Tiyeserenso.",
   },
   errorNetwork: {
     en: "Connection problem. Your data is safe on your phone.",
-    cy: "Vuto la kukhoma. Zinthu zanu zili pa foni yanu.",
+    ny: "Vuto la kukhoma. Zinthu zanu zili pa foni yanu.",
   },
   errorInput: {
     en: "Please write numbers only. Example: 11.5",
-    cy: "Chonde lembani nambala yokha. Chitsanzo: 11.5",
+    ny: "Chonde lembani nambala yokha. Chitsanzo: 11.5",
   },
 
   // Dashboard titles
-  executiveSummary: { en: "Executive Summary", cy: "Mwachidule" },
-  districtScorecard: { en: "District Health Scorecard", cy: "Kadi ya Zaumoyo ya D District" },
-  resourceForecast: { en: "Resource Forecasting", cy: "Kufotokozera Zosungidwa" },
+  executiveSummary: { en: "Executive Summary", ny: "Mwachidule" },
+  districtScorecard: { en: "District Health Scorecard", ny: "Kadi ya Zaumoyo ya D District" },
+  resourceForecast: { en: "Resource Forecasting", ny: "Kufotokozera Zosungidwa" },
 
   // Greetings
-  greetingMorning: { en: "Good morning", cy: "Mawa abwino" },
-  greetingAfternoon: { en: "Good afternoon", cy: "Madzulo abwino" },
-  greetingEvening: { en: "Good evening", cy: "Usiku wabwino" },
+  greetingMorning: { en: "Good morning", ny: "Mawa abwino" },
+  greetingAfternoon: { en: "Good afternoon", ny: "Madzulo abwino" },
+  greetingEvening: { en: "Good evening", ny: "Usiku wabwino" },
 
   // Actions
   acknowledgeMsg: {
     en: "You want to change? Thank you — your knowledge is important.",
-    cy: "Mukufuna kusintha? Zikomo — kudziwa kwanu ndikofunika.",
+    ny: "Mukufuna kusintha? Zikomo — kudziwa kwanu ndikofunika.",
   },
-  overrideReason: { en: "Reason for override — optional", cy: "Chifukwa — osiyenera" },
-  overridePatientRefused: { en: "Patient refused", cy: "Wodwalayo akana" },
-  overrideKnowFamily: { en: "I know this family", cy: "Ndidziwa banthu ili" },
-  overrideSymptomsChanged: { en: "S symptoms changed", cy: "Zizindikiro zasinthidwa" },
-  overrideOther: { en: "Other", cy: "Zina" },
+  overrideReason: { en: "Reason for override — optional", ny: "Chifukwa — osiyenera" },
+  overridePatientRefused: { en: "Patient refused", ny: "Wodwalayo akana" },
+  overrideKnowFamily: { en: "I know this family", ny: "Ndidziwa banthu ili" },
+  overrideSymptomsChanged: { en: "S symptoms changed", ny: "Zizindikiro zasinthidwa" },
+  overrideOther: { en: "Other", ny: "Zina" },
 
   // Chat / common
-  howAreYou: { en: "How are you seeing the patient today?", cy: "Mukuwona bwanji lero?" },
-  thankYou: { en: "Thank you for letting us know.", cy: "Zikomo chifukwa cha kudziwitsa." },
+  howAreYou: { en: "How are you seeing the patient today?", ny: "Mukuwona bwanji lero?" },
+  thankYou: { en: "Thank you for letting us know.", ny: "Zikomo chifukwa cha kudziwitsa." },
 
   // Placeholder
-  tapToSpeak: { en: "Tap to speak", cy: "Dikirani kuyankhula" },
-  typeHere: { en: "Type here...", cy: "Lembani apa..." },
+  tapToSpeak: { en: "Tap to speak", ny: "Dikirani kuyankhula" },
+  typeHere: { en: "Type here...", ny: "Lembani apa..." },
 
   // Date
-  lastSync: { en: "Last sync", cy: "Kusunga koyambirira" },
-  lastVisit: { en: "Last visit", cy: "Chisuma choyambirira" },
-  daysAgo: { en: "days ago", cy: "masiku apita" },
-  dueToday: { en: "Due today", cy: "Lero" },
-  overdue: { en: "Overdue", cy: "Kutherera" },
-  dueIn: { en: "Due in", cy: "Lero mu" },
+  lastSync: { en: "Last sync", ny: "Kusunga koyambirira" },
+  lastVisit: { en: "Last visit", ny: "Chisuma choyambirira" },
+  daysAgo: { en: "days ago", ny: "masiku apita" },
+  dueToday: { en: "Due today", ny: "Lero" },
+  overdue: { en: "Overdue", ny: "Kutherera" },
+  dueIn: { en: "Due in", ny: "Lero mu" },
 
   // Table
-  noData: { en: "No data available", cy: "Palibe deta" },
-  search: { en: "Search", cy: "Sakani" },
-  filter: { en: "Filter", cy: "Sankhani" },
+  noData: { en: "No data available", ny: "Palibe deta" },
+  search: { en: "Search", ny: "Sakani" },
+  filter: { en: "Filter", ny: "Sankhani" },
 
   // Password
-  password: { en: "Password", cy: "Mawu achinsinsi" },
-  email: { en: "Email", cy: "Imelo" },
-  username: { en: "Username", cy: "Dzina la wogwiritsa" },
+  password: { en: "Password", ny: "Mawu achinsinsi" },
+  email: { en: "Email", ny: "Imelo" },
+  username: { en: "Username", ny: "Dzina la wogwiritsa" },
 
   // Roles
-  roleDHO: { en: "District Health Officer", cy: "Woyang'anira Zaumoyo" },
-  roleMOHP: { en: "Ministry of Health Policy", cy: "Ofesi ya Zaumoyo" },
-  roleCHW: { en: "Community Health Worker", cy: "Woyang'anira Thanzi la Mtundu" },
-  rolePHIM: { en: "Public Health Information Manager", cy: "Woyang'anira Nkhokwe ya Thanzi" },
-  roleSupervisor: { en: "Supervisor", cy: "Woyang'anira" },
+  roleDHO: { en: "District Health Officer", ny: "Woyang'anira Zaumoyo" },
+  roleMOHP: { en: "Ministry of Health Policy", ny: "Ofesi ya Zaumoyo" },
+  roleCHW: { en: "Community Health Worker", ny: "Woyang'anira Thanzi la Mtundu" },
+  rolePHIM: { en: "Public Health Information Manager", ny: "Woyang'anira Nkhokwe ya Thanzi" },
+  roleSupervisor: { en: "Supervisor", ny: "Woyang'anira" },
 } as const;
 
 export type StringKey = keyof typeof strings;
 
-export function t(key: StringKey, lang: "en" | "cy" = "en"): string {
+export function t(key: StringKey, lang: Language = "en"): string {
   return strings[key]?.[lang] ?? key;
 }
 
 export function bilingual(key: StringKey): { primary: string; secondary: string } {
-  return { primary: strings[key].cy, secondary: strings[key].en };
+  return { primary: strings[key].ny, secondary: strings[key].en };
 }

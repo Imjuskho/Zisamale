@@ -4,8 +4,12 @@ import os
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, with_loader_criteria
 
 from app.auth import decode_token
+from app.database import get_db
 
 security = HTTPBearer(auto_error=False)
 
@@ -58,3 +62,50 @@ def assert_chw_scope(user: dict, chw_id: str) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot access another CHW's catchment",
         )
+
+
+# ── Catchment scope guard ──────────────────────────────────────────
+#
+# The seam between authentication and data access. A session carrying
+# ``scope_chw_id`` transparently filters every ORM query against chw-scoped
+# models, so tenancy stops being a per-handler responsibility.
+
+
+def _scoped_models() -> tuple[type, ...]:
+    # Imported lazily to avoid import cycles at module load.
+    from app.models.household import Household
+    from app.models.visit import Visit
+
+    return (Visit, Household)
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _apply_chw_scope(execute_state):
+    scope = execute_state.session.info.get("scope_chw_id")
+    if not scope or execute_state.is_column_load or execute_state.is_relationship_load:
+        return
+    options = [
+        with_loader_criteria(model, lambda cls, s=scope: cls.chw_id == s, include_aliases=True)
+        for model in _scoped_models()
+    ]
+    execute_state.statement = execute_state.statement.options(*options)
+
+
+def scoped_db(*roles: str):
+    """Dependency factory: role check + automatic catchment scoping.
+
+    CHWs get a session whose queries are restricted to their own rows.
+    Supervisors and other roles see unfiltered data.
+    """
+
+    async def dependency(
+        db: AsyncSession = Depends(get_db),
+        user: dict = Depends(require_role(*roles)),
+    ) -> AsyncSession:
+        if user.get("role") == "chw":
+            identity = user.get("chw_id") or user.get("sub")
+            if identity:
+                db.sync_session.info["scope_chw_id"] = str(identity)
+        return db
+
+    return dependency

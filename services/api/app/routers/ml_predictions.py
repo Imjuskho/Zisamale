@@ -5,7 +5,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.deps import get_current_user
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/api/v1/ml", tags=["ml"])
 
@@ -90,3 +93,52 @@ async def predict_child_risk(
         risk_category=result["risk_category"],
         top_factors=result["top_factors"],
     )
+
+
+# ── Edge model telemetry (M3) ──────────────────────────────────────
+
+
+class ModelTelemetryRecord(BaseModel):
+    kind: str = Field(..., pattern="^(pregnancy|child)$")
+    model_version: str
+    source: str = Field("bundled_model", pattern="^(bundled_model|rule_based)$")
+    inference_count: int = Field(0, ge=0)
+    fallback_count: int = Field(0, ge=0)
+    latency_ms_avg: float | None = Field(None, ge=0)
+    device_id: str | None = None
+    app_version: str | None = None
+
+
+class ModelTelemetryBatch(BaseModel):
+    records: list[ModelTelemetryRecord] = Field(default_factory=list)
+
+
+class TelemetryAck(BaseModel):
+    accepted: int
+
+
+@router.post("/telemetry", response_model=TelemetryAck)
+async def report_model_telemetry(
+    batch: ModelTelemetryBatch,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("chw", "supervisor")),
+):
+    """Receive edge inference stats from the Android app (best-effort)."""
+    from app.models.ml_telemetry import ModelTelemetry
+
+    for record in batch.records[:100]:
+        db.add(
+            ModelTelemetry(
+                chw_id=user.get("chw_id") or user.get("id"),
+                device_id=record.device_id,
+                kind=record.kind,
+                model_version=record.model_version,
+                source=record.source,
+                inference_count=record.inference_count,
+                fallback_count=record.fallback_count,
+                latency_ms_avg=record.latency_ms_avg,
+                app_version=record.app_version,
+            )
+        )
+    await db.commit()
+    return TelemetryAck(accepted=len(batch.records[:100]))

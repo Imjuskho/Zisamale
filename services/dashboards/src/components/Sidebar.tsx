@@ -3,19 +3,30 @@ import { useAppSelector, useAppDispatch } from "../hooks/useRedux";
 import { logout } from "../store/dashboardSlice";
 import { tokenStore } from "../services/api";
 import { ThemeToggle } from "./ThemeToggle";
+import { t, type StringKey } from "../i18n";
+import { Icon, type IconName } from "./design/Icon";
 import type { UserRole } from "../types";
 
 interface NavItem {
   to: string;
   label: string;
+  labelKey: StringKey;
+  icon: IconName;
   roles: UserRole[];
 }
 
+const ROLE_I18N: Record<UserRole, StringKey> = {
+  dho: "roleDHO",
+  mohp: "roleMOHP",
+  chw: "roleCHW",
+  phim: "rolePHIM",
+};
+
 const NAV_ITEMS: NavItem[] = [
-  { to: "/dho", label: "DHO Dashboard", roles: ["dho"] },
-  { to: "/mohp", label: "MoHP Dashboard", roles: ["mohp", "phim"] },
-  { to: "/chw", label: "CHW Dashboard", roles: ["chw"] },
-  { to: "/chuma", label: "CHUMA Forecasting", roles: ["mohp", "phim"] },
+  { to: "/dho", label: "DHO Dashboard", labelKey: "riskMap", icon: "MapPin", roles: ["dho"] },
+  { to: "/mohp", label: "MoHP Dashboard", labelKey: "trends", icon: "ChartBar", roles: ["mohp", "phim"] },
+  { to: "/chw", label: "CHW Dashboard", labelKey: "chws", icon: "Users", roles: ["chw"] },
+  { to: "/chuma", label: "CHUMA Forecasting", labelKey: "resourceForecast", icon: "Calculator", roles: ["mohp", "phim"] },
 ];
 
 export function Sidebar() {
@@ -27,8 +38,8 @@ export function Sidebar() {
   return (
     <nav className="sidebar" aria-label="Main navigation">
       <div className="sidebar-brand">
-        <div className="sidebar-logo">Z</div>
-        <h2>Zisamale</h2>
+        <div className="sidebar-logo" aria-hidden="true">Z</div>
+        <h2>{t("appName")}</h2>
       </div>
       <ul className="sidebar-nav">
         {visibleItems.map((item) => (
@@ -37,7 +48,9 @@ export function Sidebar() {
               to={item.to}
               className={({ isActive }) => (isActive ? "sidebar-link active" : "sidebar-link")}
             >
-              {item.label}
+              <Icon name={item.icon} size={20} />
+              <span>{item.label}</span>
+              <span className="sidebar-link-sub">{t(item.labelKey, "ny")}</span>
             </NavLink>
           </li>
         ))}
@@ -45,23 +58,27 @@ export function Sidebar() {
       <div className="sidebar-footer">
         {user && (
           <div className="sidebar-user">
-            <div className="sidebar-avatar">{user.name?.charAt(0) ?? "?"}</div>
+            <div className="sidebar-avatar" aria-hidden="true">
+              <Icon name="Person" size={20} color="#fff" />
+            </div>
             <div className="sidebar-user-info">
               <span className="sidebar-user-name">{user.name}</span>
-              <span className="sidebar-user-role">{role}</span>
+              <span className="sidebar-user-role">{t(ROLE_I18N[role ?? "chw"], "ny")}</span>
             </div>
           </div>
         )}
         <ThemeToggle />
         <button
           className="sidebar-link sidebar-logout"
+          aria-label={t("signOut", "ny")}
           onClick={() => {
             dispatch(logout());
             tokenStore.clear();
             navigate("/login", { replace: true });
           }}
         >
-          Log Out
+          <Icon name="SignOut" size={20} />
+          {t("signOut")}
         </button>
       </div>
     </nav>

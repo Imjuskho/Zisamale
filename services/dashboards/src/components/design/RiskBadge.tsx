@@ -3,15 +3,15 @@ import { strings } from "../../i18n";
 function riskColor(score: number): string {
   if (score >= 9) return "bg-risk-critical text-white";
   if (score >= 7) return "bg-risk-high text-white";
-  if (score >= 4) return "bg-risk-medium text-risk-medium";
+  if (score >= 4) return "bg-risk-medium text-zisamale-dark";
   return "bg-risk-low text-white";
 }
 
 function riskLabel(score: number): string {
-  if (score >= 9) return strings.riskCritical.cy;
-  if (score >= 7) return strings.riskHigh.cy;
-  if (score >= 4) return strings.riskMedium.cy;
-  return strings.riskLow.cy;
+  if (score >= 9) return strings.riskCritical.ny;
+  if (score >= 7) return strings.riskHigh.ny;
+  if (score >= 4) return strings.riskMedium.ny;
+  return strings.riskLow.ny;
 }
 
 interface RiskBadgeProps {
@@ -65,7 +65,7 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
     <div className={`card border-2 ${borderColor} rounded-xl`}>
       <div className="flex items-start justify-between mb-3">
         <span className="text-caption font-medium text-neutral uppercase tracking-wider">
-          {strings.riskLow.cy.split("")[0] === "B" ? "RISK SCORE" : "RISK SCORE"}
+          {strings.riskLow.ny.split("")[0] === "B" ? "RISK SCORE" : "RISK SCORE"}
         </span>
       </div>
 
@@ -95,7 +95,7 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
       {reasons.length > 0 && (
         <div className="mb-4">
           <div className="text-caption font-medium text-neutral mb-2">
-            ⚠️ Main reasons:
+            Main reasons:
           </div>
           <ul className="space-y-1">
             {reasons.map((r, i) => (

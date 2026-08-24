@@ -21,6 +21,7 @@ async def alert_stream(websocket: WebSocket, district_id: str):
 
 
 @router.websocket("/ws/alerts")
+@router.websocket("/api/v1/ws/alerts")
 async def global_alert_stream(websocket: WebSocket):
     await manager.connect(websocket, "alerts:all")
     try:

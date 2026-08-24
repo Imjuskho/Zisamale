@@ -32,8 +32,16 @@ export function NationalOverview({ districts }: Props) {
               <td className="district-name">{d.district_name}</td>
               <td>
                 <span
-                  className="risk-badge"
-                  style={{ backgroundColor: RISK_COLORS[d.malaria_risk_level] }}
+                  className="risk-pill"
+                  style={{
+                    display: "inline-block",
+                    backgroundColor: RISK_COLORS[d.malaria_risk_level],
+                    color: "#fff",
+                    borderRadius: 12,
+                    padding: "2px 10px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
                 >
                   {d.malaria_risk_level}
                 </span>

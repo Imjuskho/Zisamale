@@ -10,14 +10,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.alerts.service import emit_alert
 from app.integrations.cht_mapping import map_cht_document
 from app.integrations.dhis2 import DHIS2Adapter, parse_analytics_payload
-from app.models.alert import Alert
 from app.models.household import Household
 from app.models.pregnancy import Pregnancy
 from app.models.surveillance import SurveillanceWeekly
 from app.models.visit import Visit
-from app.privacy import cloud_gps
+from app.sync.engine import SyncEntity, apply_batch, coarsen_gps, parse_client_datetime
 
 RED_ACTIONS = [
     "Activate District Rapid Response Team",
@@ -160,35 +160,28 @@ async def _upsert_alert(
     cases: int,
     level: str,
 ) -> bool:
-    alert_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"zisamale:{district_id}:{disease}:{week_id}"))
-    result = await db.execute(select(Alert).where(Alert.alert_id == alert_id))
-    existing = result.scalar_one_or_none()
-    risk = min(10.0, round(cases / 50.0, 1))
-    actions = RED_ACTIONS
-    if existing:
-        existing.predicted_cases = int(cases * 1.15)
-        existing.risk_score = risk
-        existing.alert_level = level
-        existing.recommended_actions = actions
-        return False
-    db.add(
-        Alert(
-            alert_id=alert_id,
-            disease=disease,
-            district_id=district_id,
-            ta_name=None,
-            risk_score=risk,
-            alert_level=level,
-            predicted_cases=int(cases * 1.15),
-            confidence_interval_lower=int(cases * 0.9),
-            confidence_interval_upper=int(cases * 1.4),
-            recommended_actions=actions,
-            model_version="threshold-v1",
-            generated_at=datetime.now(timezone.utc),
-            status="pending",
-        )
+    """Threshold breach alert through the shared emission point.
+
+    Idempotent per district+disease+week; risk normalized to the canonical
+    0–1 scale (was 0–10 here, which corrupted ORDER BY risk_score).
+    """
+    risk01 = min(10.0, round(cases / 50.0, 1)) / 10.0
+    _, created = await emit_alert(
+        db,
+        disease=disease,
+        alert_level=level or "red",
+        risk_score=risk01,
+        scale=1.0,
+        district_id=district_id,
+        predicted_cases=int(cases * 1.15),
+        ci_lower=int(cases * 0.9),
+        ci_upper=int(cases * 1.4),
+        recommended_actions=RED_ACTIONS,
+        model_version="threshold-v1",
+        idempotency_key=f"{district_id}:{disease}:{week_id}",
+        status="pending",
     )
-    return True
+    return created
 
 
 def _coerce_date(value: Any) -> str | None:
@@ -200,8 +193,76 @@ def _coerce_date(value: Any) -> str | None:
     return None
 
 
+def _build_cht_household(item: dict) -> dict:
+    return dict(
+        chw_id=item.get("chw_id"),
+        village_name=item.get("village_name"),
+        gps_lat=item.get("gps_lat"),
+        gps_lon=item.get("gps_lon"),
+        sync_status="synced",
+    )
+
+
+def _update_cht_household(row: Household, item: dict) -> None:
+    row.chw_id = item.get("chw_id") or row.chw_id
+    row.village_name = item.get("village_name") or row.village_name
+    row.gps_lat = item.get("gps_lat")
+    row.gps_lon = item.get("gps_lon")
+
+
+# CHT is the system of record for its docs — always update, never conflict.
+CHT_HOUSEHOLD_ENTITY = SyncEntity(
+    model=Household,
+    natural_key="household_id",
+    build=_build_cht_household,
+    update=_update_cht_household,
+    transforms=(coarsen_gps,),
+    on_existing="always_update",
+)
+
+
+def _build_cht_visit(item: dict) -> dict:
+    measurements = {
+        k: item[k]
+        for k in ("bp_systolic", "bp_diastolic", "muac", "weight_kg")
+        if item.get(k) is not None
+    }
+    return dict(
+        household_id=item.get("household_id"),
+        chw_id=item.get("chw_id"),
+        visit_date=item["visit_date"],
+        pregnancy_id=item.get("pregnancy_id"),
+        child_id=item.get("child_id"),
+        visit_type=item.get("visit_type") or "routine",
+        danger_signs=item.get("danger_signs") or [],
+        measurements=measurements,
+        sync_status="synced",
+    )
+
+
+def _cht_visit_date(item: dict) -> None:
+    """CHT reported_date may be missing (default now) or epoch millis."""
+    raw = item.get("visit_date")
+    if raw in (None, ""):
+        item["visit_date"] = datetime.utcnow()
+        return
+    item["visit_date"] = parse_client_datetime(raw)
+
+
+# External replays must stay idempotent — duplicates are skipped silently.
+CHT_VISIT_ENTITY = SyncEntity(
+    model=Visit,
+    natural_key="visit_id",
+    build=_build_cht_visit,
+    transforms=(_cht_visit_date,),
+    on_existing="skip",
+)
+
+
 async def ingest_cht_documents(db: AsyncSession, documents: list[dict]) -> dict[str, int]:
     counts = {"households": 0, "pregnancies": 0, "visits": 0, "skipped": 0}
+    household_docs: list[dict] = []
+    visit_docs: list[dict] = []
     for doc in documents:
         mapped = map_cht_document(doc)
         if not mapped:
@@ -209,41 +270,22 @@ async def ingest_cht_documents(db: AsyncSession, documents: list[dict]) -> dict[
             continue
         kind = mapped["kind"]
         if kind == "household":
-            await _upsert_household(db, mapped)
-            counts["households"] += 1
+            household_docs.append(mapped)
         elif kind == "pregnancy":
             await _upsert_pregnancy(db, mapped)
             counts["pregnancies"] += 1
         elif kind == "visit":
-            await _upsert_visit(db, mapped)
-            counts["visits"] += 1
+            visit_docs.append(mapped)
         else:
             counts["skipped"] += 1
+
+    households_batch = await apply_batch(db, CHT_HOUSEHOLD_ENTITY, household_docs)
+    visits_batch = await apply_batch(db, CHT_VISIT_ENTITY, visit_docs)
+    counts["households"] = households_batch.processed
+    counts["visits"] = visits_batch.processed + visits_batch.skipped
+    counts["skipped"] += len(households_batch.failures) + len(visits_batch.failures)
     await db.flush()
     return counts
-
-
-async def _upsert_household(db: AsyncSession, mapped: dict[str, Any]) -> None:
-    result = await db.execute(select(Household).where(Household.household_id == mapped["household_id"]))
-    lat, lon = cloud_gps(mapped.get("gps_lat"), mapped.get("gps_lon"))
-    row = result.scalar_one_or_none()
-    if row:
-        row.chw_id = mapped.get("chw_id") or row.chw_id
-        row.village_name = mapped.get("village_name") or row.village_name
-        row.gps_lat = lat
-        row.gps_lon = lon
-        row.sync_status = "synced"
-        return
-    db.add(
-        Household(
-            household_id=mapped["household_id"],
-            chw_id=mapped.get("chw_id"),
-            village_name=mapped.get("village_name"),
-            gps_lat=lat,
-            gps_lon=lon,
-            sync_status="synced",
-        )
-    )
 
 
 async def _upsert_pregnancy(db: AsyncSession, mapped: dict[str, Any]) -> None:

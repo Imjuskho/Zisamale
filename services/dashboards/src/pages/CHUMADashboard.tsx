@@ -24,7 +24,6 @@ export function CHUMADashboard() {
             <CommodityForecastChart commodities={forecast.commodity_needs} />
           </section>
           <section className="executive-summary">
-            <h2>NLG Executive Summary</h2>
             <p>{forecast.executive_summary}</p>
           </section>
         </>

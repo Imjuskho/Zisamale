@@ -13,7 +13,7 @@ from app.config import settings
 from app.ratelimit import RateLimitMiddleware
 from app.audit import AuditLogMiddleware
 from app.routers import alerts, auth, national, referrals, uploads, visits
-from app.routers import export_routes, integrations, ml_predictions, websocket_routes
+from app.routers import chw_sync, map_layers, demo_seeder, export_routes, facilities, households, integrations, ml_predictions, websocket_routes
 
 
 @asynccontextmanager
@@ -52,6 +52,11 @@ app.include_router(national.router)
 # New routers
 app.include_router(uploads.router)
 app.include_router(export_routes.router)
+app.include_router(facilities.router)
+app.include_router(chw_sync.router)
+app.include_router(households.router)
+app.include_router(map_layers.router)
+app.include_router(demo_seeder.router)
 app.include_router(ml_predictions.router)
 app.include_router(websocket_routes.router)
 app.include_router(integrations.router)

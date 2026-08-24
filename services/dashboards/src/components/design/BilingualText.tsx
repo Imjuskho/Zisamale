@@ -2,7 +2,7 @@ import { strings, type StringKey } from "../../i18n";
 
 interface BilingualTextProps {
   key: StringKey;
-  lang?: "en" | "cy";
+  lang?: "en" | "ny";
   as?: "p" | "span" | "h1" | "h2" | "h3" | "h4" | "div";
   className?: string;
 }
@@ -16,10 +16,10 @@ export function BilingualText({
   const s = strings[key];
   if (!s) return null;
 
-  if (lang === "cy") {
+  if (lang === "ny") {
     return (
       <div className={className}>
-        <Tag className="text-zisamale-dark">{s.cy}</Tag>
+        <Tag className="text-zisamale-dark">{s.ny}</Tag>
         <Tag className="text-neutral text-sm mt-0.5">{s.en}</Tag>
       </div>
     );
@@ -27,7 +27,7 @@ export function BilingualText({
 
   return (
     <Tag className={`text-zisamale-dark ${className}`}>
-      {lang === "en" ? s.en : s.cy}
+      {lang === "en" ? s.en : s.ny}
     </Tag>
   );
 }

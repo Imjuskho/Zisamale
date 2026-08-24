@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CHWPerformance, Household } from "../types";
+import { EmptyState } from "./design/EmptyState";
 
 /* ------------------------------------------------------------------ */
 /* Pure helpers (unit-testable)                                        */
@@ -28,9 +29,9 @@ export function syncStatus(ageHours: number): {
 }
 
 const TONE_COLORS = {
-  ok: "#16a34a",
-  warn: "#d97706",
-  stale: "#dc2626",
+  ok: "#15803d",
+  warn: "#c2410c",
+  stale: "#b91c1c",
 } as const;
 
 function formatLastVisit(iso: string | null): string {
@@ -75,7 +76,12 @@ export function CHWPerformanceTable({
     return (
       <div className="chw-performance">
         <h2>CHW Performance</h2>
-        <p className="chw-empty">No community health worker data available.</p>
+        <EmptyState
+          title="No community health worker data available"
+          subtitle="Data will appear here once CHWs sync their reports."
+          icon="Users"
+          iconColor="#0f7b8a"
+        />
       </div>
     );
   }
@@ -127,8 +133,8 @@ export function CHWPerformanceTable({
           })}
         </tbody>
       </table>
-      <p className="chw-legend" style={{ fontSize: 12, marginTop: 8 }}>
-        Red border: sync older than 48h &middot; Yellow tint: under 50% visit
+      <p className="chw-legend">
+        Red background: sync older than 48h &middot; Yellow background: under 50% visit
         completion &middot; Click a row for household drill-down.
       </p>
     </div>
