@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Date, Float, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, Date, DateTime, Float, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,4 +32,6 @@ class Child(Base):
     referral_needed: Mapped[bool] = mapped_column(Boolean, default=False)
     referral_facility_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))
     referral_status: Mapped[str | None] = mapped_column(String(20))
+    chw_id: Mapped[str | None] = mapped_column(String(255))
     sync_status: Mapped[str] = mapped_column(String(20), default="pending")
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

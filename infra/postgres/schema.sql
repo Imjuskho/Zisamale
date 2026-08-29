@@ -110,7 +110,7 @@ CREATE INDEX idx_facilities_geom ON facilities USING GIST(geom);
 
 CREATE TABLE households (
     household_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    chw_id UUID REFERENCES users(user_id),
+    chw_id VARCHAR(255),
     village_id UUID REFERENCES villages(village_id),
     gps_lat REAL,
     gps_lon REAL,
@@ -163,12 +163,14 @@ CREATE TABLE pregnancies (
     referral_facility_id UUID REFERENCES facilities(facility_id),
     referral_status referral_status,
     is_active BOOLEAN DEFAULT TRUE,
+    chw_id UUID REFERENCES users(user_id),
     sync_status sync_status DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_pregnancies_household ON pregnancies(household_id);
+CREATE INDEX idx_pregnancies_chw ON pregnancies(chw_id);
 CREATE INDEX idx_pregnancies_risk ON pregnancies(risk_category);
 CREATE INDEX idx_pregnancies_next_visit ON pregnancies(next_visit_date) WHERE is_active = TRUE;
 CREATE INDEX idx_pregnancies_sync ON pregnancies(sync_status);
@@ -198,12 +200,14 @@ CREATE TABLE children (
     referral_needed BOOLEAN DEFAULT FALSE,
     referral_facility_id UUID REFERENCES facilities(facility_id),
     referral_status referral_status,
+    chw_id UUID REFERENCES users(user_id),
     sync_status sync_status DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_children_household ON children(household_id);
+CREATE INDEX idx_children_chw ON children(chw_id);
 CREATE INDEX idx_children_risk ON children(risk_category);
 CREATE INDEX idx_children_dob ON children(dob);
 CREATE INDEX idx_children_sync ON children(sync_status);
@@ -472,3 +476,217 @@ INSERT INTO commodities (name, category, unit, is_essential) VALUES
     ('Pentavalent Vaccine', 'Vaccine', 'doses', TRUE),
     ('Oral Polio Vaccine', 'Vaccine', 'doses', TRUE),
     ('BCG Vaccine', 'Vaccine', 'doses', TRUE);
+
+-- ============================================================
+-- SAMALA-AI: KNOWLEDGE TRANSLATION & SELF-CARE
+-- ============================================================
+
+CREATE TYPE consent_status AS ENUM ('pending', 'granted', 'denied', 'withdrawn');
+CREATE TYPE study_status AS ENUM ('discovered', 'under_review', 'approved', 'synthesized', 'deployed');
+CREATE TYPE asset_type AS ENUM ('chw_brief', 'video', 'audio', 'poster', 'flipbook', 'sms', 'infographic', 'community_talk');
+CREATE TYPE asset_status AS ENUM ('draft', 'review', 'approved', 'deployed');
+CREATE TYPE content_severity AS ENUM ('info', 'warning', 'emergency');
+CREATE TYPE delivery_method AS ENUM ('home_visit', 'community_meeting', 'clinic', 'school', 'radio', 'sms', 'poster');
+CREATE TYPE guide_severity AS ENUM ('info', 'warning', 'emergency');
+CREATE TYPE talk_status AS ENUM ('draft', 'review', 'approved');
+
+CREATE TABLE research_studies (
+    study_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(500) NOT NULL,
+    authors JSONB DEFAULT '[]'::jsonb,
+    journal VARCHAR(255),
+    doi VARCHAR(255),
+    publication_year INTEGER,
+    abstract TEXT,
+    source_url VARCHAR(500),
+    source_repository VARCHAR(50),
+    study_design VARCHAR(50),
+    sample_size INTEGER,
+    study_period_start VARCHAR(20),
+    study_period_end VARCHAR(20),
+    patient_demographics JSONB DEFAULT '{}'::jsonb,
+    key_statistical_findings JSONB DEFAULT '[]'::jsonb,
+    limitations JSONB DEFAULT '[]'::jsonb,
+    references_cited JSONB DEFAULT '[]'::jsonb,
+    study_district VARCHAR(100),
+    study_ta VARCHAR(100),
+    study_facility VARCHAR(255),
+    researcher_contact VARCHAR(255),
+    consent_status consent_status DEFAULT 'pending',
+    consent_date TIMESTAMPTZ,
+    researcher_notes TEXT,
+    health_topic VARCHAR(100) NOT NULL,
+    audience VARCHAR(100),
+    discovered_at TIMESTAMPTZ,
+    ingested_by VARCHAR(100),
+    status study_status DEFAULT 'discovered',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_research_studies_topic ON research_studies(health_topic);
+CREATE INDEX idx_research_studies_district ON research_studies(study_district);
+CREATE INDEX idx_research_studies_status ON research_studies(status);
+
+CREATE TABLE knowledge_assets (
+    asset_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    study_id UUID REFERENCES research_studies(study_id),
+    title VARCHAR(255) NOT NULL,
+    title_chichewa VARCHAR(255),
+    key_finding TEXT NOT NULL,
+    key_finding_chichewa TEXT,
+    actionable_takeaways JSONB DEFAULT '[]'::jsonb,
+    actionable_takeaways_chichewa JSONB DEFAULT '[]'::jsonb,
+    evidence_refs JSONB DEFAULT '[]'::jsonb,
+    asset_type asset_type NOT NULL,
+    health_topic VARCHAR(100) NOT NULL,
+    audience VARCHAR(100),
+    severity content_severity DEFAULT 'info',
+    media_url VARCHAR(500),
+    thumbnail_url VARCHAR(500),
+    audio_url VARCHAR(500),
+    poster_url VARCHAR(500),
+    flipbook_urls JSONB DEFAULT '[]'::jsonb,
+    synthesized_at TIMESTAMPTZ,
+    synthesized_by VARCHAR(100),
+    confidence_level VARCHAR(20),
+    reviewed_by VARCHAR(255),
+    review_notes TEXT,
+    status asset_status DEFAULT 'draft',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_knowledge_assets_topic ON knowledge_assets(health_topic);
+CREATE INDEX idx_knowledge_assets_type ON knowledge_assets(asset_type);
+CREATE INDEX idx_knowledge_assets_status ON knowledge_assets(status);
+CREATE INDEX idx_knowledge_assets_study ON knowledge_assets(study_id);
+
+CREATE TABLE knowledge_deployments (
+    deployment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    asset_id UUID REFERENCES knowledge_assets(asset_id),
+    talk_id UUID REFERENCES community_health_talks(talk_id),
+    guide_id UUID REFERENCES self_care_guides(guide_id),
+    chw_id UUID REFERENCES users(user_id),
+    district_id UUID REFERENCES districts(district_id),
+    ta_name VARCHAR(100),
+    village_name VARCHAR(100),
+    delivery_method delivery_method NOT NULL,
+    households_reached INTEGER DEFAULT 0,
+    individuals_reached INTEGER DEFAULT 0,
+    deployed_at TIMESTAMPTZ,
+    deployed_by VARCHAR(255),
+    knowledge_pre_score REAL CHECK (knowledge_pre_score >= 0 AND knowledge_pre_score <= 1),
+    knowledge_post_score REAL CHECK (knowledge_post_score >= 0 AND knowledge_post_score <= 1),
+    behavior_change_score REAL CHECK (behavior_change_score >= 0 AND behavior_change_score <= 1),
+    health_outcome_delta REAL,
+    cases_identified INTEGER DEFAULT 0,
+    referrals_made INTEGER DEFAULT 0,
+    outcomes_tracked JSONB DEFAULT '{}'::jsonb,
+    follow_up_date TIMESTAMPTZ,
+    follow_up_completed BOOLEAN DEFAULT FALSE,
+    follow_up_notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_knowledge_deployments_asset ON knowledge_deployments(asset_id);
+CREATE INDEX idx_knowledge_deployments_talk ON knowledge_deployments(talk_id);
+CREATE INDEX idx_knowledge_deployments_guide ON knowledge_deployments(guide_id);
+CREATE INDEX idx_knowledge_deployments_chw ON knowledge_deployments(chw_id);
+CREATE INDEX idx_knowledge_deployments_district ON knowledge_deployments(district_id);
+
+CREATE TABLE self_care_guides (
+    guide_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    title_chichewa VARCHAR(255),
+    category VARCHAR(100) NOT NULL,
+    audience VARCHAR(100),
+    severity guide_severity DEFAULT 'info',
+    what_it_is TEXT,
+    what_it_is_chichewa TEXT,
+    what_to_do_now JSONB DEFAULT '[]'::jsonb,
+    what_to_do_now_chichewa JSONB DEFAULT '[]'::jsonb,
+    what_not_to_do JSONB DEFAULT '[]'::jsonb,
+    what_not_to_do_chichewa JSONB DEFAULT '[]'::jsonb,
+    when_to_seek_help TEXT,
+    when_to_seek_help_chichewa TEXT,
+    prevention JSONB DEFAULT '[]'::jsonb,
+    prevention_chichewa JSONB DEFAULT '[]'::jsonb,
+    treatment_limitations JSONB DEFAULT '[]'::jsonb,
+    treatment_limitations_chichewa JSONB DEFAULT '[]'::jsonb,
+    clinical_decision_points JSONB DEFAULT '[]'::jsonb,
+    clinical_decision_points_chichewa JSONB DEFAULT '[]'::jsonb,
+    illustration_url VARCHAR(500),
+    audio_url VARCHAR(500),
+    video_url VARCHAR(500),
+    source VARCHAR(500),
+    last_reviewed TIMESTAMPTZ,
+    reviewed_by VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_self_care_guides_category ON self_care_guides(category);
+CREATE INDEX idx_self_care_guides_severity ON self_care_guides(severity);
+CREATE INDEX idx_self_care_guides_active ON self_care_guides(is_active);
+
+CREATE TABLE community_health_talks (
+    talk_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    title_chichewa VARCHAR(255),
+    study_id UUID REFERENCES research_studies(study_id),
+    duration_minutes INTEGER DEFAULT 15,
+    talking_points JSONB DEFAULT '[]'::jsonb,
+    talking_points_chichewa JSONB DEFAULT '[]'::jsonb,
+    discussion_questions JSONB DEFAULT '[]'::jsonb,
+    pledge_card_text TEXT,
+    pledge_card_text_chichewa TEXT,
+    picture_card_urls JSONB DEFAULT '[]'::jsonb,
+    song_url VARCHAR(500),
+    diagram_urls JSONB DEFAULT '[]'::jsonb,
+    health_topic VARCHAR(100) NOT NULL,
+    audience VARCHAR(100),
+    status talk_status DEFAULT 'draft',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_community_health_talks_topic ON community_health_talks(health_topic);
+CREATE INDEX idx_community_health_talks_status ON community_health_talks(status);
+
+-- ============================================================
+-- SAMALA-AI: MENTAL HEALTH REFERRALS
+-- ============================================================
+
+CREATE TYPE mh_referral_status AS ENUM ('identified', 'referred', 'in_care', 'followed_up', 'resolved', 'lost_to_followup');
+
+CREATE TABLE mental_health_referrals (
+    referral_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    study_id UUID REFERENCES research_studies(study_id),
+    asset_id UUID REFERENCES knowledge_assets(asset_id),
+    deployment_id UUID REFERENCES knowledge_deployments(deployment_id),
+    individual_name VARCHAR(255),
+    age INTEGER,
+    sex VARCHAR(10),
+    village_name VARCHAR(100),
+    ta_name VARCHAR(100),
+    district VARCHAR(100),
+    risk_factors JSONB DEFAULT '[]'::jsonb,
+    trigger_event VARCHAR(255),
+    presenting_concern TEXT,
+    referred_to VARCHAR(255),
+    referral_date TIMESTAMPTZ,
+    follow_up_date TIMESTAMPTZ,
+    outcome TEXT,
+    status mh_referral_status DEFAULT 'identified',
+    chw_id UUID REFERENCES users(user_id),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_mh_referrals_status ON mental_health_referrals(status);
+CREATE INDEX idx_mh_referrals_district ON mental_health_referrals(district);
+CREATE INDEX idx_mh_referrals_chw ON mental_health_referrals(chw_id);
+CREATE INDEX idx_mh_referrals_study ON mental_health_referrals(study_id);

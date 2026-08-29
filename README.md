@@ -2,10 +2,12 @@
 
 AI-augmented community health intelligence platform for Malawi.
 
-Zisamale integrates three AI engines — MAMA-AI, ULALO-AI, and CHUMA-AI — into
+Zisamale integrates four AI engines — MAMA-AI, ULALO-AI, CHUMA-AI, and SAMALA-AI — into
 Malawi's existing digital health infrastructure (DHIS2, iCHIS/CHT, LMIS) to
 support 450 Community Health Workers, 3 District Health Offices, 45 health
-facilities, and the Ministry of Health.
+facilities, and the Ministry of Health. "Kuzisamala" — to take care of yourself —
+is the platform's namesake; SAMALA-AI makes that literal by translating existing
+research into life-changing action for communities.
 
 ## Architecture
 
@@ -14,17 +16,20 @@ EDGE LAYER (Android, Offline-First)
   MAMA-AI Mobile App ─── On-device risk scoring, prioritised visits, iCCM decisions
   ULALO-AI Reporter ──── Offline symptom capture, GPS tagging
   CHUMA-AI Referral ──── Facility lookup, referral forms
+  SAMALA-AI Knowledge ── Self-care guides, health talk templates, asset library
 
 CLOUD LAYER (Python/FastAPI + PostgreSQL)
   API Gateway ────────── Auth, rate limiting, audit trail
   MAMA-AI Service ────── Model retraining, aggregate analytics
   ULALO-AI Service ───── Time-series forecasting, spatial clustering
   CHUMA-AI Service ───── Demand forecasting, referral optimisation
+  SAMALA-AI Service ──── Research ingestion, knowledge synthesis, deployment tracking
 
 DASHBOARD LAYER (React/TypeScript)
   DHO Dashboard ──────── Alert inbox, risk maps, CHW performance
   MoHP Dashboard ─────── National surveillance, policy tracking
   CHUMA Policy Dashboard  Budget forecasting, NLG summaries
+  SAMALA Dashboard ───── Research inventory, asset library, impact metrics
 ```
 
 ## Monorepo Structure

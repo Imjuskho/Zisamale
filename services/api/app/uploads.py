@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import uuid
 from pathlib import Path
 
 from fastapi import UploadFile
+
+from app.security.file_scanner import scan_file, quarantine_suspicious
 
 UPLOAD_DIR = Path("uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -16,6 +19,7 @@ ALLOWED_TYPES = {
     "image/webp": ".webp",
     "application/pdf": ".pdf",
 }
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
 async def save_upload(file: UploadFile, visit_id: str | None = None) -> dict:
@@ -26,21 +30,33 @@ async def save_upload(file: UploadFile, visit_id: str | None = None) -> dict:
     if len(content) > MAX_FILE_SIZE:
         raise ValueError(f"File too large: {len(content)} bytes. Max: {MAX_FILE_SIZE}")
 
+    filename = file.filename or "upload"
+    scan = scan_file(content, filename)
+    if not scan["safe"]:
+        quarantine_suspicious(content, ",".join(scan["issues"]))
+        raise ValueError(f"File rejected: {', '.join(scan['issues'])}")
+
     file_id = str(uuid.uuid4())
     ext = ALLOWED_TYPES.get(file.content_type, ".bin")
-    subdir = visit_id or "unassigned"
+
+    # Sanitize visit_id — must be UUID format or "unassigned"
+    if visit_id and _UUID_RE.match(visit_id):
+        subdir = visit_id
+    else:
+        subdir = "unassigned"
+
     upload_path = UPLOAD_DIR / subdir
     upload_path.mkdir(parents=True, exist_ok=True)
 
-    filename = f"{file_id}{ext}"
-    filepath = upload_path / filename
+    safe_filename = f"{file_id}{ext}"
+    filepath = upload_path / safe_filename
     filepath.write_bytes(content)
 
     checksum = hashlib.sha256(content).hexdigest()
 
     return {
         "file_id": file_id,
-        "filename": filename,
+        "filename": safe_filename,
         "path": str(filepath),
         "size_bytes": len(content),
         "content_type": file.content_type,

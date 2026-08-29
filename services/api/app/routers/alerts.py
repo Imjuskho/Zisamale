@@ -89,12 +89,12 @@ async def get_surveillance_trends(
         from app.database import async_session
 
         async with async_session() as db:
-            result = await db.execute(select(SurveillanceWeekly))
-            rows = [
-                row
-                for row in result.scalars().all()
-                if row.district_id == district_id
-            ]
+            result = await db.execute(
+                select(SurveillanceWeekly).where(
+                    SurveillanceWeekly.district_id == district_id
+                )
+            )
+            rows = list(result.scalars().all())
         malaria = [row for row in rows if row.disease == "malaria"]
         series = malaria or rows
         series.sort(key=lambda row: (row.year or 0, row.week_number or 0))

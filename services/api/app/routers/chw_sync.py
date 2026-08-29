@@ -21,6 +21,8 @@ from app.alerts.service import dispatch_alert, emit_alert
 from app.deps import require_role, scoped_db
 from app.models.facility import Facility
 from app.models.visit import Visit
+from app.models.pregnancy import Pregnancy
+from app.models.child import Child
 from app.sync.engine import (
     SyncEntity,
     apply_batch,
@@ -72,6 +74,55 @@ class FacilityVerification(BaseModel):
     notes: str | None = None
 
 
+class PregnancyPayload(BaseModel):
+    pregnancy_id: str
+    household_id: str
+    woman_name: str
+    age: int
+    parity: int = 0
+    gravida: int = 1
+    lmp_date: str | None = None
+    edd_date: str | None = None
+    prior_stillbirths: int = 0
+    prior_csections: int = 0
+    prior_pph: int = 0
+    hiv_status: str | None = None
+    bp_systolic: int | None = None
+    bp_diastolic: int | None = None
+    hemoglobin: float | None = None
+    danger_signs: list[str] = Field(default_factory=list)
+    risk_score: float | None = None
+    risk_category: str = "low"
+    next_visit_date: str | None = None
+    referral_needed: bool = False
+    referral_facility_id: str | None = None
+    gps_lat: float | None = None
+    gps_lon: float | None = None
+
+
+class ChildPayload(BaseModel):
+    child_id: str
+    household_id: str
+    child_name: str
+    dob: str | None = None
+    sex: str | None = None
+    birth_weight_kg: float | None = None
+    vaccination_status: dict = Field(default_factory=dict)
+    muac: float | None = None
+    weight_kg: float | None = None
+    height_cm: float | None = None
+    danger_signs: list[str] = Field(default_factory=list)
+    symptoms: list[str] = Field(default_factory=list)
+    risk_score: float | None = None
+    risk_category: str = "low"
+    iccm_category: str = "uncomplicated"
+    treatment_given: str | None = None
+    referral_needed: bool = False
+    referral_facility_id: str | None = None
+    gps_lat: float | None = None
+    gps_lon: float | None = None
+
+
 class CHWBatchUpload(BaseModel):
     device_id: str
     chw_id: str
@@ -79,6 +130,8 @@ class CHWBatchUpload(BaseModel):
     district_id: str | None = None
     last_sync_timestamp: str | None = None
     visits: list[VisitPayload] = Field(default_factory=list)
+    pregnancies: list[PregnancyPayload] = Field(default_factory=list)
+    children: list[ChildPayload] = Field(default_factory=list)
     stock_reports: list[StockReport] = Field(default_factory=list)
     facility_verifications: list[FacilityVerification] = Field(default_factory=list)
 
@@ -87,6 +140,12 @@ class SyncResult(BaseModel):
     visits_processed: int = 0
     visits_created: int = 0
     visits_updated: int = 0
+    pregnancies_processed: int = 0
+    pregnancies_created: int = 0
+    pregnancies_updated: int = 0
+    children_processed: int = 0
+    children_created: int = 0
+    children_updated: int = 0
     stock_reports_processed: int = 0
     stock_alerts_triggered: int = 0
     verifications_processed: int = 0
@@ -157,6 +216,123 @@ VISIT_ENTITY = SyncEntity(
 )
 
 
+# ── Pregnancy entity ───────────────────────────────────────────────
+
+_PREGNANCY_UPDATABLE = (
+    "household_id", "woman_name", "age", "parity", "gravida",
+    "lmp_date", "edd_date", "prior_stillbirths", "prior_csections",
+    "prior_pph", "hiv_status", "bp_systolic", "bp_diastolic",
+    "hemoglobin", "danger_signs", "risk_score", "risk_category",
+    "next_visit_date", "referral_needed", "referral_facility_id",
+    "gps_lat", "gps_lon",
+)
+
+
+def _parse_date_field(raw: Any):
+    if raw is None:
+        return None
+    return parse_client_datetime(raw).date()
+
+
+def _build_pregnancy(item: dict) -> dict:
+    return dict(
+        household_id=item.get("household_id"),
+        woman_name=item.get("woman_name"),
+        age=item.get("age"),
+        parity=item.get("parity", 0),
+        gravida=item.get("gravida", 1),
+        lmp_date=_parse_date_field(item.get("lmp_date")),
+        edd_date=_parse_date_field(item.get("edd_date")),
+        prior_stillbirths=item.get("prior_stillbirths", 0),
+        prior_csections=item.get("prior_csections", 0),
+        prior_pph=item.get("prior_pph", 0),
+        hiv_status=item.get("hiv_status"),
+        bp_systolic=item.get("bp_systolic"),
+        bp_diastolic=item.get("bp_diastolic"),
+        hemoglobin=item.get("hemoglobin"),
+        danger_signs=item.get("danger_signs") or [],
+        risk_score=item.get("risk_score"),
+        risk_category=item.get("risk_category", "low"),
+        top_risk_factors=[],
+        next_visit_date=_parse_date_field(item.get("next_visit_date")),
+        referral_needed=bool(item.get("referral_needed")),
+        referral_facility_id=item.get("referral_facility_id"),
+        referral_status=None,
+        is_active=True,
+        sync_status="synced",
+    )
+
+
+def _update_pregnancy(row: Pregnancy, item: dict) -> None:
+    for field_name in _PREGNANCY_UPDATABLE:
+        if field_name in ("lmp_date", "edd_date", "next_visit_date"):
+            setattr(row, field_name, _parse_date_field(item.get(field_name)))
+        else:
+            setattr(row, field_name, item.get(field_name))
+
+
+PREGNANCY_ENTITY = SyncEntity(
+    model=Pregnancy,
+    natural_key="pregnancy_id",
+    build=_build_pregnancy,
+    update=_update_pregnancy,
+    transforms=(coarsen_gps,),
+)
+
+
+# ── Child entity ───────────────────────────────────────────────────
+
+_CHILD_UPDATABLE = (
+    "household_id", "child_name", "dob", "sex", "birth_weight_kg",
+    "vaccination_status", "muac", "weight_kg", "height_cm",
+    "danger_signs", "symptoms", "risk_score", "risk_category",
+    "iccm_category", "treatment_given", "referral_needed",
+    "referral_facility_id", "gps_lat", "gps_lon",
+)
+
+
+def _build_child(item: dict) -> dict:
+    return dict(
+        household_id=item.get("household_id"),
+        child_name=item.get("child_name"),
+        dob=_parse_date_field(item.get("dob")),
+        sex=item.get("sex"),
+        birth_weight_kg=item.get("birth_weight_kg"),
+        vaccination_status=item.get("vaccination_status") or {},
+        muac=item.get("muac"),
+        weight_kg=item.get("weight_kg"),
+        height_cm=item.get("height_cm"),
+        danger_signs=item.get("danger_signs") or [],
+        symptoms=item.get("symptoms") or [],
+        risk_score=item.get("risk_score"),
+        risk_category=item.get("risk_category", "low"),
+        top_risk_factors=[],
+        iccm_category=item.get("iccm_category", "uncomplicated"),
+        treatment_given=item.get("treatment_given"),
+        referral_needed=bool(item.get("referral_needed")),
+        referral_facility_id=item.get("referral_facility_id"),
+        referral_status=None,
+        sync_status="synced",
+    )
+
+
+def _update_child(row: Child, item: dict) -> None:
+    for field_name in _CHILD_UPDATABLE:
+        if field_name == "dob":
+            setattr(row, field_name, _parse_date_field(item.get(field_name)))
+        else:
+            setattr(row, field_name, item.get(field_name))
+
+
+CHILD_ENTITY = SyncEntity(
+    model=Child,
+    natural_key="child_id",
+    build=_build_child,
+    update=_update_child,
+    transforms=(coarsen_gps,),
+)
+
+
 # ── Endpoints ──────────────────────────────────────────────────────
 
 
@@ -189,6 +365,32 @@ async def sync_chw_data(
     result.visits_updated = batch.updated
     result.visits_processed = batch.processed + batch.skipped
     result.conflicts.extend(batch.failures)
+
+    # ── Process pregnancies ──────────────────────────────────────
+    if upload.pregnancies:
+        preg_batch = await apply_batch(
+            db,
+            PREGNANCY_ENTITY,
+            [p.model_dump() for p in upload.pregnancies],
+            owner_chw_id=owner,
+        )
+        result.pregnancies_created = preg_batch.created
+        result.pregnancies_updated = preg_batch.updated
+        result.pregnancies_processed = preg_batch.processed + preg_batch.skipped
+        result.conflicts.extend(preg_batch.failures)
+
+    # ── Process children ─────────────────────────────────────────
+    if upload.children:
+        child_batch = await apply_batch(
+            db,
+            CHILD_ENTITY,
+            [c.model_dump() for c in upload.children],
+            owner_chw_id=owner,
+        )
+        result.children_created = child_batch.created
+        result.children_updated = child_batch.updated
+        result.children_processed = child_batch.processed + child_batch.skipped
+        result.conflicts.extend(child_batch.failures)
 
     # ── Process stock reports ──────────────────────────────────────
     pending_dispatch: list = []

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import time
 import uuid
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -13,6 +15,11 @@ from app.models.user import User, UserRole
 from app.schemas.user import AuthUser, Token, UserCreate, UserLogin
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+# ── Brute-force protection ──────────────────────────────────
+_LOGIN_FAILURES: dict[str, list[float]] = defaultdict(list)
+_MAX_FAILURES = 5
+_LOCKOUT_SECONDS = 900  # 15 minutes
 
 
 def _role_value(user: User) -> str:
@@ -45,6 +52,16 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Username already exists")
 
+    # Only chw and supervisor roles can self-register.
+    # dho, phim, mohp must be created by an existing admin.
+    ALLOWED_PUBLIC_ROLES = {"chw", "supervisor"}
+    if body.role not in ALLOWED_PUBLIC_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Role '{body.role}' cannot be self-registered. "
+            "Contact a system administrator to create privileged accounts.",
+        )
+
     try:
         role = UserRole(body.role)
     except ValueError as exc:
@@ -69,12 +86,29 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == body.identity))
+    now = time.time()
+    identity = body.identity
+
+    # Check lockout
+    failures = _LOGIN_FAILURES[identity]
+    # Prune old failures
+    _LOGIN_FAILURES[identity] = [t for t in failures if t > now - _LOCKOUT_SECONDS]
+    if len(_LOGIN_FAILURES[identity]) >= _MAX_FAILURES:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in {_LOCKOUT_SECONDS // 60} minutes.",
+        )
+
+    result = await db.execute(select(User).where(User.username == identity))
     user = result.scalar_one_or_none()
     if not user or not verify_password(body.password, user.password_hash):
+        _LOGIN_FAILURES[identity].append(now)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is disabled")
+
+    # Clear failures on success
+    _LOGIN_FAILURES.pop(identity, None)
     return _token_for(user)
 
 

@@ -7,14 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.deps import actor_user_id, assert_chw_scope, get_current_user, require_role
+from app.deps import actor_user_id, require_role, scoped_db
 from app.models.child import Child
 from app.models.household import Household
 from app.models.pregnancy import Pregnancy
 from app.models.visit import Visit
 from app.privacy import MODEL_VERSION, cloud_gps
 from app.schemas.visit import VisitCreate, VisitResponse
+from app.sync.engine import token_chw_id
 
 router = APIRouter(prefix="/api/v1", tags=["visits"])
 
@@ -89,21 +89,14 @@ def _risk_category_from_body(body: VisitCreate) -> str | None:
     return None
 
 
-def _bound_chw_id(user: dict, requested: str | None) -> str:
-    user_id = actor_user_id(user)
-    if user.get("role") == "chw":
-        return user_id
-    return requested or user_id
-
-
 @router.post("/visits", response_model=VisitResponse)
 async def create_visit(
     body: VisitCreate,
     response: Response,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(scoped_db("chw", "supervisor")),
     user: dict = Depends(require_role("chw", "supervisor")),
 ):
-    chw_id = _bound_chw_id(user, body.chw_id)
+    chw_id = token_chw_id(user, body.chw_id) or actor_user_id(user)
     visit_id = body.visit_id or str(uuid.uuid4())
     visit_at = _parse_visit_date(body.visit_date)
     visit_at_naive = visit_at.replace(tzinfo=None) if visit_at.tzinfo else visit_at
@@ -168,11 +161,9 @@ async def create_visit(
 @router.get("/chw/{chw_id}/priority-list")
 async def get_priority_list(
     chw_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(scoped_db("*")),
+    user: dict = Depends(require_role("*")),
 ):
-    assert_chw_scope(user, chw_id)
-
     households_result = await db.execute(
         select(Household).where(Household.chw_id == chw_id)
     )
@@ -181,12 +172,13 @@ async def get_priority_list(
 
     items: list[dict] = []
     if household_ids:
-        pregnancies_result = await db.execute(select(Pregnancy))
+        pregnancies_result = await db.execute(
+            select(Pregnancy).where(
+                Pregnancy.household_id.in_(household_ids),
+                Pregnancy.is_active.is_(True),
+            )
+        )
         for pregnancy in pregnancies_result.scalars().all():
-            if pregnancy.household_id not in household_ids:
-                continue
-            if pregnancy.is_active is False:
-                continue
             household = households.get(pregnancy.household_id)
             items.append(
                 {
@@ -206,10 +198,10 @@ async def get_priority_list(
                 }
             )
 
-        children_result = await db.execute(select(Child))
+        children_result = await db.execute(
+            select(Child).where(Child.household_id.in_(household_ids))
+        )
         for child in children_result.scalars().all():
-            if child.household_id not in household_ids:
-                continue
             household = households.get(child.household_id)
             items.append(
                 {
@@ -242,11 +234,10 @@ async def get_priority_list(
 @router.get("/chw/{chw_id}/overrides")
 async def list_overrides(
     chw_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(scoped_db("*")),
+    user: dict = Depends(require_role("*")),
 ):
     """CHW/supervisor review queue: overrides are the primary model-improvement labels."""
-    assert_chw_scope(user, chw_id)
     include_notes = user.get("role") == "chw"
 
     result = await db.execute(select(Visit).where(Visit.chw_id == chw_id))
@@ -273,7 +264,7 @@ async def list_overrides(
 @router.get("/chw/performance")
 async def get_chw_performance(
     district: str | None = None,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(scoped_db("dho", "mohp", "supervisor")),
     user: dict = Depends(require_role("dho", "mohp", "supervisor")),
 ):
     """CHW performance metrics for DHO/MoHP dashboards.
@@ -341,8 +332,8 @@ async def get_chw_performance(
 @router.get("/chw/{chw_id}/households")
 async def get_chw_households(
     chw_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(scoped_db("*")),
+    user: dict = Depends(require_role("*")),
 ):
     """Households assigned to a CHW, in the dashboard's Household contract.
 
@@ -350,7 +341,9 @@ async def get_chw_households(
     child and visit records; head_of_household falls back to the village
     label because the schema has no household-head column.
     """
-    assert_chw_scope(user, chw_id)
+    # Raw SQL bypasses the session row filter, so identity is bound from
+    # the token here rather than taken from the path.
+    chw_id = token_chw_id(user, chw_id) or chw_id
 
     rows = (await db.execute(text("""
         SELECT h.household_id::text     AS household_id,

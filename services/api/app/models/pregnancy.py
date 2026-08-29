@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Date, Float, Integer, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,4 +36,6 @@ class Pregnancy(Base):
     referral_facility_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))
     referral_status: Mapped[str | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    chw_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))
     sync_status: Mapped[str] = mapped_column(String(20), default="pending")
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

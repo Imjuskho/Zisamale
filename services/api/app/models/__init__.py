@@ -20,6 +20,14 @@ from app.models.climate import ClimateDaily
 from app.models.audit import AuditLog
 from app.models.ml_model import MLModel
 from app.models.ml_telemetry import ModelTelemetry
+from app.models.knowledge import (
+    ResearchStudy,
+    KnowledgeAsset,
+    KnowledgeDeployment,
+    SelfCareGuide,
+    CommunityHealthTalk,
+    MentalHealthReferral,
+)
 
 __all__ = [
     "User",
@@ -46,4 +54,10 @@ __all__ = [
     "AuditLog",
     "MLModel",
     "ModelTelemetry",
+    "ResearchStudy",
+    "KnowledgeAsset",
+    "KnowledgeDeployment",
+    "SelfCareGuide",
+    "CommunityHealthTalk",
+    "MentalHealthReferral",
 ]

@@ -67,9 +67,49 @@ async def test_priority_list_forbids_other_chw(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/priority-list", "/overrides", "/households"])
+async def test_scope_guard_rejects_cross_catchment_paths(client: AsyncClient, path: str):
+    """The scope guard owns tenancy for every /chw/{chw_id} read — one table."""
+    response = await client.get(
+        f"/api/v1/chw/someone-else{path}",
+        headers=_chw_headers(),
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_national_overview_requires_auth(client: AsyncClient):
     response = await client.get("/api/v1/national/overview")
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_national_overview_shape(client: AsyncClient):
+    """Districts come from the geography registry; unknown metrics are null."""
+    response = await client.get(
+        "/api/v1/national/overview", headers=_mohp_headers()
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data["districts"], list)
+    assert isinstance(data["national_summary"]["districts_monitored"], int)
+    for district in data["districts"]:
+        assert {"district_id", "district_name", "facility_count", "active_alerts"} <= set(
+            district
+        )
+        assert district["maternal_mortality_ratio"] is None
+        assert district["essential_service_coverage"] is None
+        assert district["malaria_risk_level"] in ("low", "medium", "high", None)
+    names = [d["district_name"] for d in data["districts"]]
+    assert len(names) == len(set(names)), "city/district rows must be merged"
+
+
+@pytest.mark.asyncio
+async def test_national_overview_forbidden_for_chw(client: AsyncClient):
+    response = await client.get(
+        "/api/v1/national/overview", headers=_chw_headers()
+    )
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio

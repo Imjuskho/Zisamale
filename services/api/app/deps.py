@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +37,8 @@ async def get_current_user(
 
 def require_role(*roles: str):
     async def checker(user: dict = Depends(get_current_user)) -> dict:
-        if user.get("role") not in roles:
+        # "*" admits any authenticated role — CHWs are still pinned at the seam.
+        if "*" not in roles and user.get("role") not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Role '{user.get('role')}' not in required roles: {roles}",
@@ -50,33 +51,23 @@ def actor_user_id(user: dict) -> str:
     return str(user.get("sub") or "")
 
 
-def assert_chw_scope(user: dict, chw_id: str) -> None:
-    """CHWs may only read/write their own catchment. Other roles are unrestricted here."""
-    if user.get("role") != "chw":
-        return
-    allowed = {user.get("sub"), user.get("chw_id")}
-    allowed.discard(None)
-    allowed.discard("")
-    if chw_id not in allowed:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot access another CHW's catchment",
-        )
-
-
 # ── Catchment scope guard ──────────────────────────────────────────
 #
 # The seam between authentication and data access. A session carrying
 # ``scope_chw_id`` transparently filters every ORM query against chw-scoped
-# models, so tenancy stops being a per-handler responsibility.
+# models, so tenancy stops being a per-handler responsibility. A ``chw_id``
+# path parameter is validated here too: for CHW tokens it must match the
+# identity inside the JWT, or the request is rejected before any query runs.
 
 
 def _scoped_models() -> tuple[type, ...]:
     # Imported lazily to avoid import cycles at module load.
+    from app.models.child import Child
     from app.models.household import Household
+    from app.models.pregnancy import Pregnancy
     from app.models.visit import Visit
 
-    return (Visit, Household)
+    return (Visit, Household, Pregnancy, Child)
 
 
 @event.listens_for(Session, "do_orm_execute")
@@ -94,18 +85,33 @@ def _apply_chw_scope(execute_state):
 def scoped_db(*roles: str):
     """Dependency factory: role check + automatic catchment scoping.
 
-    CHWs get a session whose queries are restricted to their own rows.
-    Supervisors and other roles see unfiltered data.
+    CHWs get a session whose queries are restricted to their own rows, and a
+    ``chw_id`` path parameter (when the route has one) must match their token
+    identity — cross-catchment requests are rejected here, not per handler.
+    Pass ``*`` to keep the endpoint open to any authenticated role while
+    still pinning CHW sessions. Other roles see unfiltered data.
     """
 
     async def dependency(
+        request: Request,
         db: AsyncSession = Depends(get_db),
         user: dict = Depends(require_role(*roles)),
     ) -> AsyncSession:
         if user.get("role") == "chw":
-            identity = user.get("chw_id") or user.get("sub")
-            if identity:
-                db.sync_session.info["scope_chw_id"] = str(identity)
+            identity = str(user.get("sub") or user.get("chw_id") or "")
+            allowed = {str(v) for v in (user.get("sub"), user.get("chw_id")) if v}
+            if not identity or not allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Token carries no catchment identity",
+                )
+            requested = request.path_params.get("chw_id")
+            if requested is not None and str(requested) not in allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot access another CHW's catchment",
+                )
+            db.sync_session.info["scope_chw_id"] = identity
         return db
 
     return dependency

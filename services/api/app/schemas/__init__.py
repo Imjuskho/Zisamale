@@ -2,7 +2,8 @@ from app.schemas.visit import VisitCreate, VisitResponse
 from app.schemas.referral import ReferralCreate, ReferralResponse
 from app.schemas.alert import AlertResponse, AlertRespond
 from app.schemas.user import UserCreate, UserLogin, Token
-from app.schemas.common import PriorityVisit, NationalOverview, ForecastResponse
+from app.schemas.pregnancy import PregnancyCreate, PregnancyResponse
+from app.schemas.child import ChildCreate, ChildResponse
 
 __all__ = [
     "VisitCreate",
@@ -14,7 +15,8 @@ __all__ = [
     "UserCreate",
     "UserLogin",
     "Token",
-    "PriorityVisit",
-    "NationalOverview",
-    "ForecastResponse",
+    "PregnancyCreate",
+    "PregnancyResponse",
+    "ChildCreate",
+    "ChildResponse",
 ]

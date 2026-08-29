@@ -191,69 +191,9 @@ async def seed_status(
 # --------------------------------------------------------------------------
 # Ops-layer seed data: community pins, maternity waiting homes, TBAs,
 # supply trucks, cold-chain units, and climate readings — the datasets
-# behind the MOYO map layer toggles. Idempotent DDL + insert-if-empty.
+# behind the MOYO map layer toggles. Table schema is owned by Alembic
+# (revision e8f3a1c92d47); this seeder only inserts-if-empty.
 # --------------------------------------------------------------------------
-
-_OPS_DDL = [
-    """CREATE TABLE IF NOT EXISTS community_pins (
-        pin_id UUID PRIMARY KEY,
-        district_id UUID,
-        pin_type VARCHAR(40) NOT NULL,
-        description VARCHAR(500) NOT NULL,
-        village VARCHAR(100),
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'pending',
-        verified_by UUID,
-        reported_at TIMESTAMP DEFAULT now()
-    )""",
-    """CREATE TABLE IF NOT EXISTS maternity_waiting_homes (
-        mwh_id UUID PRIMARY KEY,
-        name VARCHAR(150) NOT NULL,
-        district_id UUID,
-        linked_facility_id UUID,
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        capacity INTEGER NOT NULL DEFAULT 0,
-        occupied INTEGER NOT NULL DEFAULT 0,
-        status VARCHAR(20) NOT NULL DEFAULT 'open'
-    )""",
-    """CREATE TABLE IF NOT EXISTS traditional_birth_attendants (
-        tba_id UUID PRIMARY KEY,
-        name VARCHAR(150) NOT NULL,
-        village VARCHAR(100),
-        district_id UUID,
-        linked_facility_id UUID,
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        years_experience INTEGER NOT NULL DEFAULT 0,
-        registered BOOLEAN NOT NULL DEFAULT FALSE
-    )""",
-    """CREATE TABLE IF NOT EXISTS supply_trucks (
-        truck_id UUID PRIMARY KEY,
-        driver_name VARCHAR(150) NOT NULL,
-        cargo VARCHAR(200) NOT NULL,
-        destination VARCHAR(150) NOT NULL,
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        heading DOUBLE PRECISION NOT NULL DEFAULT 0,
-        eta_hours DOUBLE PRECISION NOT NULL DEFAULT 0,
-        temperature_breach BOOLEAN NOT NULL DEFAULT FALSE,
-        last_update TIMESTAMP DEFAULT now()
-    )""",
-    """CREATE TABLE IF NOT EXISTS cold_chain_units (
-        unit_id UUID PRIMARY KEY,
-        facility_id UUID,
-        name VARCHAR(150) NOT NULL,
-        district_id UUID,
-        lat DOUBLE PRECISION NOT NULL,
-        lng DOUBLE PRECISION NOT NULL,
-        fridge_status VARCHAR(20) NOT NULL DEFAULT 'working',
-        last_temperature DOUBLE PRECISION,
-        solar_powered BOOLEAN NOT NULL DEFAULT FALSE,
-        last_reading_at TIMESTAMP DEFAULT now()
-    )""",
-]
 
 # Nsanje-area coordinates (district centroid ≈ -16.9, 35.0)
 _PINS = [
@@ -318,10 +258,7 @@ async def seed_ops_layers(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role("dho", "phim", "mohp")),
 ):
-    """Create ops-layer tables if absent; populate them and climate_daily."""
-    for ddl in _OPS_DDL:
-        await db.execute(text(ddl))
-
+    """Populate the ops-layer tables and climate_daily (schema comes from Alembic)."""
     created: dict[str, int] = {}
 
     counts = {

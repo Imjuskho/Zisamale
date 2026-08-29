@@ -130,6 +130,22 @@ async def apply_batch(
     result = BatchResult()
     failure_kind = entity.natural_key.removesuffix("_id")
 
+    # ── Batch pre-load: single query replaces N individual SELECTs ──
+    all_keys = [
+        dict(raw).get(entity.natural_key) for raw in items if dict(raw).get(entity.natural_key) is not None
+    ]
+    existing_map: dict[Any, Any] = {}
+    if all_keys:
+        # Split into chunks of 500 to avoid PG parameter limit
+        key_col = getattr(entity.model, entity.natural_key)
+        for chunk_start in range(0, len(all_keys), 500):
+            chunk = all_keys[chunk_start : chunk_start + 500]
+            batch_result = await db.execute(
+                select(entity.model).where(key_col.in_(chunk))
+            )
+            for row in batch_result.scalars().all():
+                existing_map[getattr(row, entity.natural_key)] = row
+
     for raw in items:
         item = dict(raw)
         key_value = item.get(entity.natural_key)
@@ -138,12 +154,7 @@ async def apply_batch(
             for transform in entity.transforms:
                 transform(item)
 
-            found = await db.execute(
-                select(entity.model).where(
-                    getattr(entity.model, entity.natural_key) == key_value
-                )
-            )
-            existing = found.scalar_one_or_none()
+            existing = existing_map.get(key_value)
 
             if existing is not None:
                 if entity.on_existing == "skip":
@@ -193,8 +204,13 @@ def _bind_owner(row: Any, values: dict, owner_chw_id: str | None) -> None:
 
 
 def token_chw_id(user: dict, requested: str | None = None) -> str | None:
-    """Server-side identity resolution: CHWs always own their own catchment."""
+    """Server-side identity resolution: CHWs always own their own catchment.
+
+    Ownership columns (visit/household/pregnancy.chw_id) store the owning
+    user's UUID. ``user["chw_id"]`` is only the operator display code, so the
+    catchment identity must come from ``sub`` (the user UUID).
+    """
     if user.get("role") == "chw":
-        identity = user.get("chw_id") or user.get("sub")
+        identity = user.get("sub") or user.get("chw_id")
         return str(identity) if identity else None
     return str(requested) if requested else None

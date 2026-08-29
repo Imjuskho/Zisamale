@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     environment: str = "development"
-    secret_key: str = "dev_secret_key_change_in_production"
+    secret_key: str = ""  # REQUIRED — app refuses to start if empty in production
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 480
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://zisamale:change_me_in_production@localhost:5433/zisamale"
     )
     redis_url: str = "redis://localhost:6380/0"
-    rabbitmq_url: str = "amqp://zisamale:change_me_in_production@localhost:5672/"
+    rabbitmq_url: str = ""
 
     dhis2_base_url: str = ""
     dhis2_username: str = ""
@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def cors_origin_list_validated(self) -> list[str]:
+        origins = self.cors_origin_list
+        if self.environment == "production" and "*" in origins:
+            raise ValueError(
+                "CORS wildcard '*' is not allowed in production. "
+                "Set CORS_ORIGINS env var to explicit origins."
+            )
+        return origins
 
 
 settings = Settings()
