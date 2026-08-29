@@ -1,5 +1,6 @@
 import type { OutbreakPrediction } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface OutbreakTimeSliderProps {
   predictions: OutbreakPrediction[];
@@ -19,7 +20,7 @@ export function OutbreakTimeSlider({
     ? weekPredictions.reduce((s, p) => s + p.risk_score, 0) / weekPredictions.length
     : 0;
 
-  const riskColor = avgRisk > 0.7 ? "#c62828" : avgRisk > 0.4 ? "#e65100" : avgRisk > 0.2 ? "#f9a825" : "#2d7d46";
+  const riskColor = avgRisk > 0.7 ? RISK_HEX.critical : avgRisk > 0.4 ? RISK_HEX.high : avgRisk > 0.2 ? RISK_HEX.medium : RISK_HEX.low;
   const riskLabel = avgRisk > 0.7 ? "Critical" : avgRisk > 0.4 ? "High" : avgRisk > 0.2 ? "Moderate" : "Low";
 
   return (
@@ -62,8 +63,9 @@ export function OutbreakTimeSlider({
           return (
             <button
               key={i}
+              type="button"
               className={`outbreak-tick ${i === currentWeek ? "outbreak-tick--active" : ""}`}
-              style={{ backgroundColor: avg > 0 ? `rgba(198, 40, 40, ${Math.min(avg, 1)})` : "#e0e0e0" }}
+              style={{ backgroundColor: avg > 0 ? `rgba(255, 59, 48, ${Math.min(avg, 1)})` : "var(--color-border)" }}
               onClick={() => onWeekChange(i)}
               aria-label={`Week ${i}`}
             />

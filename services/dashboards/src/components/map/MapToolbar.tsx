@@ -31,7 +31,7 @@ const LAYERS: LayerDef[] = [
     label: "District Risk",
     description: "AI-predicted malaria outbreak risk",
     icon: "ChartBar",
-    color: "#ef4444",
+    color: "#ff3b30",
     defaultOn: true,
   },
   {
@@ -48,7 +48,7 @@ const LAYERS: LayerDef[] = [
     label: "CHW Presence",
     description: "Community health worker sync locations",
     icon: "Users",
-    color: "#0f7b8a",
+    color: "#0066cc",
     roles: ["dho", "mohp", "supervisor"],
   },
   {
@@ -63,7 +63,7 @@ const LAYERS: LayerDef[] = [
     label: "Outbreak Prediction",
     description: "4-week forecast heat surface",
     icon: "TrendUp",
-    color: "#c62828",
+    color: "#ff3b30",
     roles: ["dho", "mohp", "phim"],
   },
   {
@@ -79,7 +79,7 @@ const LAYERS: LayerDef[] = [
     label: "Cold Chain",
     description: "Vaccine fridge status monitoring",
     icon: "Package",
-    color: "#0f7b8a",
+    color: "#0066cc",
     roles: ["dho", "mohp"],
   },
   {
@@ -111,7 +111,7 @@ const LAYERS: LayerDef[] = [
     label: "Nutrition",
     description: "Stunting & wasting surveillance hotspots",
     icon: "Drop",
-    color: "#e65100",
+    color: "#ff9500",
     roles: ["dho", "mohp"],
   },
 ];

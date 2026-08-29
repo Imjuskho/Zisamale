@@ -23,10 +23,10 @@ export type Facility = RegistryFacility;
 /* ── Marker config ──────────────────────────────────────────────── */
 
 export const FACILITY_CONFIG: Record<FacilityType, { color: string; size: number; label: string; strokeWidth: number }> = {
-  district_hospital: { color: "#1565C0", size: 16, label: "DH", strokeWidth: 3 },
-  community_hospital: { color: "#0F7B8A", size: 14, label: "CH", strokeWidth: 2.5 },
-  health_centre: { color: "#2D7D46", size: 12, label: "HC", strokeWidth: 2 },
-  health_post: { color: "#2D7D46", size: 10, label: "HP", strokeWidth: 2 },
+  district_hospital: { color: "#0066cc", size: 16, label: "DH", strokeWidth: 3 },
+  community_hospital: { color: "#0066cc", size: 14, label: "CH", strokeWidth: 2.5 },
+  health_centre: { color: "#2D6A4F", size: 12, label: "HC", strokeWidth: 2 },
+  health_post: { color: "#2D6A4F", size: 10, label: "HP", strokeWidth: 2 },
   private: { color: "#7C3AED", size: 12, label: "P", strokeWidth: 2 },
 };
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SupplyTruck } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface SupplyChainLayerProps {
   trucks: SupplyTruck[];
@@ -14,17 +15,17 @@ export function SupplyChainLayer({ trucks }: SupplyChainLayerProps) {
 
   return (
     <div className="supply-chain-layer">
-      <button className="supply-chain-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="supply-chain-toggle" aria-expanded={expanded} aria-controls="supply-chain-panel" onClick={() => setExpanded(!expanded)}>
         <Icon name="Truck" size={16} />
         <span>Supply Chain ({activeTrucks.length} in transit)</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="supply-chain-panel">
+        <div id="supply-chain-panel" className="supply-chain-panel">
           {breachTrucks.length > 0 && (
             <div className="supply-alert">
-              <Icon name="Warning" size={14} color="#c62828" />
+              <Icon name="Warning" size={14} color={RISK_HEX.critical} />
               {breachTrucks.length} truck(s) with temperature breach
             </div>
           )}
@@ -39,7 +40,7 @@ export function SupplyChainLayer({ trucks }: SupplyChainLayerProps) {
                     <Icon
                       name="Truck"
                       size={16}
-                      color={truck.temperature_breach ? "#c62828" : "#2d7d46"}
+                      color={truck.temperature_breach ? RISK_HEX.critical : RISK_HEX.low}
                     />
                     <div className="supply-truck-info">
                       <span className="supply-truck-driver">{truck.driver_name}</span>
@@ -53,7 +54,7 @@ export function SupplyChainLayer({ trucks }: SupplyChainLayerProps) {
                   </div>
                   {truck.temperature_breach && (
                     <div className="supply-truck-breach">
-                      <Icon name="Warning" size={12} color="#c62828" />
+                      <Icon name="Warning" size={12} color={RISK_HEX.critical} />
                       Temperature breach detected
                     </div>
                   )}

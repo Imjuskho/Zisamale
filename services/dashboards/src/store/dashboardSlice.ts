@@ -13,7 +13,9 @@ import { api } from "../services/api";
 
 const savedTheme = (() => {
   try {
-    return localStorage.getItem("zisamale-dark-mode") === "true";
+    const stored = localStorage.getItem("zisamale-dark-mode");
+    if (stored !== null) return stored === "true";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   } catch {
     return false;
   }

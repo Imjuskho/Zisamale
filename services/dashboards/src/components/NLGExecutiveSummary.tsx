@@ -116,18 +116,18 @@ export function buildSections(data: BriefingData): Section[] {
     },
   });
 
-  if (districts.length > 0) {
-    const avgCoverage =
-      districts.reduce((sum, d) => sum + d.essential_service_coverage, 0) / districts.length;
-    const worst = [...districts].sort(
-      (a, b) => a.essential_service_coverage - b.essential_service_coverage
-    )[0];
+  const covered = districts
+    .map((d) => ({ d, c: d.essential_service_coverage }))
+    .filter((x): x is { d: typeof districts[number]; c: number } => x.c != null);
+  if (covered.length > 0) {
+    const avgCoverage = covered.reduce((sum, x) => sum + x.c, 0) / covered.length;
+    const worst = [...covered].sort((a, b) => a.c - b.c)[0];
     sections.push({
       id: "services",
       heading: { en: "Essential Services", ny: "Utumiki Waukulu" },
       body: {
-        en: `Coverage averages ${Math.round(avgCoverage * 100)}% nationally; lowest in ${worst.district_name} (${Math.round(worst.essential_service_coverage * 100)}%).`,
-        ny: `Utumiki waukulu wafika ${Math.round(avgCoverage * 100)}% pa dziko lonse; wotsika kwambiri ku ${worst.district_name} (${Math.round(worst.essential_service_coverage * 100)}%).`,
+        en: `Coverage averages ${Math.round(avgCoverage * 100)}% nationally; lowest in ${worst.d.district_name} (${Math.round(worst.c * 100)}%).`,
+        ny: `Utumiki waukulu wafika ${Math.round(avgCoverage * 100)}% pa dziko lonse; wotsika kwambiri ku ${worst.d.district_name} (${Math.round(worst.c * 100)}%).`,
       },
     });
   }
@@ -192,10 +192,11 @@ function buildBadge(sectionId: string, data: BriefingData): Badge | null {
         : { text: "Within thresholds", tone: "green" };
     }
     case "services": {
-      if (data.districts.length === 0) return null;
-      const avg =
-        data.districts.reduce((s, d) => s + d.essential_service_coverage, 0) /
-        data.districts.length;
+      const covered = data.districts
+        .map((d) => d.essential_service_coverage)
+        .filter((c): c is number => c != null);
+      if (covered.length === 0) return null;
+      const avg = covered.reduce((s, c) => s + c, 0) / covered.length;
       return { text: `${Math.round(avg * 100)}% national`, tone: "blue" };
     }
     default:

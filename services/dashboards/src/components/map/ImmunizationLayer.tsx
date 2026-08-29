@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { Village, ColdChainFacility, OutreachRoute } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface ImmunizationLayerProps {
   villages: Village[];
@@ -10,9 +11,9 @@ interface ImmunizationLayerProps {
 }
 
 function coverageColor(rate: number): string {
-  if (rate >= 0.8) return "#2d7d46";
-  if (rate >= 0.5) return "#f9a825";
-  return "#c62828";
+  if (rate >= 0.8) return RISK_HEX.low;
+  if (rate >= 0.5) return RISK_HEX.medium;
+  return RISK_HEX.critical;
 }
 
 function dotSize(pop: number): number {
@@ -25,6 +26,7 @@ function dotSize(pop: number): number {
 export function ImmunizationLayer({ villages, coldChain, outreachRoutes, onSelectVillage }: ImmunizationLayerProps) {
   const [expanded, setExpanded] = useState(false);
   const [view, setView] = useState<"villages" | "cold_chain" | "outreach">("villages");
+  const panelId = useId();
 
   const criticalVillages = villages.filter((v) => v.dpt3_coverage < 0.5);
   const totalUnvaccinated = villages.reduce((s, v) => s + Math.round(v.under5_population * (1 - v.dpt3_coverage)), 0);
@@ -32,36 +34,35 @@ export function ImmunizationLayer({ villages, coldChain, outreachRoutes, onSelec
 
   return (
     <div className="immunization-layer">
-      <button className="immunization-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="immunization-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(!expanded)}>
         <Icon name="Syringe" size={16} />
         <span>Immunization ({criticalVillages.length} critical)</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="immunization-panel">
-          <div className="immunization-tabs">
-            <button className={`imm-tab ${view === "villages" ? "imm-tab--active" : ""}`} onClick={() => setView("villages")}>
+        <div id={panelId} className="immunization-panel">
+          <div className="immunization-tabs" role="tablist" aria-label="Immunization information">
+            <button type="button" id={`${panelId}-villages-tab`} role="tab" aria-selected={view === "villages"} aria-controls={`${panelId}-villages`} className={`imm-tab ${view === "villages" ? "imm-tab--active" : ""}`} onClick={() => setView("villages")}>
               <Icon name="MapPin" size={14} /> Villages
             </button>
-            <button className={`imm-tab ${view === "cold_chain" ? "imm-tab--active" : ""}`} onClick={() => setView("cold_chain")}>
+            <button type="button" id={`${panelId}-cold-chain-tab`} role="tab" aria-selected={view === "cold_chain"} aria-controls={`${panelId}-cold-chain`} className={`imm-tab ${view === "cold_chain" ? "imm-tab--active" : ""}`} onClick={() => setView("cold_chain")}>
               <Icon name="Package" size={14} /> Cold Chain
             </button>
-            <button className={`imm-tab ${view === "outreach" ? "imm-tab--active" : ""}`} onClick={() => setView("outreach")}>
-              <Icon name="Path" size={14} /> Outreach
-            </button>
+            {outreachRoutes && <button type="button" id={`${panelId}-outreach-tab`} role="tab" aria-selected={view === "outreach"} aria-controls={`${panelId}-outreach`} className={`imm-tab ${view === "outreach" ? "imm-tab--active" : ""}`} onClick={() => setView("outreach")}><Icon name="Path" size={14} /> Outreach</button>}
           </div>
 
           {view === "villages" && (
-            <div className="imm-villages">
+            <div id={`${panelId}-villages`} role="tabpanel" aria-labelledby={`${panelId}-villages-tab`} className="imm-villages">
               <div className="imm-summary">
                 <span className="imm-stat">{totalUnvaccinated}</span>
                 <span className="imm-stat-label">unvaccinated children</span>
               </div>
               <p className="imm-note">Dot size = under-5 population. Color = DPT3 coverage.</p>
               <div className="imm-village-list">
-                {villages.sort((a, b) => a.dpt3_coverage - b.dpt3_coverage).slice(0, 20).map((v) => (
+                {[...villages].sort((a, b) => a.dpt3_coverage - b.dpt3_coverage).slice(0, 20).map((v) => (
                   <button
+                    type="button"
                     key={v.village_id}
                     className="imm-village-row"
                     onClick={() => onSelectVillage?.(v)}
@@ -79,10 +80,10 @@ export function ImmunizationLayer({ villages, coldChain, outreachRoutes, onSelec
           )}
 
           {view === "cold_chain" && (
-            <div className="imm-cold-chain">
+            <div id={`${panelId}-cold-chain`} role="tabpanel" aria-labelledby={`${panelId}-cold-chain-tab`} className="imm-cold-chain">
               {brokenFridges.length > 0 && (
                 <div className="imm-stock-alert">
-                  <Icon name="Warning" size={14} color="#c62828" />
+                  <Icon name="Warning" size={14} color={RISK_HEX.critical} />
                   {brokenFridges.length} refrigerator(s) broken
                 </div>
               )}
@@ -91,20 +92,20 @@ export function ImmunizationLayer({ villages, coldChain, outreachRoutes, onSelec
                   <Icon
                     name={cc.fridge_status === "working" ? "CheckCircle" : cc.fridge_status === "broken" ? "XCircle" : "WarningCircle"}
                     size={16}
-                    color={cc.fridge_status === "working" ? "#2d7d46" : cc.fridge_status === "broken" ? "#c62828" : "#999"}
+                    color={cc.fridge_status === "working" ? RISK_HEX.low : cc.fridge_status === "broken" ? RISK_HEX.critical : "var(--color-text-muted)"}
                   />
                   <span className="imm-cold-name">{cc.name}</span>
                   <span className="imm-cold-status">
                     {cc.fridge_status === "working" ? `${cc.last_temperature ?? "?"}°C` : cc.fridge_status}
                   </span>
-                  {cc.solar_powered && <Icon name="Sun" size={12} color="#f9a825" />}
+                  {cc.solar_powered && <Icon name="Sun" size={12} color={RISK_HEX.medium} />}
                 </div>
               ))}
             </div>
           )}
 
           {view === "outreach" && outreachRoutes && (
-            <div className="imm-outreach">
+            <div id={`${panelId}-outreach`} role="tabpanel" aria-labelledby={`${panelId}-outreach-tab`} className="imm-outreach">
               {outreachRoutes.length === 0 ? (
                 <p className="imm-empty">No outreach routes generated. Run the optimizer first.</p>
               ) : (

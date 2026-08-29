@@ -12,3 +12,7 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (globalThis as any).ResizeObserver = ResizeObserverStub;
 }
+
+// jsdom deliberately omits CanvasRenderingContext2D. ParticleCanvas treats a
+// missing context as a no-op, so mirror that browser capability boundary here.
+HTMLCanvasElement.prototype.getContext = () => null;

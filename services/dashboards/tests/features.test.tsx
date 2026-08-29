@@ -71,17 +71,17 @@ describe("ThemeToggle", () => {
 describe("Sidebar", () => {
   it("shows DHO link for dho role", () => {
     renderWithStore(<Sidebar />, createStore({ auth: { role: "dho", isAuthenticated: true, user: { id: "1", name: "Test", email: "t@t.com", role: "dho" } } }));
-    expect(screen.getByText("DHO Dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /risk map/i })).toHaveAttribute("href", "/dho");
   });
 
   it("shows MoHP link for mohp role", () => {
     renderWithStore(<Sidebar />, createStore({ auth: { role: "mohp", isAuthenticated: true, user: { id: "1", name: "Test", email: "t@t.com", role: "mohp" } } }));
-    expect(screen.getByText("MoHP Dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /trends/i })).toHaveAttribute("href", "/mohp");
   });
 
   it("hides DHO link for mohp role", () => {
     renderWithStore(<Sidebar />, createStore({ auth: { role: "mohp", isAuthenticated: true, user: { id: "1", name: "Test", email: "t@t.com", role: "mohp" } } }));
-    expect(screen.queryByText("DHO Dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /risk map/i })).not.toBeInTheDocument();
   });
 
   it("shows theme toggle", () => {
@@ -111,14 +111,12 @@ describe("LoginPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Zisamale");
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByLabelText("Role")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Role")).not.toBeInTheDocument();
   });
 
-  it("shows role options", () => {
+  it("does not present an ineffective role selector", () => {
     renderWithStore(<LoginPage />);
-    expect(screen.getByText("District Health Officer")).toBeInTheDocument();
-    expect(screen.getByText("Ministry of Health Policy")).toBeInTheDocument();
-    expect(screen.getByText("Community Health Worker")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("validates empty fields", async () => {

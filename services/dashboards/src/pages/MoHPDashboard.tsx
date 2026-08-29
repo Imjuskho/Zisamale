@@ -7,13 +7,7 @@ import { NLGExecutiveSummary } from "../components/NLGExecutiveSummary";
 import { DistrictScorecardCarousel } from "../components/design/DistrictScorecardCarousel";
 import { KPICard } from "../components/design/KPICard";
 import { useMapLayers } from "../hooks/useMapLayers";
-
-const LEVEL_TO_RISK = { low: 0.22, medium: 0.47, high: 0.86 } as const;
-
-/** Map district_name → geojson slug (same algorithm as LeafletMap). */
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, "-");
-}
+import { slugify, toMapDistricts } from "../components/map/districtGeo";
 
 function readHashDistrict(): string | null {
   const match = window.location.hash.match(/^#district=([\w-]+)$/);
@@ -57,12 +51,7 @@ export function MoHPDashboard() {
   );
 
   const mapDistricts = useMemo<DistrictRiskInput[]>(
-    () =>
-      districts.map((d) => ({
-        district_id: slugify(d.district_name),
-        name: d.district_name,
-        risk_score: LEVEL_TO_RISK[d.malaria_risk_level],
-      })),
+    () => toMapDistricts(districts),
     [districts]
   );
 
@@ -74,8 +63,11 @@ export function MoHPDashboard() {
 
   const totalAlerts = alerts.length;
   const criticalAlerts = alerts.filter((a) => a.alert_level === "red").length;
-  const avgCoverage = districts.length
-    ? districts.reduce((s, d) => s + d.essential_service_coverage, 0) / districts.length
+  const coverageValues = districts
+    .map((d) => d.essential_service_coverage)
+    .filter((c): c is number => c != null);
+  const avgCoverage = coverageValues.length
+    ? coverageValues.reduce((s, c) => s + c, 0) / coverageValues.length
     : 0;
 
   return (
@@ -85,11 +77,37 @@ export function MoHPDashboard() {
         <h1>Ministry of Health Dashboard</h1>
         <p>National Surveillance &amp; Policy Tracking</p>
       </header>
+      <section className="executive-summary">
+        <NLGExecutiveSummary
+          alerts={alerts}
+          districts={districts}
+          forecast={forecast?.commodity_needs ?? null}
+        />
+      </section>
       <div className="kpi-row">
-        <KPICard label="Districts Monitored" value={districts.length} icon="MapPin" iconColor="#17646C" />
-        <KPICard label="Active Alerts" value={totalAlerts} icon="Bell" iconColor="#C62828" trend={criticalAlerts > 0 ? { direction: "up", value: `${criticalAlerts} critical`, isPositive: false } : undefined} />
-        <KPICard label="Avg Coverage" value={`${Math.round(avgCoverage * 100)}%`} icon="ChartBar" iconColor="#2D7D46" />
-        <KPICard label="Stockout Districts" value={districts.filter((d) => d.stockout_count > 0).length} icon="Package" iconColor="#E65100" />
+        <KPICard label="Districts Monitored" value={districts.length} icon="MapPin" iconColor="#40916C" context="National view" />
+        <KPICard
+          label="Active Alerts"
+          value={totalAlerts}
+          icon="Bell"
+          iconColor="#ff3b30"
+          trend={criticalAlerts > 0 ? { direction: "up", value: `${criticalAlerts} critical`, isPositive: false } : undefined}
+          context={totalAlerts === 0 ? "No active alerts" : `${criticalAlerts} critical`}
+        />
+        <KPICard
+          label="Avg Coverage"
+          value={coverageValues.length ? `${Math.round(avgCoverage * 100)}%` : null}
+          icon="ChartBar"
+          iconColor="#2D6A4F"
+          context={coverageValues.length ? `Across ${coverageValues.length} districts` : "Awaiting data"}
+        />
+        <KPICard
+          label="Stockout Districts"
+          value={districts.filter((d) => (d.stockout_count ?? 0) > 0).length}
+          icon="Package"
+          iconColor="#ff9500"
+          context={districts.some((d) => (d.stockout_count ?? 0) > 0) ? "Resupply recommended" : "All clear"}
+        />
       </div>
       <section>
         <DistrictScorecardCarousel
@@ -115,13 +133,6 @@ export function MoHPDashboard() {
           onRefreshWeather={refetchLayers}
           selectedDistrictId={selectedMapId}
           onSelectedDistrictChange={handleSelect}
-        />
-      </section>
-      <section className="executive-summary">
-        <NLGExecutiveSummary
-          alerts={alerts}
-          districts={districts}
-          forecast={forecast?.commodity_needs ?? null}
         />
       </section>
     </div>

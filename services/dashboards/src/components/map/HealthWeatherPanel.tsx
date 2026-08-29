@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { HealthWeatherBriefing } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface HealthWeatherPanelProps {
   briefing: HealthWeatherBriefing | null;
@@ -12,11 +13,11 @@ export function HealthWeatherPanel({ briefing, onRefresh }: HealthWeatherPanelPr
 
   if (!briefing) return null;
 
-  const alertColor = briefing.alert_level === "red" ? "#c62828" : briefing.alert_level === "yellow" ? "#e65100" : "#2d7d46";
+  const alertColor = briefing.alert_level === "red" ? RISK_HEX.critical : briefing.alert_level === "yellow" ? RISK_HEX.high : RISK_HEX.low;
 
   return (
     <div className="health-weather-panel">
-      <button className="health-weather-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="health-weather-toggle" aria-expanded={expanded} aria-controls="health-weather-content" onClick={() => setExpanded(!expanded)}>
         <Icon name="Lightning" size={16} />
         <span>Health Weather</span>
         <span className="health-weather-badge" style={{ backgroundColor: alertColor }} />
@@ -24,13 +25,13 @@ export function HealthWeatherPanel({ briefing, onRefresh }: HealthWeatherPanelPr
       </button>
 
       {expanded && (
-        <div className="health-weather-content">
+        <div id="health-weather-content" className="health-weather-content">
           <div className="health-weather-header">
             <span className="health-weather-date">
               {new Date(briefing.generated_at).toLocaleDateString()}
             </span>
             {onRefresh && (
-              <button className="health-weather-refresh" onClick={onRefresh}>
+              <button type="button" className="health-weather-refresh" onClick={onRefresh}>
                 <Icon name="CloudArrowUp" size={14} /> Refresh
               </button>
             )}

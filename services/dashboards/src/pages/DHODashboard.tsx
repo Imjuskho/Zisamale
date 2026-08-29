@@ -17,6 +17,8 @@ import type { DistrictRiskInput } from "../types";
 import { CHWPerformanceTable } from "../components/CHWPerformanceTable";
 import { connectAlertSocket } from "../services/api";
 import { KPICard } from "../components/design/KPICard";
+import { isOlderThan } from "../utils/recency";
+import { toMapDistricts } from "../components/map/districtGeo";
 import { SyncIndicator } from "../components/design/SyncIndicator";
 import { SkeletonDashboard } from "../components/design/Skeleton";
 import { useToast } from "../components/design/Toast";
@@ -29,8 +31,6 @@ const ACTION_TOASTS: Record<AlertActionType, string> = {
   request_supplies: "Supply request submitted.",
   dismiss: "Alert dismissed.",
 };
-
-const LEVEL_TO_RISK = { low: 0.22, medium: 0.47, high: 0.86 } as const;
 
 export function DHODashboard() {
   const dispatch = useAppDispatch();
@@ -63,19 +63,14 @@ export function DHODashboard() {
   }, [dispatch]);
 
   const mapDistricts = useMemo<DistrictRiskInput[]>(
-    () =>
-      districts.map((d) => ({
-        district_id: d.district_id,
-        name: d.district_name,
-        risk_score: LEVEL_TO_RISK[d.malaria_risk_level],
-      })),
+    () => toMapDistricts(districts),
     [districts]
   );
 
   const criticalAlerts = alerts.filter((a) => a.alert_level === "red").length;
   const totalPredicted = alerts.reduce((s, a) => s + a.predicted_cases, 0);
   const chwsOnline = chwPerformance.filter(
-    (c) => (Date.now() - new Date(c.last_sync_at).getTime()) / 3_600_000 < 24
+    (c) => !isOlderThan(c.last_sync_at, 24)
   ).length;
 
   return (
@@ -94,10 +89,10 @@ export function DHODashboard() {
       </header>
       {loading && <SkeletonDashboard />}
       <div className="kpi-row">
-        <KPICard label="Critical Alerts" value={criticalAlerts} icon="Bell" iconColor="#C62828" trend={criticalAlerts > 3 ? { direction: "up", value: `${criticalAlerts} active`, isPositive: false } : undefined} />
-        <KPICard label="Predicted Cases" value={totalPredicted} icon="ChartBar" iconColor="#17646C" />
-        <KPICard label="CHWs Online" value={`${chwsOnline}/${chwPerformance.length}`} icon="Users" iconColor="#2D7D46" />
-        <KPICard label="Districts" value={districts.length} icon="MapPin" iconColor="#17646C" />
+        <KPICard label="Critical Alerts" value={criticalAlerts} icon="Bell" iconColor="#ff3b30" trend={criticalAlerts > 3 ? { direction: "up", value: `${criticalAlerts} active`, isPositive: false } : undefined} />
+        <KPICard label="Predicted Cases" value={totalPredicted} icon="ChartBar" iconColor="#40916C" />
+        <KPICard label="CHWs Online" value={`${chwsOnline}/${chwPerformance.length}`} icon="Users" iconColor="#2D6A4F" />
+        <KPICard label="Districts" value={districts.length} icon="MapPin" iconColor="#40916C" />
       </div>
       <section>
         <AlertCommandCenter
@@ -122,7 +117,7 @@ export function DHODashboard() {
           onRefresh={refetchLayers}
           onRefreshWeather={refetchLayers}
           onSelectDistrict={(props) => {
-            if (props) dispatch(selectDistrict(props.district_id));
+            dispatch(selectDistrict(props?.district_id ?? null));
           }}
         />
       </section>

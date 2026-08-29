@@ -1,15 +1,14 @@
 import { useState } from "react";
 import type { CHWPerformance, Household } from "../types";
 import { EmptyState } from "./design/EmptyState";
+import { hoursSince } from "../utils/recency";
 
 /* ------------------------------------------------------------------ */
 /* Pure helpers (unit-testable)                                        */
 /* ------------------------------------------------------------------ */
 
 export function syncAgeHours(lastSyncIso: string, now: Date = new Date()): number {
-  const t = new Date(lastSyncIso).getTime();
-  if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
-  return (now.getTime() - t) / 3_600_000;
+  return hoursSince(lastSyncIso, now) ?? Number.POSITIVE_INFINITY;
 }
 
 export function visitCompletionRate(
@@ -29,9 +28,9 @@ export function syncStatus(ageHours: number): {
 }
 
 const TONE_COLORS = {
-  ok: "#2E7D32",
-  warn: "#E65100",
-  stale: "#C62828",
+  ok: "#2D6A4F",
+  warn: "#ff9500",
+  stale: "#ff3b30",
 } as const;
 
 function formatLastVisit(iso: string | null): string {
@@ -80,7 +79,7 @@ export function CHWPerformanceTable({
           title="No community health worker data available"
           subtitle="Data will appear here once CHWs sync their reports."
           icon="Users"
-          iconColor="#0f7b8a"
+          iconColor="#0066cc"
         />
       </div>
     );

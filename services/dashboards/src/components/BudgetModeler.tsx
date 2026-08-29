@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { BudgetScenarioInput, BudgetScenarioOutput } from "../types";
+import { Icon } from "./design/Icon";
 
 /* ------------------------------------------------------------------ */
 /* Model assumptions                                                   */
@@ -193,8 +194,9 @@ function ScenarioPanel({ label, input, output, onChange }: ScenarioPanelProps) {
         max={BUDGET_MAX_MWK}
         step={BUDGET_STEP_MWK}
         value={input.budgetMwk}
+        aria-valuetext={`${input.budgetMwk.toLocaleString()} MWK`}
         onChange={(e) => onChange({ budgetMwk: Number(e.target.value) })}
-        style={{ width: "100%" }}
+        className="range-slider"
       />
 
       <dl className="scenario-output" aria-label={`${label} projected impact`}>
@@ -278,8 +280,9 @@ export function BudgetModeler() {
           onChange={(patch) => setScenarioB((s) => ({ ...s, ...patch }))}
         />
       </div>
-      <p className="scenario-comparison" role="status" style={{ fontWeight: 600 }}>
-        {comparison}
+      <p className="scenario-comparison" role="status">
+        <Icon name="CheckCircle" size={20} color="#2D6A4F" />
+        <span>{comparison}</span>
       </p>
     </div>
   );

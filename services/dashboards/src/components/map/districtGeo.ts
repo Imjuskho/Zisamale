@@ -9,7 +9,7 @@ import type {
   FeatureCollection,
   Polygon,
 } from "geojson";
-import type { DistrictRiskInput } from "../../types";
+import type { DistrictRiskInput, DistrictSummary } from "../../types";
 
 export interface DistrictRiskProps {
   district_id: string;
@@ -70,6 +70,40 @@ function hexRing([lat, lon]: [number, number], radius = 0.26): [number, number][
 
 export function slugify(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+/* ── District → map adapter ─────────────────────────────────────── */
+
+/**
+ * Coarse malaria-risk enums carry no magnitude, but map polygons paint on
+ * the canonical 0–1 scale (design/riskScale.ts bands). These are the band
+ * representatives until /national/overview serves numeric scores
+ * (ADR-004 sharpening: fabrication belongs server-side).
+ */
+export const LEVEL_TO_RISK: Record<"low" | "medium" | "high", number> = {
+  low: 0.22,
+  medium: 0.47,
+  high: 0.86,
+};
+
+/**
+ * API district rows → map inputs. The map's coordinate system is the
+ * geojson slug (DISTRICT_BOUNDS, selection state), so ids are derived
+ * here — never from the registry uuid. Rows without a risk level are
+ * skipped rather than painted as no-data.
+ */
+export function toMapDistricts(summaries: DistrictSummary[]): DistrictRiskInput[] {
+  const out: DistrictRiskInput[] = [];
+  for (const d of summaries) {
+    const level = d.malaria_risk_level;
+    if (!level) continue;
+    out.push({
+      district_id: slugify(d.district_name),
+      name: d.district_name,
+      risk_score: LEVEL_TO_RISK[level],
+    });
+  }
+  return out;
 }
 
 function buildSampleGeoJSON(): FeatureCollection<Polygon, DistrictRiskProps> {

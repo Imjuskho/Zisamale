@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { Facility } from "../../services/facilityService";
 import { FACILITY_CONFIG } from "../../services/facilityService";
 import { Icon } from "../design/Icon";
 import { bedBarColor, facilityStatusColor } from "../../design/riskScale";
 import { humanize } from "../../utils/text";
+import { useModalDialog } from "../../hooks/useModalDialog";
 
 interface RealFacilityPanelProps {
   facility: Facility;
@@ -20,19 +21,12 @@ export function RealFacilityPanel({ facility, onClose, onRefer }: RealFacilityPa
   const statusCol = facilityStatusColor(facility.operational_status);
   const hasBeds = facility.beds_total != null && facility.beds_total > 0;
   const bedsAvail = facility.beds_available ?? 0;
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  useModalDialog(dialogRef, closeRef, onClose);
 
   return (
-    <div className="facility-panel" role="dialog" aria-label={`${facility.name} details`}>
+    <div ref={dialogRef} className="facility-panel" role="dialog" aria-modal="true" aria-label={`${facility.name} details`}>
       <div className="facility-panel-header">
         <div
           style={{
@@ -104,7 +98,7 @@ export function RealFacilityPanel({ facility, onClose, onRefer }: RealFacilityPa
             <div
               className="facility-bed-bar-fill"
               style={{
-                width: `${((facility.beds_total ?? 1) > 0 ? bedsAvail / (facility.beds_total as number) : 0) * 100}%`,
+                transform: `scaleX(${Math.min(Math.max((facility.beds_total ?? 1) > 0 ? bedsAvail / (facility.beds_total as number) : 0, 0), 1)})`,
                 backgroundColor: bedBarColor(bedsAvail, facility.beds_total ?? 1),
               }}
             />
@@ -144,7 +138,7 @@ export function RealFacilityPanel({ facility, onClose, onRefer }: RealFacilityPa
             {facility.chw_verified_by} on {facility.chw_verified_date}
           </p>
         ) : (
-          <p style={{ margin: 0, fontSize: 12, color: "#e65100" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "#ff9500" }}>
             Location not yet verified by field staff
           </p>
         )}

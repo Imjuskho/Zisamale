@@ -1,18 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
 import { login } from "../store/dashboardSlice";
 import { api } from "../services/api";
 import { t } from "../i18n";
+import { ParticleCanvas } from "../components/particles/ParticleCanvas";
+import { generateMalawiPoints } from "../components/particles/malawiMap";
 import type { UserRole } from "../types";
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  dho: "District Health Officer",
-  mohp: "Ministry of Health Policy",
-  chw: "Community Health Worker",
-  phim: "Public Health Information Manager",
-  supervisor: "Supervisor",
-};
 
 const ROLE_ROUTES: Record<UserRole, string> = {
   dho: "/dho",
@@ -49,10 +43,19 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<UserRole>("dho");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const sessionExpired = searchParams.get("expired") === "1";
+
+  // Staggered entrance animation
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Generate Malawi map outline points for particle attraction
+  const malawiTargets = useMemo(() => generateMalawiPoints(220), []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -99,9 +102,14 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
-      {/* Brand panel */}
+      {/* Brand panel with particle canvas */}
       <aside className="login-hero" aria-hidden="true">
-        <div className="login-hero-brand">
+        <ParticleCanvas dark config={{ count: 220 }} mapTargets={malawiTargets} />
+
+        {/* Ambient light layer */}
+        <div className="login-hero-ambient" />
+
+        <div className={`login-hero-brand ${mounted ? "login-anim-in" : ""}`} style={{ animationDelay: "0ms" }}>
           <span className="login-hero-logo">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -111,7 +119,7 @@ export function LoginPage() {
           <span className="login-hero-wordmark">Zisamale</span>
         </div>
 
-        <div className="login-hero-copy">
+        <div className={`login-hero-copy ${mounted ? "login-anim-in" : ""}`} style={{ animationDelay: "120ms" }}>
           <h2>Community health, connected.</h2>
           <p>
             Live maps, referral routing, outbreak prediction and cold-chain
@@ -119,29 +127,29 @@ export function LoginPage() {
           </p>
 
           <ul className="login-hero-points">
-            <li>
+            <li className={`${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "280ms" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
               771 registered health facilities
             </li>
-            <li>
+            <li className={`${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "360ms" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
               Offline-first CHW visit capture
             </li>
-            <li>
+            <li className={`${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "440ms" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
               Real-time outbreak &amp; climate alerts
             </li>
           </ul>
         </div>
 
-        <div className="login-hero-footer">
+        <div className={`login-hero-footer ${mounted ? "login-anim-in" : ""}`} style={{ animationDelay: "520ms" }}>
           Ministry of Health · Republic of Malawi
         </div>
       </aside>
 
-      {/* Form panel */}
+      {/* Form panel — frosted glass */}
       <main className="login-card-zone">
-        <div className="login-page">
+        <div className={`login-page ${mounted ? "login-form-anim" : ""}`}>
           <div className="login-mobile-brand">
             <span className="login-hero-logo login-hero-logo--small">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
@@ -150,17 +158,21 @@ export function LoginPage() {
               </svg>
             </span>
           </div>
-          <h1>{t("appName")}</h1>
-          <p className="login-subtitle">{t("welcome", "ny")}</p>
+          <h1 className={`${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "80ms" }}>
+            {t("appName")}
+          </h1>
+          <p className={`login-subtitle ${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "140ms" }}>
+            {t("welcome", "ny")}
+          </p>
 
           {sessionExpired && (
-            <p className="login-session-expired" role="alert">
+            <p className="login-session-expired login-anim-slide" role="alert" style={{ animationDelay: "180ms" }}>
               Your session expired. Please sign in again.
             </p>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="login-field">
+            <div className={`login-field ${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "200ms" }}>
               <label htmlFor="login-email">{t("email")}</label>
               <div className="login-input-wrap">
                 <span className="login-input-icon"><MailIcon /></span>
@@ -175,7 +187,7 @@ export function LoginPage() {
               </div>
             </div>
 
-            <div className="login-field">
+            <div className={`login-field ${mounted ? "login-anim-slide" : ""}`} style={{ animationDelay: "260ms" }}>
               <label htmlFor="login-password">{t("password")}</label>
               <div className="login-input-wrap">
                 <span className="login-input-icon"><LockIcon /></span>
@@ -202,28 +214,18 @@ export function LoginPage() {
               </div>
             </div>
 
-            <div className="login-field">
-              <label htmlFor="login-role">Role</label>
-              <select
-                id="login-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value as UserRole)}
-              >
-                {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {error && (
-              <p role="alert" className="login-error">
+              <p role="alert" className="login-error login-shake">
                 {error}
               </p>
             )}
 
-            <button type="submit" disabled={submitting}>
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`login-submit-btn ${mounted ? "login-anim-slide" : ""}`}
+              style={{ animationDelay: "320ms" }}
+            >
               {submitting ? (
                 <>
                   <span className="login-spinner" aria-hidden="true" />
@@ -235,7 +237,7 @@ export function LoginPage() {
             </button>
           </form>
 
-          <p className="login-footnote">
+          <p className={`login-footnote ${mounted ? "login-anim-in" : ""}`} style={{ animationDelay: "380ms" }}>
             Protected health system · Unauthorised access is prohibited
           </p>
         </div>

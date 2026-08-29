@@ -19,9 +19,11 @@ const LanguageContext = createContext<LanguageContextValue>({
 
 function readStoredLanguage(): Language {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "ny" ? "ny" : "en";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "en" || stored === "ny") return stored;
+    return "ny"; // field-first default: CHWs before ministry staff
   } catch {
-    return "en";
+    return "ny";
   }
 }
 

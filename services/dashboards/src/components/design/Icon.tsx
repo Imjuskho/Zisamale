@@ -78,6 +78,13 @@ import {
   WarningOctagon,
   Check,
   X,
+  BookOpen,
+  Heart,
+  ForkKnife,
+  Wind,
+  Brain,
+  Skull,
+  DeviceMobile,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
@@ -166,6 +173,13 @@ const ICON_MAP = {
   WarningOctagon,
   Check,
   X,
+  BookOpen,
+  Heart,
+  ForkKnife,
+  Wind,
+  Brain,
+  Skull,
+  DeviceMobile,
 } as const;
 
 export type IconName = keyof typeof ICON_MAP;

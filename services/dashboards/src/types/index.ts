@@ -17,12 +17,14 @@ export interface Alert {
 export interface DistrictSummary {
   district_id: string;
   district_name: string;
-  malaria_risk_level: "low" | "medium" | "high";
+  region?: string | null;
+  malaria_risk_level: "low" | "medium" | "high" | null;
   active_alerts: number;
-  stockout_count: number;
-  maternal_mortality_ratio: number;
-  under5_mortality_rate: number;
-  essential_service_coverage: number;
+  stockout_count: number | null;
+  maternal_mortality_ratio: number | null;
+  under5_mortality_rate: number | null;
+  essential_service_coverage: number | null;
+  facility_count?: number | null;
 }
 
 export interface CaseTrend {
@@ -146,6 +148,21 @@ export interface RiskMapDistrict {
   district_name: string;
   risk_score: number;
   alert_count: number;
+}
+
+// ── Surveillance honesty: provenance + freshness on data payloads ──
+
+export type DataSourceKind = "dhis2" | "ichis" | "lmis" | "chw" | "climate";
+
+export type FreshnessScore = "live" | "recent" | "stale" | "historic";
+
+export interface DataSourceMeta {
+  source: DataSourceKind;
+  /** ISO8601 of the newest underlying record; null = never synced. */
+  last_sync_at: string | null;
+  record_count: number;
+  expected_count: number;
+  freshness_score: FreshnessScore;
 }
 
 export interface ColumnDef<T> {
@@ -412,4 +429,304 @@ export interface ReferralRoute {
   distance_km: number;
   eta_minutes: number;
   recommended: boolean;
+}
+
+/* ================================================================== */
+/* SAMALA-AI: KNOWLEDGE TRANSLATION & SELF-CARE                       */
+/* ================================================================== */
+
+export type HealthTopic =
+  | "hiv"
+  | "malaria"
+  | "maternal_health"
+  | "child_health"
+  | "nutrition"
+  | "diarrhea"
+  | "pneumonia"
+  | "mental_health"
+  | "ncd"
+  | "family_planning"
+  | "acute_poisoning"
+  | "tb"
+  | "digital_health";
+
+export type AssetType =
+  | "chw_brief"
+  | "video"
+  | "audio"
+  | "poster"
+  | "flipbook"
+  | "sms"
+  | "infographic"
+  | "community_talk";
+
+export type ContentSeverity = "info" | "warning" | "emergency";
+
+export type StudyStatus = "discovered" | "under_review" | "approved" | "synthesized" | "deployed";
+
+export type ConsentStatus = "pending" | "granted" | "denied" | "withdrawn";
+
+export type DeploymentMethod =
+  | "home_visit"
+  | "community_meeting"
+  | "clinic"
+  | "school"
+  | "radio"
+  | "sms"
+  | "poster";
+
+export interface ResearchStudy {
+  study_id: string;
+  title: string;
+  authors: string[];
+  journal: string | null;
+  doi: string | null;
+  publication_year: number | null;
+  study_design: string | null;
+  sample_size: number | null;
+  study_period_start: string | null;
+  study_period_end: string | null;
+  patient_demographics: Record<string, unknown> | null;
+  key_statistical_findings: Array<Record<string, unknown>> | null;
+  limitations: string[] | null;
+  references_cited: string[] | null;
+  study_district: string | null;
+  study_ta: string | null;
+  health_topic: HealthTopic;
+  audience: string | null;
+  consent_status: ConsentStatus;
+  status: StudyStatus;
+  discovered_at: string | null;
+}
+
+export interface KnowledgeAsset {
+  asset_id: string;
+  study_id: string | null;
+  title: string;
+  title_chichewa: string | null;
+  key_finding: string;
+  key_finding_chichewa: string | null;
+  actionable_takeaways: string[];
+  actionable_takeaways_chichewa: string[];
+  evidence_refs: Array<Record<string, unknown>>;
+  asset_type: AssetType;
+  health_topic: HealthTopic;
+  audience: string | null;
+  severity: ContentSeverity;
+  media_url: string | null;
+  audio_url: string | null;
+  poster_url: string | null;
+  confidence_level: string | null;
+  status: "draft" | "review" | "approved" | "deployed";
+  synthesized_at: string | null;
+}
+
+export interface KnowledgeDeployment {
+  deployment_id: string;
+  asset_id: string;
+  chw_id: string | null;
+  delivery_method: DeploymentMethod;
+  households_reached: number;
+  individuals_reached: number;
+  deployed_at: string | null;
+  knowledge_pre_score: number | null;
+  knowledge_post_score: number | null;
+  behavior_change_score: number | null;
+  cases_identified: number;
+  referrals_made: number;
+  outcomes_tracked: Record<string, unknown>;
+}
+
+export interface SelfCareGuide {
+  guide_id: string;
+  title: string;
+  title_chichewa: string | null;
+  category: HealthTopic;
+  audience: string | null;
+  severity: ContentSeverity;
+  what_it_is: string | null;
+  what_it_is_chichewa: string | null;
+  what_to_do_now: string[];
+  what_to_do_now_chichewa: string[];
+  what_not_to_do: string[];
+  what_not_to_do_chichewa: string[];
+  when_to_seek_help: string | null;
+  when_to_seek_help_chichewa: string | null;
+  prevention: string[];
+  prevention_chichewa: string[];
+  treatment_limitations: string[];
+  treatment_limitations_chichewa: string[];
+  clinical_decision_points: Array<Record<string, unknown>>;
+  clinical_decision_points_chichewa: Array<Record<string, unknown>>;
+  illustration_url: string | null;
+  audio_url: string | null;
+  video_url: string | null;
+  source: string | null;
+  last_reviewed: string | null;
+}
+
+export interface CommunityHealthTalk {
+  talk_id: string;
+  title: string;
+  title_chichewa: string | null;
+  study_id: string | null;
+  duration_minutes: number;
+  talking_points: string[];
+  talking_points_chichewa: string[];
+  discussion_questions: string[];
+  pledge_card_text: string | null;
+  pledge_card_text_chichewa: string | null;
+  health_topic: HealthTopic;
+  status: "draft" | "review" | "approved";
+}
+
+export interface SAMALASummary {
+  total_studies: number;
+  studies_by_status: Record<string, number>;
+  total_assets: number;
+  assets_by_type: Record<string, number>;
+  total_deployments: number;
+  households_reached: number;
+  avg_knowledge_change: number | null;
+  topic_coverage: Record<string, number>;
+  total_referrals: number;
+}
+
+export type MHReferralStatus =
+  | "identified"
+  | "referred"
+  | "in_care"
+  | "followed_up"
+  | "resolved"
+  | "lost_to_followup";
+
+export interface MentalHealthReferral {
+  referral_id: string;
+  study_id: string | null;
+  asset_id: string | null;
+  deployment_id: string | null;
+  individual_name: string | null;
+  age: number | null;
+  sex: string | null;
+  village_name: string | null;
+  ta_name: string | null;
+  district: string | null;
+  risk_factors: string[];
+  trigger_event: string | null;
+  presenting_concern: string | null;
+  referred_to: string | null;
+  referral_date: string | null;
+  follow_up_date: string | null;
+  outcome: string | null;
+  status: MHReferralStatus;
+  chw_id: string | null;
+  created_at: string | null;
+}
+
+export interface TopicSummary {
+  health_topic: string;
+  study_count: number;
+  asset_count: number;
+  asset_types: Record<string, number>;
+  guide_count: number;
+  talk_count: number;
+  deployment_count: number;
+  households_reached: number;
+}
+
+export interface DeploymentHeatmapCell {
+  district_id: string;
+  district_name: string;
+  deployment_count: number;
+  households_reached: number;
+  individuals_reached: number;
+  delivery_methods: Record<string, number>;
+}
+
+export interface ImpactTrajectoryPoint {
+  deployment_id: string;
+  asset_id: string;
+  deployed_at: string | null;
+  pre_score: number;
+  post_score: number;
+  delta: number;
+  behavior_change_score: number | null;
+  district_id: string | null;
+  delivery_method: string;
+}
+
+export interface PipelineNode {
+  id: string;
+  label: string;
+  type: "study" | "asset" | "deployment";
+  status?: string;
+  topic?: string;
+  asset_type?: string;
+}
+
+export interface PipelineLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+export interface ContextualAssetsResponse {
+  household_id: string;
+  matched_assets: KnowledgeAsset[];
+  matched_guides: SelfCareGuide[];
+  topic_hints: string[];
+}
+
+export interface TalkPrintKit {
+  title: string;
+  title_chichewa: string | null;
+  topic: string;
+  duration_minutes: number;
+  source_study: { title: string | null; authors: string[]; journal: string | null } | null;
+  talking_points: string[];
+  talking_points_chichewa: string[];
+  discussion_questions: string[];
+  pledge_card_text: string | null;
+  pledge_card_text_chichewa: string | null;
+}
+
+export interface GuidePosterData {
+  title: string;
+  title_chichewa: string | null;
+  category: string;
+  severity: string;
+  what_it_is: string | null;
+  what_it_is_chichewa: string | null;
+  what_to_do_now: string[];
+  what_to_do_now_chichewa: string[];
+  what_not_to_do: string[];
+  what_not_to_do_chichewa: string[];
+  when_to_seek_help: string | null;
+  when_to_seek_help_chichewa: string | null;
+  prevention: string[];
+  prevention_chichewa: string[];
+}
+
+export interface FlipbookPage {
+  page_number: number;
+  type: "talking_point" | "discussion_question" | "pledge_card";
+  content_en: string;
+  content_ny: string;
+}
+
+export interface TalkFlipbookData {
+  title: string;
+  title_chichewa: string | null;
+  topic: string;
+  total_pages: number;
+  pages: FlipbookPage[];
+}
+
+export interface MonthlyBrief {
+  period: string;
+  pipeline: { studies_total: number; studies_deployed: number; assets_total: number; guides_total: number; talks_total: number };
+  reach: { deployments: number; households_reached: number; individuals_reached: number };
+  impact: { avg_knowledge_change: number; assessments_count: number };
+  topic_coverage: Record<string, number>;
+  top_topics: Array<[string, number]>;
 }

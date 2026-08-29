@@ -15,18 +15,18 @@ export type RiskTone = "low" | "medium" | "high" | "critical";
 /** Hex values mirror tailwind.config.js `risk.*`. Popup HTML strings need
  * literals because Leaflet renders raw HTML outside Tailwind's scanner. */
 export const RISK_HEX: Record<RiskTone, string> = {
-  low: "#2E7D32",
-  medium: "#F9A825",
-  high: "#E65100",
-  critical: "#C62828",
+  low: "#34C759",
+  medium: "#FFCC00",
+  high: "#FF9500",
+  critical: "#FF3B30",
 };
 
-export const RISK_NODATA_HEX = "#94A3B8";
+export const RISK_NODATA_HEX = "#A29A8E";
 
 /** Tailwind classes for React surfaces. */
 export const RISK_BG_CLASSES: Record<RiskTone, string> = {
   low: "bg-risk-low text-white",
-  medium: "bg-risk-medium text-zisamale-dark",
+  medium: "bg-risk-medium text-apple-ink",
   high: "bg-risk-high text-white",
   critical: "bg-risk-critical text-white",
 };
@@ -82,9 +82,9 @@ export const ALERT_LEVEL_STYLES: Record<
   AlertLevel,
   { bg: string; border: string; label: string }
 > = {
-  red: { bg: "#FFEBEE", border: RISK_HEX.critical, label: "CRITICAL" },
-  yellow: { bg: "#FFF3E0", border: RISK_HEX.high, label: "ELEVATED" },
-  green: { bg: "#E8F5E9", border: RISK_HEX.low, label: "LOW" },
+  red: { bg: "#F5E3DD", border: RISK_HEX.critical, label: "CRITICAL" },
+  yellow: { bg: "#F6E7DE", border: RISK_HEX.high, label: "ELEVATED" },
+  green: { bg: "#EAF3EE", border: RISK_HEX.low, label: "LOW" },
 };
 
 // ── Facility operational status ───────────────────────────────────
@@ -98,7 +98,7 @@ export function facilityStatusColor(status: string | null): string {
     case "Not Functional":
       return RISK_HEX.critical;
     default:
-      return "#6E6557"; // neutral — closed / unknown
+  return "#8E8E93"; // neutral — closed / unknown
   }
 }
 

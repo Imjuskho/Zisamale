@@ -39,8 +39,8 @@ export function RiskBadge({ score, size = "md", showLabel = false }: RiskBadgePr
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`rounded-full flex items-center justify-center font-bold ${riskColor(score)} ${sizeClasses[size]}`}
-        style={{ border: "3px solid white" }}
+        className={`rounded-[2px] flex items-center justify-center font-bold ${riskColor(score)} ${sizeClasses[size]}`}
+        style={{ border: "3px solid var(--color-surface-card)" }}
       >
         {score}
       </div>
@@ -76,12 +76,12 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
       <div className="flex items-center gap-4 mb-4">
         <RiskBadge score={score} size="lg" />
         <div>
-          <div className="text-title font-semibold text-zisamale-dark">
+          <div className="text-title font-semibold text-apple-ink">
             {riskLabel(score)}
           </div>
-          <div className="h-2 bg-neutral-light rounded-full mt-2 w-40">
+          <div className="h-1.5 bg-neutral-light rounded-[2px] mt-2 w-40">
             <div
-              className={`h-2 rounded-full transition-[width,background-color] duration-500 ease-out ${RISK_BG_CLASSES[tone].split(" ")[0]}`}
+              className={`h-1.5 rounded-[2px] transition-[width,background-color] duration-500 ease-out ${RISK_BG_CLASSES[tone].split(" ")[0]}`}
               style={{ width: `${(score / 10) * 100}%` }}
             />
           </div>
@@ -95,7 +95,7 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
           </div>
           <ul className="space-y-1">
             {reasons.map((r, i) => (
-              <li key={i} className="text-body text-zisamale-dark flex items-start gap-2">
+              <li key={i} className="text-body text-apple-ink flex items-start gap-2">
                 <span className="text-neutral mt-1">•</span>
                 {r}
               </li>
@@ -106,12 +106,12 @@ export function RiskCard({ score, reasons, onRefer, onOverride }: RiskCardProps)
 
       <div className="flex gap-3">
         {onRefer && (
-          <button onClick={onRefer} className="btn-danger flex-1">
+          <button type="button" onClick={onRefer} className="btn-danger flex-1">
             REFER IMMEDIATELY
           </button>
         )}
         {onOverride && (
-          <button onClick={onOverride} className="btn-ghost">
+          <button type="button" onClick={onOverride} className="btn-ghost">
             Override
           </button>
         )}

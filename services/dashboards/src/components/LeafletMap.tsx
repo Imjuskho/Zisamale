@@ -242,6 +242,12 @@ export function LeafletMap({
     onSelectedDistrictChange?.(null);
   };
 
+  // Toolbar-driven panel visibility (panels render above the map body)
+  const [legendOpen, setLegendOpen] = useState(showLegend);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
+  const [districtListOpen, setDistrictListOpen] = useState(false);
+
   // Follow external (controlled) selection, e.g. from the scorecard carousel
   useEffect(() => {
     if (selectedDistrictId === undefined) return;
@@ -271,7 +277,7 @@ export function LeafletMap({
       const isSelected = !!props && props.district_id === selectedDistrict?.district_id;
       const dimmed = !!selectedDistrict && !isSelected;
       return {
-        color: isSelected ? "#2D7D46" : "#475569",
+        color: isSelected ? "#2D6A4F" : "#44403C",
         weight: isSelected ? 3 : 1,
         fillColor: props ? riskToColor(props.risk_score) : RISK_NODATA_HEX,
         fillOpacity: dimmed ? 0.12 : 0.65,
@@ -360,38 +366,18 @@ export function LeafletMap({
     onRefer?.(facility);
   }
 
-  // Facility popup buttons are plain HTML inside a Leaflet popup, so they
-  // communicate via window events. Bridge those events to panel state here.
-  useEffect(() => {
-    const findFacility = (event: Event): RealFacility | null => {
-      const facilityId = (event as CustomEvent<{ facilityId?: string }>).detail?.facilityId;
-      return registryFacilities.find((f) => String(f.id) === String(facilityId)) ?? null;
-    };
-    const openReferral = (e: Event) => {
-      const facility = findFacility(e);
-      if (!facility) return;
-      setSelectedFacility(null);
-      setReferralRequest({
-        patient_lat: facility.latitude,
-        patient_lng: facility.longitude,
-        condition: "obstetric",
-        intervention_required: "general",
-        urgency: "urgent",
-      });
-    };
-    const openDetails = (e: Event) => {
-      const facility = findFacility(e);
-      if (!facility) return;
-      setReferralRequest(null);
-      setSelectedFacility(facility);
-    };
-    window.addEventListener("zisamale:refer", openReferral);
-    window.addEventListener("zisamale:view-facility", openDetails);
-    return () => {
-      window.removeEventListener("zisamale:refer", openReferral);
-      window.removeEventListener("zisamale:view-facility", openDetails);
-    };
-  }, [registryFacilities]);
+  // Popup actions arrive as plain callbacks — the marker layer renders the
+  // popup as a React component, so no window-event bridge is needed.
+  const handleReferFromPopup = useCallback((facility: RealFacility) => {
+    setSelectedFacility(null);
+    setReferralRequest({
+      patient_lat: facility.latitude,
+      patient_lng: facility.longitude,
+      condition: "obstetric",
+      intervention_required: "general",
+      urgency: "urgent",
+    });
+  }, []);
 
   const referralFacilities = useMemo(() => {
     if (!referralRequest) return [];
@@ -401,17 +387,19 @@ export function LeafletMap({
   return (
     <div className={`leaflet-map moyo-map ${printMode ? "moyo-map--print" : ""}`}>
       <div className="moyo-map-header">
-        <div className="moyo-map-title-row">
-          <h2>{t("moyoMapTitle", language)}</h2>
-          <span className="moyo-map-tagline">{t("moyoMapTagline", language)}</span>
+        <div className="moyo-map-header-main">
+          <div className="moyo-map-title-row">
+            <h2>{t("moyoMapTitle", language)}</h2>
+            <span className="moyo-map-tagline">{t("moyoMapTagline", language)}</span>
+          </div>
+          <p className="moyo-map-subtitle">{t("moyoMapSubtitle", language)}</p>
         </div>
-        <p className="moyo-map-subtitle">{t("moyoMapSubtitle", language)}</p>
         <div className="moyo-map-status">
-          <span className="relative flex h-2 w-2 moyo-live-dot">
+          <span className="relative flex h-2 w-2 moyo-live-dot" aria-hidden="true">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
           </span>
-          <span>
+          <span className="moyo-sync-time">
             {t("live", language)} • {t("lastSync", language)}{" "}
             {new Date(lastUpdate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
@@ -422,17 +410,87 @@ export function LeafletMap({
             aria-label={t("refresh", language)}
           >
             <Icon name="ArrowsClockwise" size={12} className={isRefreshing ? "animate-spin" : ""} />
-            {t("refresh", language)}
+            <span>{t("refresh", language)}</span>
           </button>
         </div>
       </div>
+
+      {/* Controls toolbar — sits above the map; nothing floats over the tiles */}
+      <div className="moyo-map-toolbar" role="toolbar" aria-label="Map controls">
+        <MapToolbar
+          activeLayers={activeLayers}
+          onToggleLayer={toggleLayer}
+          onPrint={handlePrint}
+          onExportSMS={handleExportSMS}
+          role={role}
+        />
+        <button
+          type="button"
+          className={`moyo-map-tool-btn ${legendOpen ? "moyo-map-tool-btn--on" : ""}`}
+          aria-pressed={legendOpen}
+          onClick={() => setLegendOpen((v) => !v)}
+        >
+          <Icon name="SquaresFour" size={14} /> Legend
+        </button>
+        {(role === "dho" || role === "mohp") && (
+          <button
+            type="button"
+            className={`moyo-map-tool-btn ${simulatorOpen ? "moyo-map-tool-btn--on" : ""}`}
+            aria-pressed={simulatorOpen}
+            onClick={() => setSimulatorOpen((v) => !v)}
+          >
+            <Icon name="Lightning" size={14} /> Intervention Simulator
+          </button>
+        )}
+        {(role === "dho" || role === "mohp" || role === "phim") && (
+          <button
+            type="button"
+            className={`moyo-map-tool-btn ${weatherOpen ? "moyo-map-tool-btn--on" : ""}`}
+            aria-pressed={weatherOpen}
+            onClick={() => setWeatherOpen((v) => !v)}
+          >
+            <Icon name="Cloud" size={14} /> Health Weather
+          </button>
+        )}
+        {districts && districts.length > 0 && (
+          <button
+            type="button"
+            className={`moyo-map-tool-btn moyo-map-tool-btn--end ${districtListOpen ? "moyo-map-tool-btn--on" : ""}`}
+            aria-expanded={districtListOpen}
+            onClick={() => setDistrictListOpen((v) => !v)}
+          >
+            <Icon name="MapPin" size={14} /> Districts ({data.features.length})
+          </button>
+        )}
+      </div>
+
+      {/* Keyboard-accessible district list — alternative to clicking map shapes */}
+      {districtListOpen && data.features.length > 0 && (
+        <nav className="moyo-district-list" aria-label="Districts">
+          {data.features.map((f) => {
+            const d = f.properties;
+            const active = selectedDistrictId != null ? selectedDistrictId === d.district_id : selectedDistrict?.district_id === d.district_id;
+            return (
+              <button
+                key={d.district_id}
+                type="button"
+                className={`moyo-district-chip ${active ? "moyo-district-chip--active" : ""}`}
+                aria-pressed={active}
+                onClick={() => selectRef.current(d)}
+              >
+                {d.name}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="moyo-map-body">
         <div className="leaflet-map-container" style={{ position: "relative", height }}>
           <MapContainer
             center={center}
             zoom={zoom}
-            scrollWheelZoom
+            scrollWheelZoom={false}
             style={{ height: "100%", width: "100%" }}
           >
             <TileLayer url={darkMode ? DARK_TILE_URL : OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
@@ -456,6 +514,7 @@ export function LeafletMap({
                 key={markerEpoch}
                 facilities={registryFacilities}
                 onSelect={setSelectedFacility}
+                onRefer={handleReferFromPopup}
                 districtFilter={selectedDistrict?.name ?? null}
               />
             )}
@@ -540,16 +599,7 @@ export function LeafletMap({
             </aside>
           )}
 
-          {showLegend && <MapLegend />}
-
-          {/* Toolbar overlay */}
-          <MapToolbar
-            activeLayers={activeLayers}
-            onToggleLayer={toggleLayer}
-            onPrint={handlePrint}
-            onExportSMS={handleExportSMS}
-            role={role}
-          />
+          {legendOpen && <MapLegend />}
 
           {/* CHW Presence sidebar */}
           {activeLayers.has("chw_presence") && (
@@ -609,8 +659,8 @@ export function LeafletMap({
             <CHWCoverageHeatmap chws={chwPerformance} />
           )}
 
-          {/* Intervention simulator (DHO/MoHP) */}
-          {(role === "dho" || role === "mohp") && (
+          {/* Intervention simulator (DHO/MoHP) — opened from the toolbar */}
+          {(role === "dho" || role === "mohp") && simulatorOpen && (
             <InterventionSimulator
               currentPredictedCases={currentPredictedCases}
               onSimulate={onSimulateIntervention}
@@ -627,8 +677,8 @@ export function LeafletMap({
             <NutritionLayer data={nutritionData} />
           )}
 
-          {/* Health Weather daily briefing */}
-          {(role === "dho" || role === "mohp" || role === "phim") && (
+          {/* Health Weather daily briefing — opened from the toolbar */}
+          {(role === "dho" || role === "mohp" || role === "phim") && weatherOpen && (
             <HealthWeatherPanel
               briefing={healthWeather}
               onRefresh={onRefreshWeather}

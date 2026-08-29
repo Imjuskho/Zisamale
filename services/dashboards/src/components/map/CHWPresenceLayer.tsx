@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { CHWLocation } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
+import { hoursSince } from "../../utils/recency";
 
 interface CHWPresenceLayerProps {
   chws: CHWLocation[];
@@ -8,20 +10,16 @@ interface CHWPresenceLayerProps {
   onCheckInRequest?: (chwId: string) => void;
 }
 
-function hoursSince(iso: string): number {
-  return Math.round((Date.now() - new Date(iso).getTime()) / 3600000);
-}
-
 function CHWDot({ chw, supervisorView, onCheckInRequest }: {
   chw: CHWLocation;
   supervisorView: boolean;
   onCheckInRequest?: (chwId: string) => void;
 }) {
-  const hours = hoursSince(chw.last_sync_at);
+  const hours = Math.round(hoursSince(chw.last_sync_at) ?? 0);
   const isStale = hours > 48;
   const isEmergency = chw.status === "emergency";
 
-  const glowColor = isEmergency ? "#c62828" : isStale ? "#e65100" : "#0f7b8a";
+  const glowColor = isEmergency ? RISK_HEX.critical : isStale ? RISK_HEX.high : "var(--color-primary)";
   const opacity = isStale ? 0.3 : 1;
 
   return (
@@ -36,6 +34,7 @@ function CHWDot({ chw, supervisorView, onCheckInRequest }: {
 
       {supervisorView && isStale && (
         <button
+          type="button"
           className="chw-checkin-btn"
           onClick={() => onCheckInRequest?.(chw.chw_id)}
           aria-label={`Request check-in from ${chw.chw_name}`}
@@ -54,14 +53,14 @@ export function CHWPresenceLayer({ chws, supervisorView = false, onCheckInReques
 
   return (
     <div className="chw-presence-layer">
-      <button className="chw-presence-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="chw-presence-toggle" aria-expanded={expanded} aria-controls="chw-presence-panel" onClick={() => setExpanded(!expanded)}>
         <Icon name="Users" size={16} />
         <span>CHW Presence ({visible.length}/{chws.length})</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="chw-presence-panel">
+        <div id="chw-presence-panel" className="chw-presence-panel">
           <p className="chw-presence-note">
             <Icon name="ShieldCheck" size={14} /> Location is opt-in. CHWs choose their visibility level.
           </p>

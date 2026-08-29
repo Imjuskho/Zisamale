@@ -1,15 +1,16 @@
 import { useState } from "react";
 import type { NutritionDataPoint } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface NutritionLayerProps {
   data: NutritionDataPoint[];
 }
 
 function stuntingColor(rate: number): string {
-  if (rate < 0.2) return "#2d7d46";
-  if (rate < 0.3) return "#f9a825";
-  return "#c62828";
+  if (rate < 0.2) return RISK_HEX.low;
+  if (rate < 0.3) return RISK_HEX.medium;
+  return RISK_HEX.critical;
 }
 
 export function NutritionLayer({ data }: NutritionLayerProps) {
@@ -20,23 +21,23 @@ export function NutritionLayer({ data }: NutritionLayerProps) {
 
   return (
     <div className="nutrition-layer">
-      <button className="nutrition-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="nutrition-toggle" aria-expanded={expanded} aria-controls="nutrition-panel" onClick={() => setExpanded(!expanded)}>
         <Icon name="Drop" size={16} />
         <span>Nutrition ({hotspots.length} hotspots)</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="nutrition-panel">
+        <div id="nutrition-panel" className="nutrition-panel">
           {rutfNeeded.length > 0 && (
             <div className="nutrition-alert">
-              <Icon name="Warning" size={14} color="#e65100" />
+              <Icon name="Warning" size={14} color={RISK_HEX.high} />
               {rutfNeeded.length} village(s) need RUTF supplies
             </div>
           )}
 
           <div className="nutrition-list">
-            {data.sort((a, b) => b.stunting_rate - a.stunting_rate).slice(0, 20).map((dp) => (
+            {[...data].sort((a, b) => b.stunting_rate - a.stunting_rate).slice(0, 20).map((dp) => (
               <div key={dp.village_id} className="nutrition-row">
                 <span className="nutrition-dot" style={{ backgroundColor: stuntingColor(dp.stunting_rate) }} />
                 <div className="nutrition-info">

@@ -3,6 +3,7 @@
  * shape: data in, react-leaflet elements out. No fetching, no global state;
  * LeafletMap composes them.
  */
+import { memo } from "react";
 import { Marker, Popup, CircleMarker, Tooltip, Polyline } from "react-leaflet";
 import L from "leaflet";
 
@@ -22,18 +23,21 @@ import type {
 } from "../../types";
 import type { Facility } from "../../services/facilityService";
 import { createSimpleFacilityIcon } from "./FacilityIntelligenceMarker";
-import { FacilityPopupHTML } from "./FacilityPopup";
+import { FacilityPopup } from "./FacilityPopup";
 import { humanize } from "../../utils/text";
+import { isOlderThan } from "../../utils/recency";
 
 // ── Facilities (live registry) ─────────────────────────────────────
 
-export function FacilityMarkers({
+export const FacilityMarkers = memo(function FacilityMarkers({
   facilities,
+  onSelect,
+  onRefer,
   districtFilter,
 }: {
   facilities: Facility[];
   onSelect: (f: Facility) => void;
-  /** When set (district name), facilities outside it are dimmed. */
+  onRefer: (f: Facility) => void;
   districtFilter?: string | null;
 }) {
   if (facilities.length === 0) return null;
@@ -55,25 +59,27 @@ export function FacilityMarkers({
             zIndexOffset={isActive ? 400 : 0}
           >
             <Popup maxWidth={320} className="facility-popup">
-              <div dangerouslySetInnerHTML={{ __html: FacilityPopupHTML(facility) }} />
+              <FacilityPopup
+                facility={facility}
+                onRefer={onRefer}
+                onViewDetails={onSelect}
+              />
             </Popup>
           </Marker>
         );
       })}
     </>
   );
-}
+})
 
 // ── CHW presence ───────────────────────────────────────────────────
 
 export function chwDotColor(chw: CHWLocation): string {
-  const isStale =
-    Math.round((Date.now() - new Date(chw.last_sync_at).getTime()) / 3600000) > 48;
-  if (chw.status === "emergency") return "#c62828";
-  return isStale ? "#e65100" : "#0f7b8a";
+  if (chw.status === "emergency") return "#ff3b30";
+  return isOlderThan(chw.last_sync_at, 48) ? "#ff9500" : "#0066cc";
 }
 
-export function CHWMarkers({ chws }: { chws: CHWLocation[] }) {
+export const CHWMarkers = memo(function CHWMarkers({ chws }: { chws: CHWLocation[] }) {
   return (
     <>
       {chws
@@ -105,15 +111,15 @@ export function CHWMarkers({ chws }: { chws: CHWLocation[] }) {
         })}
     </>
   );
-}
+})
 
 // ── Community voice pins ───────────────────────────────────────────
 
 const PIN_COLORS: Record<string, string> = {
-  dry_water_point: "#0f7b8a",
-  drug_stockout: "#c62828",
-  road_blocked: "#e65100",
-  disease_report: "#c62828",
+  dry_water_point: "#0066cc",
+  drug_stockout: "#ff3b30",
+  road_blocked: "#ff9500",
+  disease_report: "#ff3b30",
   good_news: "#2d7d46",
 };
 
@@ -125,7 +131,7 @@ const PIN_ICONS: Record<string, string> = {
   good_news: "OK",
 };
 
-export function CommunityPinMarkers({ pins }: { pins: CommunityPin[] }) {
+export const CommunityPinMarkers = memo(function CommunityPinMarkers({ pins }: { pins: CommunityPin[] }) {
   return (
     <>
       {pins.filter((p) => p.status !== "dismissed").map((pin) => (
@@ -148,15 +154,15 @@ export function CommunityPinMarkers({ pins }: { pins: CommunityPin[] }) {
       ))}
     </>
   );
-}
+})
 
 // ── Outbreak prediction heat ───────────────────────────────────────
 
 export function outbreakColor(riskScore: number): string {
-  return riskScore > 0.7 ? "#c62828" : riskScore > 0.4 ? "#e65100" : "#f9a825";
+  return riskScore > 0.7 ? "#ff3b30" : riskScore > 0.4 ? "#ff9500" : "#f9a825";
 }
 
-export function OutbreakHeatLayer({
+export const OutbreakHeatLayer = memo(function OutbreakHeatLayer({
   predictions,
   week,
 }: {
@@ -189,7 +195,7 @@ export function OutbreakHeatLayer({
       })}
     </>
   );
-}
+})
 
 // ── Referral routes ────────────────────────────────────────────────
 
@@ -197,7 +203,7 @@ export function ReferralRouteLines({ routes }: { routes: ReferralRoute[] }) {
   return (
     <>
       {routes.map((route, i) => {
-        const color = route.recommended ? "#2d7d46" : route.road_status === "passable" ? "#666" : "#c62828";
+        const color = route.recommended ? "#2d7d46" : route.road_status === "passable" ? "#666" : "#ff3b30";
 
         return (
           <div key={`route-${i}`}>
@@ -264,7 +270,7 @@ export function ClimateOverlayCircles({
 
 // ── Supply chain ───────────────────────────────────────────────────
 
-export function SupplyTruckMarkers({ trucks }: { trucks: SupplyTruck[] }) {
+export const SupplyTruckMarkers = memo(function SupplyTruckMarkers({ trucks }: { trucks: SupplyTruck[] }) {
   return (
     <>
       {trucks.map((truck) => (
@@ -272,7 +278,7 @@ export function SupplyTruckMarkers({ trucks }: { trucks: SupplyTruck[] }) {
           key={truck.truck_id}
           position={[truck.lat, truck.lng]}
           icon={L.divIcon({
-            html: `<div style="width:22px;height:22px;border-radius:4px;background:${truck.temperature_breach ? "#c62828" : "#2d7d46"};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;font-family:Inter,sans-serif;">T</div>`,
+            html: `<div style="width:22px;height:22px;border-radius:4px;background:${truck.temperature_breach ? "#ff3b30" : "#2d7d46"};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;font-family:Inter,sans-serif;">T</div>`,
             className: "",
             iconSize: [24, 24],
             iconAnchor: [12, 12],
@@ -283,17 +289,17 @@ export function SupplyTruckMarkers({ trucks }: { trucks: SupplyTruck[] }) {
             → {truck.destination}<br />
             ETA: {truck.eta_hours}h<br />
             Cargo: {truck.cargo}<br />
-            {truck.temperature_breach && <span style={{ color: "#c62828" }}>⚠ Temperature breach!</span>}
+            {truck.temperature_breach && <span style={{ color: "#ff3b30" }}>⚠ Temperature breach!</span>}
           </Popup>
         </Marker>
       ))}
     </>
   );
-}
+})
 
 // ── Nutrition surveillance ─────────────────────────────────────────
 
-export function NutritionMarkers({ data }: { data: NutritionDataPoint[] }) {
+export const NutritionMarkers = memo(function NutritionMarkers({ data }: { data: NutritionDataPoint[] }) {
   return (
     <>
       {data.filter((d) => d.stunting_rate >= 0.3).map((dp) => (
@@ -301,7 +307,7 @@ export function NutritionMarkers({ data }: { data: NutritionDataPoint[] }) {
           key={dp.village_id}
           position={[dp.lat, dp.lng]}
           icon={L.divIcon({
-            html: `<div style="width:16px;height:16px;border-radius:50%;background:#e65100;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+            html: `<div style="width:16px;height:16px;border-radius:50%;background:#ff9500;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
             className: "",
             iconSize: [16, 16],
             iconAnchor: [8, 8],
@@ -311,18 +317,18 @@ export function NutritionMarkers({ data }: { data: NutritionDataPoint[] }) {
             <strong>{dp.village_name}</strong><br />
             Stunting: {Math.round(dp.stunting_rate * 100)}%<br />
             Wasting: {Math.round(dp.wasting_rate * 100)}%<br />
-            {dp.rutf_needed && <span style={{ color: "#e65100" }}>RUTF needed</span>}
+            {dp.rutf_needed && <span style={{ color: "#ff9500" }}>RUTF needed</span>}
           </Popup>
         </Marker>
       ))}
     </>
   );
-}
+})
 
 // ── Maternity waiting homes ────────────────────────────────────────
 
 export function maternityHomeColor(status: string): string {
-  return status === "open" ? "#0f7b8a" : status === "full" ? "#e65100" : "#999";
+  return status === "open" ? "#0066cc" : status === "full" ? "#ff9500" : "#999";
 }
 
 export function MaternityHomeMarkers({ homes }: { homes: MaternityWaitingHome[] }) {
@@ -360,7 +366,7 @@ export function TBAMarkers({ tbas }: { tbas: TraditionalBirthAttendant[] }) {
           key={tba.tba_id}
           position={[tba.lat, tba.lng]}
           icon={L.divIcon({
-            html: `<div style="width:18px;height:18px;border-radius:50%;background:#0f7b8a;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;">TBA</div>`,
+            html: `<div style="width:18px;height:18px;border-radius:50%;background:#0066cc;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;">TBA</div>`,
             className: "",
             iconSize: [18, 18],
             iconAnchor: [9, 9],
@@ -380,7 +386,7 @@ export function TBAMarkers({ tbas }: { tbas: TraditionalBirthAttendant[] }) {
 // ── Immunization micro-planning ────────────────────────────────────
 
 export function villageCoverageColor(dpt3Coverage: number): string {
-  return dpt3Coverage < 0.4 ? "#c62828" : dpt3Coverage < 0.65 ? "#e65100" : "#2d7d46";
+  return dpt3Coverage < 0.4 ? "#ff3b30" : dpt3Coverage < 0.65 ? "#ff9500" : "#2d7d46";
 }
 
 export function ImmunizationRoutes({
@@ -428,7 +434,7 @@ export function ImmunizationRoutes({
 // ── Cold chain ─────────────────────────────────────────────────────
 
 export function fridgeStatusColor(status: string): string {
-  return status === "working" ? "#2d7d46" : status === "broken" ? "#c62828" : "#999";
+  return status === "working" ? "#2d7d46" : status === "broken" ? "#ff3b30" : "#999";
 }
 
 export function ColdChainMarkers({ units }: { units: ColdChainFacility[] }) {

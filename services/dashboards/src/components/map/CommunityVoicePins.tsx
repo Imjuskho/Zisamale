@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CommunityPin, CommunityPinType } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
 
 interface CommunityVoicePinsProps {
   pins: CommunityPin[];
@@ -10,11 +11,11 @@ interface CommunityVoicePinsProps {
 }
 
 const PIN_CONFIG: Record<CommunityPinType, { label: string; icon: string; color: string }> = {
-  dry_water_point: { label: "Dry Water Point", icon: "Drop", color: "#0f7b8a" },
-  drug_stockout: { label: "Drug Stockout", icon: "Package", color: "#c62828" },
-  road_blocked: { label: "Road Blocked", icon: "Warning", color: "#e65100" },
-  disease_report: { label: "Disease Report", icon: "WarningCircle", color: "#c62828" },
-  good_news: { label: "Good News", icon: "CheckCircle", color: "#2d7d46" },
+  dry_water_point: { label: "Dry Water Point", icon: "Drop", color: "var(--color-primary)" },
+  drug_stockout: { label: "Drug Stockout", icon: "Package", color: RISK_HEX.critical },
+  road_blocked: { label: "Road Blocked", icon: "Warning", color: RISK_HEX.high },
+  disease_report: { label: "Disease Report", icon: "WarningCircle", color: RISK_HEX.critical },
+  good_news: { label: "Good News", icon: "CheckCircle", color: RISK_HEX.low },
 };
 
 const STATUS_STYLES: Record<string, { bg: string; border: string }> = {
@@ -32,22 +33,26 @@ export function CommunityVoicePins({ pins, onVerify, onDismiss, onReport }: Comm
 
   return (
     <div className="community-voice-layer">
-      <button className="community-voice-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="community-voice-toggle" aria-expanded={expanded} aria-controls="community-voice-panel" onClick={() => setExpanded(!expanded)}>
         <Icon name="Megaphone" size={16} />
         <span>Community Reports ({pendingCount} pending)</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="community-voice-panel">
-          <div className="community-voice-filters">
+        <div id="community-voice-panel" className="community-voice-panel">
+          <div className="community-voice-filters" role="group" aria-label="Filter community reports">
             <button
+              type="button"
+              aria-pressed={filter === "all"}
               className={`community-filter-btn ${filter === "all" ? "community-filter-btn--active" : ""}`}
               onClick={() => setFilter("all")}
             >All</button>
             {(Object.keys(PIN_CONFIG) as CommunityPinType[]).map((type) => (
               <button
                 key={type}
+                type="button"
+                aria-pressed={filter === type}
                 className={`community-filter-btn ${filter === type ? "community-filter-btn--active" : ""}`}
                 onClick={() => setFilter(type)}
               >
@@ -63,9 +68,11 @@ export function CommunityVoicePins({ pins, onVerify, onDismiss, onReport }: Comm
               {(Object.keys(PIN_CONFIG) as CommunityPinType[]).map((type) => (
                 <button
                   key={type}
+                  type="button"
                   className="community-report-btn"
                   onClick={() => onReport(type)}
-                  title={PIN_CONFIG[type].label}
+                  aria-label={`Report ${PIN_CONFIG[type].label}`}
+                  title={`Report ${PIN_CONFIG[type].label}`}
                 >
                   <Icon name={PIN_CONFIG[type].icon as any} size={14} color={PIN_CONFIG[type].color} />
                 </button>
@@ -100,10 +107,10 @@ export function CommunityVoicePins({ pins, onVerify, onDismiss, onReport }: Comm
                     </div>
                     {pin.status === "pending" && (
                       <div className="community-pin-actions">
-                        <button className="btn-secondary text-xs" onClick={() => onVerify?.(pin.pin_id)}>
+                        <button type="button" className="btn-secondary text-xs" onClick={() => onVerify?.(pin.pin_id)}>
                           <Icon name="CheckCircle" size={12} /> Verify
                         </button>
-                        <button className="btn-ghost text-xs" onClick={() => onDismiss?.(pin.pin_id)}>
+                        <button type="button" className="btn-ghost text-xs" onClick={() => onDismiss?.(pin.pin_id)}>
                           <Icon name="XCircle" size={12} /> Dismiss
                         </button>
                       </div>

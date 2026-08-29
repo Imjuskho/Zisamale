@@ -10,6 +10,7 @@ import type {
   ColdChainFacility,
   CommunityPin,
   CommodityForecast,
+  DataSourceMeta,
   DistrictSummary,
   HealthWeatherBriefing,
   Household,
@@ -23,6 +24,62 @@ import type {
   Village,
   WsStatus,
 } from "../types";
+
+// ── Field surveillance (CHW-first) payloads ───────────────────────
+
+export interface SurveillanceSummary {
+  visits_this_week: number;
+  fever_clusters: number;
+  danger_referrals: number;
+  weekly_trend: Array<{ week: string; fever: number }>;
+  source_meta: DataSourceMeta;
+}
+
+export interface SurveillanceHeatmapCell {
+  ta_id: string;
+  ta_name: string;
+  district_name: string;
+  visit_count: number;
+  fever_count: number;
+  danger_count: number;
+  /** Fever share of visits, 0..1; null when the TA has no visits. */
+  risk_score: number | null;
+}
+
+export interface SurveillanceHeatmap {
+  cells: SurveillanceHeatmapCell[];
+  max_visit_count: number;
+  source_meta: DataSourceMeta;
+}
+
+export interface SurveillanceOverrideRow {
+  reason_key: string;
+  count: number;
+  prev_count: number;
+  /** Percent vs previous 30d; null when no baseline exists yet. */
+  trend: number | null;
+  districts: string[];
+}
+
+export interface SurveillanceOverrides {
+  overrides: SurveillanceOverrideRow[];
+  source_meta: DataSourceMeta;
+}
+
+export interface ChwVsDhis2Row {
+  district_id: string;
+  district_name: string;
+  chw_fever: number;
+  dhis2_malaria: number | null;
+  gap: number | null;
+}
+
+export interface ChwVsDhis2Comparison {
+  rows: ChwVsDhis2Row[];
+  dhis2_connected: boolean;
+  note: string;
+  source_meta: DataSourceMeta;
+}
 
 const API_BASE: string =
   import.meta.env.VITE_API_URL ?? import.meta.env.REACT_APP_API_URL ?? "";
@@ -414,6 +471,134 @@ export const api = {
       mhfrcode: null,
       dhis2code: null,
     }));
+  },
+
+  // ── Field surveillance (CHW-first) ──────────────────────────────
+
+  async getSurveillanceSummary(): Promise<SurveillanceSummary> {
+    return request("/api/v1/surveillance/chw/summary");
+  },
+
+  async getSurveillanceHeatmap(): Promise<SurveillanceHeatmap> {
+    return request("/api/v1/surveillance/chw/heatmap");
+  },
+
+  async getSurveillanceOverrides(): Promise<SurveillanceOverrides> {
+    return request("/api/v1/surveillance/chw/overrides");
+  },
+
+  async getChwVsDhis2(): Promise<ChwVsDhis2Comparison> {
+    return request("/api/v1/surveillance/chw-vs-dhis2");
+  },
+
+  // ── SAMALA-AI: Knowledge Translation & Self-Care ────────────
+
+  async getSAMALASummary(districtId?: string): Promise<import("../types").SAMALASummary> {
+    const query = districtId ? `?district_id=${encodeURIComponent(districtId)}` : "";
+    return request(`/api/v1/samala/summary${query}`);
+  },
+
+  async getResearchStudies(params?: { health_topic?: string; district?: string; status?: string }): Promise<import("../types").ResearchStudy[]> {
+    const qs = new URLSearchParams();
+    if (params?.health_topic) qs.set("health_topic", params.health_topic);
+    if (params?.district) qs.set("district", params.district);
+    if (params?.status) qs.set("status", params.status);
+    const query = qs.toString() ? `?${qs}` : "";
+    return request<{ studies: import("../types").ResearchStudy[] }>(`/api/v1/samala/studies${query}`).then((d) => d.studies);
+  },
+
+  async getKnowledgeAssets(params?: { health_topic?: string; asset_type?: string; status?: string }): Promise<import("../types").KnowledgeAsset[]> {
+    const qs = new URLSearchParams();
+    if (params?.health_topic) qs.set("health_topic", params.health_topic);
+    if (params?.asset_type) qs.set("asset_type", params.asset_type);
+    if (params?.status) qs.set("status", params.status);
+    const query = qs.toString() ? `?${qs}` : "";
+    return request<{ assets: import("../types").KnowledgeAsset[] }>(`/api/v1/samala/assets${query}`).then((d) => d.assets);
+  },
+
+  async getSelfCareGuides(params?: { category?: string; severity?: string }): Promise<import("../types").SelfCareGuide[]> {
+    const qs = new URLSearchParams();
+    if (params?.category) qs.set("category", params.category);
+    if (params?.severity) qs.set("severity", params.severity);
+    const query = qs.toString() ? `?${qs}` : "";
+    return request<{ guides: import("../types").SelfCareGuide[] }>(`/api/v1/samala/guides${query}`).then((d) => d.guides);
+  },
+
+  async getHealthTalks(healthTopic?: string): Promise<import("../types").CommunityHealthTalk[]> {
+    const query = healthTopic ? `?health_topic=${encodeURIComponent(healthTopic)}` : "";
+    return request<{ talks: import("../types").CommunityHealthTalk[] }>(`/api/v1/samala/talks${query}`).then((d) => d.talks);
+  },
+
+  async getKnowledgeDeployments(params?: { asset_id?: string; chw_id?: string; district_id?: string }): Promise<import("../types").KnowledgeDeployment[]> {
+    const qs = new URLSearchParams();
+    if (params?.asset_id) qs.set("asset_id", params.asset_id);
+    if (params?.chw_id) qs.set("chw_id", params.chw_id);
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    const query = qs.toString() ? `?${qs}` : "";
+    return request<{ deployments: import("../types").KnowledgeDeployment[] }>(`/api/v1/samala/deployments${query}`).then((d) => d.deployments);
+  },
+
+  async reportDeploymentImpact(
+    deploymentId: string,
+    impact: { knowledge_pre_score?: number; knowledge_post_score?: number; behavior_change_score?: number; follow_up_notes?: string }
+  ): Promise<void> {
+    return request(`/api/v1/samala/deployments/${encodeURIComponent(deploymentId)}/impact`, {
+      method: "PATCH",
+      body: impact,
+    });
+  },
+
+  async getKnowledgeTopics(): Promise<import("../types").TopicSummary[]> {
+    return request<{ topics: import("../types").TopicSummary[] }>("/api/v1/samala/topics").then((d) => d.topics);
+  },
+
+  async getAssetsForHousehold(householdId: string): Promise<import("../types").ContextualAssetsResponse> {
+    return request(`/api/v1/samala/for-household/${encodeURIComponent(householdId)}`);
+  },
+
+  async getDeploymentHeatmap(): Promise<{ cells: import("../types").DeploymentHeatmapCell[]; total_deployments: number; total_households_reached: number }> {
+    return request("/api/v1/samala/deployments/heatmap");
+  },
+
+  async getImpactTrajectory(districtId?: string): Promise<{ trajectory: import("../types").ImpactTrajectoryPoint[]; avg_knowledge_change: number; total_assessments: number }> {
+    const query = districtId ? `?district_id=${encodeURIComponent(districtId)}` : "";
+    return request(`/api/v1/samala/impact/trajectory${query}`);
+  },
+
+  async getPipeline(): Promise<{ nodes: import("../types").PipelineNode[]; links: import("../types").PipelineLink[]; summary: { total_studies: number; total_assets: number; total_deployments: number } }> {
+    return request("/api/v1/samala/pipeline");
+  },
+
+  async getTalkPrintKit(talkId: string): Promise<import("../types").TalkPrintKit> {
+    return request(`/api/v1/samala/talks/${encodeURIComponent(talkId)}/print-kit`);
+  },
+
+  async getGuidePosterData(guideId: string): Promise<import("../types").GuidePosterData> {
+    return request(`/api/v1/samala/guides/${encodeURIComponent(guideId)}/poster-data`);
+  },
+
+  async getTalkFlipbookData(talkId: string): Promise<import("../types").TalkFlipbookData> {
+    return request(`/api/v1/samala/talks/${encodeURIComponent(talkId)}/flipbook-data`);
+  },
+
+  async getMonthlyBrief(): Promise<import("../types").MonthlyBrief> {
+    return request("/api/v1/samala/monthly-brief");
+  },
+
+  async scheduleSmsTips(healthTopic?: string): Promise<{ scheduled: number; tips: Array<{ asset_id: string; topic: string; message_en: string; message_ny: string }> }> {
+    const query = healthTopic ? `?health_topic=${encodeURIComponent(healthTopic)}` : "";
+    return request(`/api/v1/samala/sms/schedule${query}`, { method: "POST" });
+  },
+
+  async emailMonthlyBrief(recipients: string[]): Promise<{ period: string; sent: number; failed: number; note: string }> {
+    return request("/api/v1/samala/monthly-brief/email", {
+      method: "POST",
+      body: { recipients },
+    });
+  },
+
+  async cronDispatchMonthlyBrief(): Promise<{ period: string; recipients: number; sent: number; failed: number; note: string }> {
+    return request("/api/v1/samala/monthly-brief/cron-dispatch", { method: "POST" });
   },
 };
 

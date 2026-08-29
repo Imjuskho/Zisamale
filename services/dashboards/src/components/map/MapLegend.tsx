@@ -24,7 +24,7 @@ const LEGEND_SECTIONS = [
     label: "Facility Type",
     items: [
       { label: "District Hospital", color: "#1e40af", shape: "pin" as const },
-      { label: "Community Hospital", color: "#0f7b8a", shape: "pin" as const },
+      { label: "Community Hospital", color: "#0066cc", shape: "pin" as const },
       { label: "Health Centre", color: "#2d7d46", shape: "pin" as const },
       { label: "Private", color: "#7c3aed", shape: "pin" as const },
     ],
@@ -34,17 +34,17 @@ const LEGEND_SECTIONS = [
     label: "Facility Status",
     items: [
       { label: "Operational", color: "#22c55e", shape: "ring" as const },
-      { label: "Partial", color: "#f59e0b", shape: "ring" as const },
-      { label: "Closed", color: "#ef4444", shape: "ring" as const },
+      { label: "Partial", color: "#ff9500", shape: "ring" as const },
+      { label: "Closed", color: "#ff3b30", shape: "ring" as const },
     ],
   },
   {
     id: "chw",
     label: "CHW Presence",
     items: [
-      { label: "Active", color: "#0f7b8a" },
-      { label: "Stale (>48h)", color: "#e65100" },
-      { label: "Emergency", color: "#c62828" },
+      { label: "Active", color: "#0066cc" },
+      { label: "Stale (>48h)", color: "#ff9500" },
+      { label: "Emergency", color: "#ff3b30" },
     ],
   },
   {
@@ -52,7 +52,7 @@ const LEGEND_SECTIONS = [
     label: "Other Layers",
     items: [
       { label: "Supply Truck", color: "#2d7d46", shape: "hex" as const },
-      { label: "Nutrition Hotspot", color: "#e65100" },
+      { label: "Nutrition Hotspot", color: "#ff9500" },
       { label: "Maternity Home", color: "#7c3aed", shape: "pin" as const },
       { label: "Community Report", color: "#2d7d46" },
     ],

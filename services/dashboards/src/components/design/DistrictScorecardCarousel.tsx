@@ -65,6 +65,10 @@ function MetricBox({
   );
 }
 
+function fmtMetric(value: number | null): string {
+  return value == null ? "—" : String(value);
+}
+
 function ScorecardCard({
   district,
   isSelected,
@@ -77,7 +81,7 @@ function ScorecardCard({
   trend?: DistrictTrend;
 }) {
   const alerts = district.active_alerts;
-  const stockouts = district.stockout_count;
+  const stockouts = district.stockout_count ?? 0;
 
   return (
     <article
@@ -94,43 +98,60 @@ function ScorecardCard({
       }}
     >
       <div className="scorecard-header">
-        <h3 className="scorecard-name">{district.district_name}</h3>
-        <RiskBadge score={RISK_SCORE[district.malaria_risk_level] ?? 5} size="sm" />
+        <div>
+          <h3 className="scorecard-name">{district.district_name}</h3>
+          {district.region && <span className="scorecard-region">{district.region} region</span>}
+        </div>
+        {district.malaria_risk_level ? (
+          <RiskBadge score={RISK_SCORE[district.malaria_risk_level] ?? 5} size="sm" />
+        ) : (
+          <span className="scorecard-norisk">{t("noRiskData")}</span>
+        )}
       </div>
 
       <div className="carousel-metrics-grid">
         <MetricBox
           label="MMR"
-          value={String(district.maternal_mortality_ratio)}
-          trend={trend?.mmr}
+          value={fmtMetric(district.maternal_mortality_ratio)}
+          trend={district.maternal_mortality_ratio == null ? undefined : trend?.mmr}
           positiveIsGood={false}
         />
         <MetricBox
           label="U5MR"
-          value={String(district.under5_mortality_rate)}
-          trend={trend?.u5mr}
+          value={fmtMetric(district.under5_mortality_rate)}
+          trend={district.under5_mortality_rate == null ? undefined : trend?.u5mr}
           positiveIsGood={false}
         />
         <MetricBox
           label="Coverage"
-          value={`${Math.round(district.essential_service_coverage * 100)}%`}
-          trend={trend?.coverage}
+          value={
+            district.essential_service_coverage == null
+              ? "—"
+              : `${Math.round(district.essential_service_coverage * 100)}%`
+          }
+          trend={district.essential_service_coverage == null ? undefined : trend?.coverage}
           positiveIsGood
         />
       </div>
 
       <div className="scorecard-footer">
+        {district.facility_count != null && (
+          <span className="scorecard-facils">
+            <Icon name="MapPin" size={14} color="#40916C" />
+            {district.facility_count} {t("facilitiesWord")}
+          </span>
+        )}
         <span className={`scorecard-alerts ${alerts > 0 ? "has-alerts" : ""}`}>
-          <Icon name="Bell" size={14} color={alerts > 0 ? "#c62828" : "#999"} />
+          <Icon name="Bell" size={14} color={alerts > 0 ? "#ff3b30" : "#8e8e93"} />
           {alerts} {t("alertsWord")}
         </span>
         <span className={`scorecard-stock ${stockouts > 0 ? "has-stockouts" : ""}`}>
-          <Icon name="Package" size={14} color={stockouts > 0 ? "#e65100" : "#999"} />
+          <Icon name="Package" size={14} color={stockouts > 0 ? "#ff9500" : "#8e8e93"} />
           {stockouts} {t("stockoutsWord")}
         </span>
         {alerts === 0 && stockouts === 0 && (
           <span className="scorecard-clear">
-            <Icon name="CheckCircle" size={14} color="#2d7d46" />
+            <Icon name="CheckCircle" size={14} color="#2D6A4F" />
             {t("allClear")}
           </span>
         )}

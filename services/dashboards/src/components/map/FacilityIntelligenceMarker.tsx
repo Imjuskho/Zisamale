@@ -25,10 +25,10 @@ function topStatusLabel(facility: Facility): string {
 
 function topStatusColor(facility: Facility): string {
   const label = topStatusLabel(facility);
-  if (label === "CRITICAL") return "#C62828";
-  if (label === "LOW" || label === "PARTIAL") return "#E65100";
+  if (label === "CRITICAL") return "#ff3b30";
+  if (label === "LOW" || label === "PARTIAL") return "#ff9500";
   if (label === "DOWN") return "#999";
-  return "#2D7D46";
+  return "#2D6A4F";
 }
 
 export function createFacilityIcon(facility: Facility): L.DivIcon {
@@ -69,7 +69,7 @@ export function createFacilityIcon(facility: Facility): L.DivIcon {
         <div style="display:flex;align-items:center;gap:4px;font-size:9px;">
           ${bedText ? `<span style="color:${statusColor};font-weight:600;">${bedText} beds</span>` : ""}
           <span style="color:${statusColor};font-weight:500;">${statusLabel}</span>
-          ${facility.chw_verified ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="#2D7D46" stroke="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>` : ""}
+          ${facility.chw_verified ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="#2D6A4F" stroke="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>` : ""}
         </div>
       </div>
     </div>
@@ -105,8 +105,8 @@ export function createSimpleFacilityIcon(
         <circle cx="12" cy="12" r="10" fill="${config.color}" stroke="#fff" stroke-width="${config.strokeWidth}"/>
         <text x="12" y="16" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="Inter,sans-serif">${config.label}</text>
       </svg>
-      ${bedAlert ? `<div style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#C62828;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,0.3);"></div>` : ""}
-      ${facility.chw_verified ? `<div style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#2D7D46;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg></div>` : ""}
+      ${bedAlert ? `<div style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#ff3b30;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,0.3);"></div>` : ""}
+      ${facility.chw_verified ? `<div style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#2D6A4F;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg></div>` : ""}
     </div>
   `;
 

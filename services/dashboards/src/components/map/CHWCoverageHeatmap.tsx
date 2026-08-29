@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import type { CHWPerformance } from "../../types";
 import { Icon } from "../design/Icon";
+import { RISK_HEX } from "../../design/riskScale";
+import { isOlderThan } from "../../utils/recency";
 
 interface CHWCoverageHeatmapProps {
   chws: CHWPerformance[];
@@ -12,10 +14,7 @@ export function CHWCoverageHeatmap({ chws }: CHWCoverageHeatmapProps) {
   const stats = useMemo(() => {
     const total = chws.length;
     const onTrack = chws.filter((c) => c.visits_this_week >= c.expected_visits_weekly * 0.8).length;
-    const overdue = chws.filter((c) => {
-      const age = (Date.now() - new Date(c.last_sync_at).getTime()) / 3600000;
-      return age > 48;
-    }).length;
+    const overdue = chws.filter((c) => isOlderThan(c.last_sync_at, 48)).length;
     const coveragePct = total > 0 ? Math.round((onTrack / total) * 100) : 0;
     return { total, onTrack, overdue, coveragePct };
   }, [chws]);
@@ -24,25 +23,25 @@ export function CHWCoverageHeatmap({ chws }: CHWCoverageHeatmapProps) {
 
   return (
     <div className="chw-coverage-heatmap">
-      <button className="chw-coverage-toggle" onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="chw-coverage-toggle" aria-expanded={expanded} aria-controls="chw-coverage-panel" onClick={() => setExpanded(!expanded)}>
         <Icon name="ChartBar" size={16} />
         <span>Coverage Heatmap ({stats.coveragePct}% on track)</span>
         <Icon name={expanded ? "Minus" : "Plus"} size={14} />
       </button>
 
       {expanded && (
-        <div className="chw-coverage-panel">
+        <div id="chw-coverage-panel" className="chw-coverage-panel">
           <div className="chw-coverage-summary">
             <div className="chw-coverage-stat">
-              <span className="chw-coverage-num" style={{ color: "#2d7d46" }}>{stats.onTrack}</span>
+              <span className="chw-coverage-num" style={{ color: RISK_HEX.low }}>{stats.onTrack}</span>
               <span className="chw-coverage-label">On track</span>
             </div>
             <div className="chw-coverage-stat">
-              <span className="chw-coverage-num" style={{ color: "#e65100" }}>{stats.total - stats.onTrack - stats.overdue}</span>
+              <span className="chw-coverage-num" style={{ color: RISK_HEX.high }}>{stats.total - stats.onTrack - stats.overdue}</span>
               <span className="chw-coverage-label">Behind</span>
             </div>
             <div className="chw-coverage-stat">
-              <span className="chw-coverage-num" style={{ color: "#c62828" }}>{stats.overdue}</span>
+              <span className="chw-coverage-num" style={{ color: RISK_HEX.critical }}>{stats.overdue}</span>
               <span className="chw-coverage-label">Stale (&gt;48h)</span>
             </div>
           </div>
@@ -52,9 +51,8 @@ export function CHWCoverageHeatmap({ chws }: CHWCoverageHeatmapProps) {
               const completion = chw.expected_visits_weekly > 0
                 ? chw.visits_this_week / chw.expected_visits_weekly
                 : 1;
-              const color = completion >= 0.8 ? "#2d7d46" : completion >= 0.5 ? "#f9a825" : "#c62828";
-              const age = (Date.now() - new Date(chw.last_sync_at).getTime()) / 3600000;
-              const isStale = age > 48;
+              const color = completion >= 0.8 ? RISK_HEX.low : completion >= 0.5 ? RISK_HEX.medium : RISK_HEX.critical;
+              const isStale = isOlderThan(chw.last_sync_at, 48);
 
               return (
                 <div

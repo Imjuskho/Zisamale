@@ -7,6 +7,7 @@ import { EmptyState } from "../components/design/EmptyState";
 import { RiskBadge } from "../components/design/RiskBadge";
 import { SkeletonDashboard } from "../components/design/Skeleton";
 import type { Household } from "../types";
+import { daysSince, hoursSince } from "../utils/recency";
 
 function householdRiskScore(hh: Household): number {
   let score = 0;
@@ -15,16 +16,17 @@ function householdRiskScore(hh: Household): number {
   if (hh.members > 6) score += 1;
   if (!hh.last_visit_at) score += 3;
   else {
-    const daysSince = (Date.now() - new Date(hh.last_visit_at).getTime()) / 86_400_000;
-    if (daysSince > 14) score += 2;
-    else if (daysSince > 7) score += 1;
+    const sinceVisit = daysSince(hh.last_visit_at) ?? Number.POSITIVE_INFINITY;
+    if (sinceVisit > 14) score += 2;
+    else if (sinceVisit > 7) score += 1;
   }
   return score;
 }
 
 function formatDaysAgo(iso: string | null): string {
   if (!iso) return "Never visited";
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  const days = daysSince(iso);
+  if (days === null || days === undefined || Number.isNaN(days)) return "Unknown";
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
   return `${days} days ago`;
@@ -61,9 +63,7 @@ export function CHWDashboard() {
     ? Math.round((myPerf.visits_this_week / Math.max(myPerf.expected_visits_weekly, 1)) * 100)
     : 0;
 
-  const syncAgeH = myPerf
-    ? (Date.now() - new Date(myPerf.last_sync_at).getTime()) / 3_600_000
-    : Infinity;
+  const syncAgeH = myPerf ? (hoursSince(myPerf.last_sync_at) ?? Infinity) : Infinity;
   const syncStatus = syncAgeH > 48 ? "error" : syncAgeH > 24 ? "offline" : "synced";
 
   return (
@@ -88,7 +88,7 @@ export function CHWDashboard() {
           label="Visits This Week"
           value={myPerf ? `${myPerf.visits_this_week}/${myPerf.expected_visits_weekly}` : "—"}
           icon="ListChecks"
-          iconColor="#17646C"
+          iconColor="#40916C"
           trend={
             completionRate >= 80
               ? { direction: "up", value: `${completionRate}%`, isPositive: true }
@@ -101,11 +101,11 @@ export function CHWDashboard() {
           label="High-Risk Households"
           value={highRisk}
           icon="Warning"
-          iconColor="#C62828"
+          iconColor="#ff3b30"
           trend={highRisk > 0 ? { direction: "up", value: `${highRisk} need attention`, isPositive: false } : undefined}
         />
-        <KPICard label="Children Under 5" value={underFive} icon="Baby" iconColor="#17646C" />
-        <KPICard label="Total Households" value={households.length} icon="House" iconColor="#2D7D46" />
+        <KPICard label="Children Under 5" value={underFive} icon="Baby" iconColor="#40916C" />
+        <KPICard label="Total Households" value={households.length} icon="House" iconColor="#2D6A4F" />
       </div>
 
       <section className="chw-household-list">
@@ -115,7 +115,7 @@ export function CHWDashboard() {
             title="No households assigned"
             subtitle="Your supervisor will assign households to your catchment area."
             icon="House"
-            iconColor="#17646C"
+            iconColor="#40916C"
           />
         ) : (
           <div className="household-cards">

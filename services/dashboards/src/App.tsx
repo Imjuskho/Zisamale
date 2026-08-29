@@ -2,14 +2,33 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { useAppSelector } from "./hooks/useRedux";
 import { Sidebar } from "./components/Sidebar";
+import { Icon, type IconName } from "./components/design/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SkeletonDashboard } from "./components/design/Skeleton";
+import { OfflineBanner } from "./components/OfflineBanner";
+import type { UserRole } from "./types";
 
 const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 const DHODashboard = lazy(() => import("./pages/DHODashboard").then((m) => ({ default: m.DHODashboard })));
 const MoHPDashboard = lazy(() => import("./pages/MoHPDashboard").then((m) => ({ default: m.MoHPDashboard })));
 const CHWDashboard = lazy(() => import("./pages/CHWDashboard").then((m) => ({ default: m.CHWDashboard })));
 const CHUMADashboard = lazy(() => import("./pages/CHUMADashboard").then((m) => ({ default: m.CHUMADashboard })));
+const CHWSurveillanceDashboard = lazy(() => import("./pages/CHWSurveillanceDashboard"));
+const DataGapReportPage = lazy(() => import("./pages/DataGapReportPage"));
+const SAMALADashboard = lazy(() => import("./pages/SAMALADashboard").then((m) => ({ default: m.SAMALADashboard })));
+const ResearchSearchPage = lazy(() => import("./pages/ResearchSearchPage").then((m) => ({ default: m.ResearchSearchPage })));
+const SelfCareLibraryPage = lazy(() => import("./pages/SelfCareLibraryPage").then((m) => ({ default: m.SelfCareLibraryPage })));
+const ReportHub = lazy(() => import("./pages/ReportHub"));
+const DistrictHealthReport = lazy(() => import("./pages/DistrictHealthReport"));
+const SAMALAReport = lazy(() => import("./pages/SAMALAReport"));
+const KnowledgeTopicBrowser = lazy(() => import("./pages/KnowledgeTopicBrowser").then((m) => ({ default: m.KnowledgeTopicBrowser })));
+const AssetPreviewPage = lazy(() => import("./pages/AssetPreviewPage").then((m) => ({ default: m.AssetPreviewPage })));
+const DeploymentHeatmap = lazy(() => import("./pages/DeploymentHeatmap").then((m) => ({ default: m.DeploymentHeatmap })));
+const ImpactTrajectory = lazy(() => import("./pages/ImpactTrajectory").then((m) => ({ default: m.ImpactTrajectory })));
+const PipelineView = lazy(() => import("./pages/PipelineView").then((m) => ({ default: m.PipelineView })));
+const PDFExportPage = lazy(() => import("./pages/PDFExportPage").then((m) => ({ default: m.PDFExportPage })));
+const PocketCardPage = lazy(() => import("./pages/PocketCardPage").then((m) => ({ default: m.PocketCardPage })));
+const FlipbookPage = lazy(() => import("./pages/FlipbookPage").then((m) => ({ default: m.FlipbookPage })));
 
 function PageLoader() {
   return (
@@ -19,8 +38,36 @@ function PageLoader() {
   );
 }
 
+const MOBILE_NAV_ITEMS: Record<UserRole, Array<{ to: string; label: string; icon: IconName }>> = {
+  dho: [
+    { to: "/dho", label: "Overview", icon: "House" },
+    { to: "/surveillance/chw", label: "Surveillance", icon: "Heartbeat" },
+    { to: "/reports", label: "Reports", icon: "FileText" },
+  ],
+  mohp: [
+    { to: "/mohp", label: "Overview", icon: "ChartBar" },
+    { to: "/chuma", label: "Forecast", icon: "Calculator" },
+    { to: "/reports", label: "Reports", icon: "FileText" },
+  ],
+  phim: [
+    { to: "/mohp", label: "Overview", icon: "ChartBar" },
+    { to: "/chuma", label: "Forecast", icon: "Calculator" },
+    { to: "/reports", label: "Reports", icon: "FileText" },
+  ],
+  chw: [
+    { to: "/chw", label: "My work", icon: "House" },
+    { to: "/samala/guides", label: "Guides", icon: "FirstAid" },
+    { to: "/samala/pocket-cards", label: "Cards", icon: "SquaresFour" },
+  ],
+  supervisor: [
+    { to: "/dho", label: "Overview", icon: "House" },
+    { to: "/surveillance/chw", label: "Surveillance", icon: "Heartbeat" },
+    { to: "/samala/guides", label: "Guides", icon: "FirstAid" },
+  ],
+};
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, role } = useAppSelector((s) => s.auth);
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
@@ -28,6 +75,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
+      <OfflineBanner />
       <Sidebar />
       <main id="main-content" className="main-content">
         <Suspense fallback={<PageLoader />}>
@@ -35,22 +83,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         </Suspense>
       </main>
       <nav className="mobile-nav" aria-label="Main navigation">
-        <NavLink to="/dho" className={({ isActive }) => isActive ? "active" : ""}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Home</span>
-        </NavLink>
-        <NavLink to="/dho" className={({ isActive }) => isActive ? "active" : ""}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-          <span>Map</span>
-        </NavLink>
-        <NavLink to="/chw" className={({ isActive }) => isActive ? "active" : ""}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>CHWs</span>
-        </NavLink>
-        <NavLink to="/dho" className={({ isActive }) => isActive ? "active" : ""}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>Settings</span>
-        </NavLink>
+        {(role ? MOBILE_NAV_ITEMS[role] : []).map((item) => (
+          <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? "active" : ""}>
+            <Icon name={item.icon} size={22} />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
     </div>
   );
@@ -92,6 +130,134 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <CHUMADashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/surveillance/chw"
+              element={
+                <ProtectedRoute>
+                  <CHWSurveillanceDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/data-gap"
+              element={
+                <ProtectedRoute>
+                  <DataGapReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportHub />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/district-health"
+              element={
+                <ProtectedRoute>
+                  <DistrictHealthReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/samala-impact"
+              element={
+                <ProtectedRoute>
+                  <SAMALAReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala"
+              element={
+                <ProtectedRoute>
+                  <SAMALADashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/search"
+              element={
+                <ProtectedRoute>
+                  <ResearchSearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/guides"
+              element={
+                <ProtectedRoute>
+                  <SelfCareLibraryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/topics"
+              element={
+                <ProtectedRoute>
+                  <KnowledgeTopicBrowser />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/assets"
+              element={
+                <ProtectedRoute>
+                  <AssetPreviewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/heatmap"
+              element={
+                <ProtectedRoute>
+                  <DeploymentHeatmap />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/impact"
+              element={
+                <ProtectedRoute>
+                  <ImpactTrajectory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/pipeline"
+              element={
+                <ProtectedRoute>
+                  <PipelineView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/export"
+              element={
+                <ProtectedRoute>
+                  <PDFExportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/pocket-cards"
+              element={
+                <ProtectedRoute>
+                  <PocketCardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/samala/flipbook"
+              element={
+                <ProtectedRoute>
+                  <FlipbookPage />
                 </ProtectedRoute>
               }
             />

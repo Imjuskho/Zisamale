@@ -247,8 +247,8 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
             padding: "8px 12px",
             marginBottom: 12,
             borderRadius: 8,
-            background: "var(--color-bg-muted, #f1f5f9)",
-            border: "1px solid var(--color-border, #cbd5e1)",
+            background: "var(--color-bg-muted, #E4E1DA)",
+            border: "1px solid var(--color-border, #C9C4BA)",
           }}
         >
           <span style={{ flex: 1 }}>
@@ -373,8 +373,8 @@ export function AlertCommandCenter({ alerts, onAction, now }: AlertCommandCenter
                 type="monotone"
                 dataKey="cases"
                 name="Predicted cases"
-                stroke="#C62828"
-                fill="#FFEBEE"
+                stroke="#ff3b30"
+                fill="#F5E3DD"
                 strokeWidth={2}
               />
             </AreaChart>

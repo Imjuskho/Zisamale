@@ -11,6 +11,13 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { CaseTrend } from "../../types";
+import {
+  CHART_COLORS,
+  CHART_MARGINS,
+  commonAxisProps,
+  commonCartesianGridProps,
+  commonTooltipProps,
+} from "../../lib/chart-theme";
 
 interface Props {
   actual: CaseTrend[];
@@ -45,13 +52,13 @@ export default function TrendChartInner({
     <div className="chart-container card">
       <h3 className="chart-title">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={merged} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E3D9C6" />
+        <AreaChart data={merged} margin={CHART_MARGINS}>
+          <CartesianGrid {...commonCartesianGridProps} />
           <Area
             type="monotone"
             dataKey="ci_upper"
             stroke="none"
-            fill="#17646C"
+            fill={CHART_COLORS.predicted}
             fillOpacity={0.2}
             name="95% CI Upper"
             isAnimationActive={false}
@@ -60,7 +67,7 @@ export default function TrendChartInner({
             type="monotone"
             dataKey="ci_lower"
             stroke="none"
-            fill="#FFFDF8"
+            fill="#FFFFFF"
             fillOpacity={1}
             name="95% CI Lower"
             isAnimationActive={false}
@@ -68,7 +75,7 @@ export default function TrendChartInner({
           <Line
             type="monotone"
             dataKey="predicted"
-            stroke="#17646C"
+            stroke={CHART_COLORS.predicted}
             strokeWidth={2}
             strokeDasharray="8 4"
             dot={false}
@@ -78,38 +85,34 @@ export default function TrendChartInner({
           <Line
             type="monotone"
             dataKey="actual"
-            stroke="#29241C"
+            stroke={CHART_COLORS.actual}
             strokeWidth={2.5}
-            dot={{ r: 3, fill: "#29241C" }}
+            dot={{ r: 3, fill: CHART_COLORS.actual }}
             name="Actual"
             connectNulls
           />
           {showThreshold && lastActualWeek && (
             <ReferenceLine
               x={lastActualWeek}
-              stroke="#C62828"
+              stroke={CHART_COLORS.danger}
               strokeDasharray="4 4"
               strokeWidth={1.5}
-              label={{ value: "Now", position: "top", fontSize: 11, fill: "#C62828" }}
+              label={{
+                value: "Now",
+                position: "top",
+                fontSize: 11,
+                fill: CHART_COLORS.danger,
+              }}
             />
           )}
           <XAxis
             dataKey="week"
-            tick={{ fontSize: 11, fill: "#776D5C" }}
+            {...commonAxisProps}
             interval={Math.max(0, Math.floor(merged.length / 8))}
           />
-          <YAxis
-            tick={{ fontSize: 11, fill: "#776D5C" }}
-            domain={[0, "auto"]}
-            allowDataOverflow={false}
-          />
+          <YAxis {...commonAxisProps} domain={[0, "auto"]} allowDataOverflow={false} />
           <Tooltip
-            contentStyle={{
-              borderRadius: 8,
-              border: "1px solid #E3D9C6",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              fontSize: 13,
-            }}
+            {...commonTooltipProps}
             formatter={(value: number, name: string) => [
               value.toLocaleString(),
               name,

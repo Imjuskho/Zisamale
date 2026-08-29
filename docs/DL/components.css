@@ -1,0 +1,899 @@
+/* ═══════════════════════════════════════════════════════════════
+   ZISAMALE — COMPONENT STYLES
+   All classes use Tailwind utility composition + custom where needed.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   1. LAYOUT SHELL
+   ═══════════════════════════════════════════════════════════════ */
+
+.app-shell {
+  @apply flex h-screen bg-canvas overflow-hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  @apply w-60 flex-shrink-0 bg-surface border-r border-border flex flex-col;
+}
+
+.sidebar-header {
+  @apply h-14 flex items-center px-5 border-b border-border;
+}
+
+.sidebar-nav {
+  @apply flex-1 overflow-y-auto py-3 px-3 space-y-0.5;
+}
+
+.sidebar-nav-item {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-body text-text-secondary
+         transition-all duration-150 cursor-pointer select-none;
+}
+
+.sidebar-nav-item:hover {
+  @apply bg-canvas text-text-primary;
+}
+
+.sidebar-nav-item.active {
+  @apply bg-canvas text-text-primary font-medium relative;
+}
+
+.sidebar-nav-item.active::before {
+  content: '';
+  @apply absolute left-0 top-2 bottom-2 w-0.5 bg-brand-primary rounded-r-full;
+}
+
+.sidebar-footer {
+  @apply p-4 border-t border-border space-y-3;
+}
+
+/* Collapsed sidebar (icon-only) */
+.sidebar-collapsed {
+  @apply w-16;
+}
+
+.sidebar-collapsed .sidebar-nav-item {
+  @apply justify-center px-0;
+}
+
+.sidebar-collapsed .sidebar-nav-item span {
+  @apply sr-only;
+}
+
+/* ── Top Header ── */
+.top-header {
+  @apply h-14 bg-surface border-b border-border flex items-center justify-between
+         px-6 flex-shrink-0;
+}
+
+.top-header-search {
+  @apply flex items-center gap-2 bg-canvas border border-border rounded-input
+         px-3 py-2 text-body text-text-secondary w-80 transition-all duration-150;
+}
+
+.top-header-search:focus-within {
+  @apply border-brand-primary shadow-focus;
+}
+
+.top-header-search input {
+  @apply bg-transparent border-none outline-none text-body text-text-primary
+         placeholder:text-text-tertiary w-full;
+}
+
+/* ── Main Content Area ── */
+.main-content {
+  @apply flex-1 flex flex-col overflow-hidden;
+}
+
+.page-container {
+  @apply flex-1 overflow-y-auto p-6 lg:p-8;
+}
+
+.page-header {
+  @apply mb-8;
+}
+
+.page-title {
+  @apply text-h1 text-text-primary mb-1;
+}
+
+.page-subtitle {
+  @apply text-body text-text-secondary;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2. CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.card {
+  @apply bg-surface border border-border rounded-card shadow-card
+         transition-shadow duration-150;
+}
+
+.card-hover:hover {
+  @apply shadow-card-hover;
+}
+
+.card-padded {
+  @apply p-6;
+}
+
+.card-padded-lg {
+  @apply p-8;
+}
+
+/* Card severity accents */
+.card-accent-info {
+  @apply border-l-4 border-l-brand-secondary bg-info-soft;
+}
+
+.card-accent-success {
+  @apply border-l-4 border-l-success bg-success-soft;
+}
+
+.card-accent-warning {
+  @apply border-l-4 border-l-warning bg-warning-soft;
+}
+
+.card-accent-danger {
+  @apply border-l-4 border-l-danger bg-danger-soft;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. KPI CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.kpi-card {
+  @apply card card-paded;
+}
+
+.kpi-value {
+  @apply text-data text-text-primary tabular-nums mb-1;
+}
+
+.kpi-label {
+  @apply text-label uppercase text-text-secondary tracking-wide mb-3;
+}
+
+.kpi-context {
+  @apply text-caption text-text-tertiary;
+}
+
+.kpi-trend {
+  @apply inline-flex items-center gap-1 text-caption font-medium;
+}
+
+.kpi-trend-up {
+  @apply text-success;
+}
+
+.kpi-trend-down {
+  @apply text-danger;
+}
+
+.kpi-trend-neutral {
+  @apply text-text-secondary;
+}
+
+/* Zero vs Missing state */
+.kpi-value-zero {
+  @apply text-success;
+}
+
+.kpi-value-missing {
+  @apply text-text-tertiary;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. ALERT CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.alert-card {
+  @apply card rounded-lg overflow-hidden;
+}
+
+.alert-card-critical {
+  @apply border-l-4 border-l-danger;
+}
+
+.alert-card-high {
+  @apply border-l-4 border-l-warning;
+}
+
+.alert-card-medium {
+  @apply border-l-4 border-l-warning; /* amber */
+}
+
+.alert-card-low {
+  @apply border-l-4 border-l-success;
+}
+
+.alert-card-info {
+  @apply border-l-4 border-l-brand-secondary bg-info-soft;
+}
+
+.alert-header {
+  @apply flex items-start justify-between p-5 pb-3;
+}
+
+.alert-title {
+  @apply flex items-center gap-2 text-h2 text-text-primary font-semibold;
+}
+
+.alert-meta {
+  @apply text-caption text-text-secondary mt-1;
+}
+
+.alert-body {
+  @apply px-5 py-3;
+}
+
+.alert-metrics {
+  @apply grid grid-cols-2 gap-4 mb-4;
+}
+
+.alert-metric {
+  @apply flex flex-col;
+}
+
+.alert-metric-label {
+  @apply text-caption text-text-secondary mb-0.5;
+}
+
+.alert-metric-value {
+  @apply text-body font-semibold text-text-primary tabular-nums;
+}
+
+.alert-actions {
+  @apply flex items-center gap-3 px-5 pb-5 pt-2;
+}
+
+/* Hero alert (AI Recommendation) */
+.alert-hero {
+  @apply card-accent-info p-6;
+}
+
+.alert-hero-title {
+  @apply flex items-center gap-2 text-h2 text-text-primary font-semibold mb-2;
+}
+
+.alert-hero-body {
+  @apply text-body text-text-secondary mb-4 leading-relaxed;
+}
+
+.alert-hero-actions {
+  @apply flex items-center gap-3;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. RISK BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
+.risk-badge {
+  @apply inline-flex items-center justify-center rounded-full font-bold
+         tabular-nums select-none;
+}
+
+.risk-badge-sm {
+  @apply w-8 h-8 text-caption;
+}
+
+.risk-badge-md {
+  @apply w-12 h-12 text-body-lg;
+}
+
+.risk-badge-lg {
+  @apply w-16 h-16 text-h1;
+}
+
+.risk-badge-critical {
+  @apply bg-danger text-white;
+}
+
+.risk-badge-high {
+  @apply bg-warning text-white;
+}
+
+.risk-badge-medium {
+  @apply bg-warning text-text-primary; /* amber bg, dark text */
+}
+
+.risk-badge-low {
+  @apply bg-success text-white;
+}
+
+/* Text-only risk label */
+.risk-label {
+  @apply inline-flex items-center gap-1.5 text-caption font-semibold;
+}
+
+.risk-label-critical {
+  @apply text-danger;
+}
+
+.risk-label-high {
+  @apply text-warning;
+}
+
+.risk-label-medium {
+  @apply text-warning;
+}
+
+.risk-label-low {
+  @apply text-success;
+}
+
+.risk-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 font-medium
+         transition-all duration-150 select-none cursor-pointer
+         focus-visible:shadow-focus disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn:active {
+  @apply scale-[0.98];
+}
+
+/* Sizes */
+.btn-sm {
+  @apply px-3 py-1.5 text-caption rounded-lg;
+}
+
+.btn-md {
+  @apply px-4 py-2.5 text-body rounded-button;
+}
+
+.btn-lg {
+  @apply px-6 py-3.5 text-body rounded-button;
+}
+
+/* Variants */
+.btn-primary {
+  @apply bg-brand-primary text-white hover:bg-brand-primary-hover
+         active:bg-brand-primary-active;
+}
+
+.btn-secondary {
+  @apply bg-transparent border-2 border-brand-secondary text-brand-secondary
+         hover:bg-info-soft;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-text-secondary hover:bg-canvas hover:text-text-primary;
+}
+
+.btn-danger {
+  @apply bg-danger text-white hover:bg-red-600 active:bg-red-700;
+}
+
+.btn-success {
+  @apply bg-success text-white hover:bg-emerald-600 active:bg-emerald-700;
+}
+
+/* Icon-only button */
+.btn-icon {
+  @apply w-10 h-10 p-0 rounded-lg;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7. FORM ELEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.input {
+  @apply w-full bg-surface border border-border rounded-input px-3 py-2.5
+         text-body text-text-primary placeholder:text-text-tertiary
+         transition-all duration-150;
+}
+
+.input:focus {
+  @apply border-brand-primary shadow-focus;
+}
+
+.input-error {
+  @apply border-danger;
+}
+
+.input-error:focus {
+  @apply border-danger shadow-[0_0_0_3px_rgba(239,68,68,0.20)];
+}
+
+.select {
+  @apply input appearance-none pr-10;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* Range slider */
+.range-slider {
+  @apply w-full h-2 bg-canvas rounded-full appearance-none cursor-pointer;
+}
+
+.range-slider::-webkit-slider-thumb {
+  @apply appearance-none w-5 h-5 bg-white border-2 border-brand-primary
+         rounded-full shadow-md cursor-pointer transition-transform duration-150;
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+  @apply scale-110;
+}
+
+.range-slider::-moz-range-thumb {
+  @apply w-5 h-5 bg-white border-2 border-brand-primary rounded-full shadow-md cursor-pointer;
+}
+
+.range-track {
+  @apply h-2 bg-brand-primary rounded-full absolute pointer-events-none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   8. TABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+.data-table-wrapper {
+  @apply border border-border rounded-card overflow-hidden;
+}
+
+.data-table {
+  @apply w-full text-left border-collapse;
+}
+
+.data-table thead {
+  @apply bg-canvas border-b border-border;
+}
+
+.data-table th {
+  @apply px-4 py-3 text-label uppercase text-text-secondary tracking-wide
+         font-semibold text-left;
+}
+
+.data-table th.sortable {
+  @apply cursor-pointer hover:text-text-primary select-none;
+}
+
+.data-table th.sortable::after {
+  content: '↕';
+  @apply ml-1 text-text-tertiary;
+}
+
+.data-table tbody tr {
+  @apply border-b border-border transition-colors duration-100;
+}
+
+.data-table tbody tr:last-child {
+  @apply border-b-0;
+}
+
+.data-table tbody tr:hover {
+  @apply bg-canvas;
+}
+
+.data-table tbody tr.clickable {
+  @apply cursor-pointer;
+}
+
+.data-table tbody tr.clickable:hover {
+  @apply bg-canvas;
+}
+
+.data-table td {
+  @apply px-4 py-3.5 text-body text-text-primary;
+}
+
+.data-table td.numeric {
+  @apply text-right tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   9. STATUS BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
+.badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-badge
+         text-caption font-medium;
+}
+
+.badge-success {
+  @apply bg-success-soft text-success;
+}
+
+.badge-warning {
+  @apply bg-warning-soft text-warning;
+}
+
+.badge-danger {
+  @apply bg-danger-soft text-danger;
+}
+
+.badge-info {
+  @apply bg-info-soft text-brand-secondary;
+}
+
+.badge-neutral {
+  @apply bg-canvas text-text-secondary;
+}
+
+/* Status dot + text inline */
+.status-inline {
+  @apply inline-flex items-center gap-1.5 text-caption;
+}
+
+.status-inline-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   10. EMPTY STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+.empty-state {
+  @apply flex flex-col items-center justify-center text-center p-12;
+}
+
+.empty-state-icon {
+  @apply w-16 h-16 mb-4 text-text-tertiary;
+}
+
+.empty-state-title {
+  @apply text-h2 text-text-primary mb-1;
+}
+
+.empty-state-subtitle {
+  @apply text-body text-text-secondary mb-2;
+}
+
+.empty-state-message {
+  @apply text-caption text-text-tertiary max-w-xs;
+}
+
+.empty-state-action {
+  @apply mt-6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   11. OFFLINE BANNER
+   ═══════════════════════════════════════════════════════════════ */
+
+.offline-banner {
+  @apply bg-brand-primary text-white px-4 py-2.5 flex items-center
+         justify-between text-body;
+}
+
+.offline-banner-icon {
+  @apply w-5 h-5 flex-shrink-0;
+}
+
+.offline-banner-text {
+  @apply flex items-center gap-2;
+}
+
+.offline-banner-action {
+  @apply text-white/80 hover:text-white underline text-caption;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   12. SYNC INDICATOR
+   ═══════════════════════════════════════════════════════════════ */
+
+.sync-indicator {
+  @apply inline-flex items-center gap-1.5 text-caption;
+}
+
+.sync-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.sync-dot-synced {
+  @apply bg-success;
+}
+
+.sync-dot-syncing {
+  @apply bg-warning animate-pulse;
+}
+
+.sync-dot-error {
+  @apply bg-danger;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13. CHARTS (Recharts overrides)
+   ═══════════════════════════════════════════════════════════════ */
+
+.recharts-cartesian-grid-horizontal line {
+  stroke: #F1F5F9;
+  stroke-dasharray: 4 4;
+}
+
+.recharts-cartesian-grid-vertical line {
+  stroke: transparent;
+}
+
+.recharts-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  fill: #64748B;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
+.recharts-default-tooltip {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 15px rgba(15, 23, 42, 0.08) !important;
+  padding: 12px 16px !important;
+}
+
+.recharts-tooltip-label {
+  color: #0F172A !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+}
+
+.recharts-tooltip-item {
+  color: #64748B !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   14. MAP
+   ═══════════════════════════════════════════════════════════════ */
+
+.map-container {
+  @apply relative rounded-card border border-border overflow-hidden bg-canvas;
+}
+
+.map-toolbar {
+  @apply flex items-center gap-2 p-3 bg-surface border-b border-border
+         flex-wrap;
+}
+
+.map-legend {
+  @apply absolute bottom-4 right-4 bg-surface/95 backdrop-blur-sm
+         border border-border rounded-card p-3 shadow-elevated
+         text-caption space-y-2;
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply rounded-card shadow-elevated border border-border;
+}
+
+.leaflet-popup-content {
+  @apply text-body text-text-primary m-0 p-4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   15. SCENARIO CARDS (CHUMA)
+   ═══════════════════════════════════════════════════════════════ */
+
+.scenario-card {
+  @apply card card-paded;
+}
+
+.scenario-card-header {
+  @apply text-h2 text-text-primary font-semibold mb-6;
+}
+
+.scenario-metric-grid {
+  @apply grid grid-cols-2 gap-x-6 gap-y-4;
+}
+
+.scenario-metric {
+  @apply flex flex-col;
+}
+
+.scenario-metric-label {
+  @apply text-caption text-text-secondary mb-1;
+}
+
+.scenario-metric-value {
+  @apply text-body font-semibold text-text-primary tabular-nums;
+}
+
+.scenario-metric-value-highlight {
+  @apply text-data-sm text-brand-primary;
+}
+
+.scenario-verdict {
+  @apply card-accent-success p-5 flex items-start gap-3;
+}
+
+.scenario-verdict-icon {
+  @apply w-6 h-6 text-success flex-shrink-0 mt-0.5;
+}
+
+.scenario-verdict-text {
+  @apply text-body font-semibold text-text-primary;
+}
+
+.scenario-verdict-subtext {
+  @apply text-caption text-text-secondary mt-1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   16. DISTRICT CARDS (MoHP)
+   ═══════════════════════════════════════════════════════════════ */
+
+.district-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+.district-card {
+  @apply card p-5;
+}
+
+.district-card-name {
+  @apply text-body-lg font-semibold text-text-primary;
+}
+
+.district-card-region {
+  @apply text-caption text-text-secondary mb-4;
+}
+
+.district-card-metrics {
+  @apply space-y-2 mb-4;
+}
+
+.district-card-metric {
+  @apply flex items-center justify-between text-caption;
+}
+
+.district-card-metric-label {
+  @apply text-text-secondary;
+}
+
+.district-card-metric-value {
+  @apply text-text-primary tabular-nums font-medium;
+}
+
+.district-card-footer {
+  @apply pt-3 border-t border-border flex items-center justify-between;
+}
+
+.district-card-facilities {
+  @apply text-caption text-text-tertiary;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   17. SKELETONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.skeleton {
+  @apply animate-pulse bg-canvas rounded-lg;
+}
+
+.skeleton-text {
+  @apply skeleton h-4;
+}
+
+.skeleton-text-sm {
+  @apply skeleton h-3;
+}
+
+.skeleton-title {
+  @apply skeleton h-6 w-1/3;
+}
+
+.skeleton-card {
+  @apply skeleton h-32;
+}
+
+.skeleton-circle {
+  @apply skeleton rounded-full;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   18. DARK MODE OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+
+.dark .card {
+  @apply bg-slate-800 border-slate-700;
+}
+
+.dark .sidebar {
+  @apply bg-slate-900 border-slate-700;
+}
+
+.dark .sidebar-nav-item:hover {
+  @apply bg-slate-800;
+}
+
+.dark .sidebar-nav-item.active {
+  @apply bg-slate-800;
+}
+
+.dark .top-header {
+  @apply bg-slate-900 border-slate-700;
+}
+
+.dark .data-table thead {
+  @apply bg-slate-800 border-slate-700;
+}
+
+.dark .data-table tbody tr {
+  @apply border-slate-700;
+}
+
+.dark .data-table tbody tr:hover {
+  @apply bg-slate-800/50;
+}
+
+.dark .input,
+.dark .select {
+  @apply bg-slate-800 border-slate-600 text-slate-100;
+}
+
+.dark .recharts-default-tooltip {
+  background: #1E293B !important;
+  border-color: #334155 !important;
+}
+
+.dark .recharts-text {
+  fill: #94A3B8 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   19. RESPONSIVE UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-50 transform -translate-x-full
+           transition-transform duration-200;
+  }
+
+  .sidebar.open {
+    @apply translate-x-0;
+  }
+
+  .sidebar-overlay {
+    @apply fixed inset-0 bg-black/30 z-40;
+  }
+
+  .page-container {
+    @apply p-4;
+  }
+
+  .district-grid {
+    @apply grid-cols-1;
+  }
+
+  .scenario-metric-grid {
+    @apply grid-cols-1;
+  }
+
+  .kpi-grid {
+    @apply grid-cols-2;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    @apply grid-cols-1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   20. ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}

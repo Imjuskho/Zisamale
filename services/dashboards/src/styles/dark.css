@@ -20,8 +20,6 @@
 .dark .sidebar-link { color: var(--color-text-secondary); }
 .dark .sidebar-link:hover { background: var(--color-bg-muted); color: var(--color-text); }
 .dark .sidebar-link.active { background: var(--color-primary-light); color: var(--color-primary); }
-.dark .sidebar-link.active .sidebar-link-sub { color: var(--color-primary); }
-.dark .sidebar-link-sub { color: var(--color-text-muted); }
 .dark .sidebar-user-name { color: var(--color-text); }
 .dark .sidebar-user-role { color: var(--color-text-muted); }
 .dark .sidebar-user-info { color: var(--color-text); }
@@ -40,31 +38,69 @@
   color: var(--color-text);
 }
 
-/* --- Login page --- */
+/* --- Login page — Apple dark mode --- */
+.dark .login-hero {
+  background: #0d0d0f;
+  color: #ffffff;
+}
+.dark .login-hero-brand { color: #ffffff; }
+.dark .login-hero-wordmark { color: #ffffff; }
+.dark .login-hero-copy h2 { color: #ffffff; }
+.dark .login-hero-copy p { color: rgba(255, 255, 255, 0.65); }
+.dark .login-hero-points li { color: rgba(255, 255, 255, 0.88); }
+.dark .login-hero-points svg { background: rgba(0, 102, 204, 0.2); color: var(--color-primary); }
+.dark .login-hero-footer { color: rgba(255, 255, 255, 0.4); }
+.dark .login-hero-logo { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); }
+.dark .login-hero-ambient {
+  background:
+    radial-gradient(600px 400px at 20% 30%, rgba(0, 102, 204, 0.15), transparent 60%),
+    radial-gradient(500px 350px at 80% 70%, rgba(0, 113, 227, 0.1), transparent 55%),
+    radial-gradient(400px 300px at 50% 50%, rgba(41, 151, 255, 0.08), transparent 50%);
+}
 .dark .login-card-zone { background: var(--color-surface-bg); }
 .dark .login-page h1 { color: var(--color-text); }
 .dark .login-page label { color: var(--color-text-secondary); }
 .dark .login-subtitle { color: var(--color-text-muted); }
 .dark .login-input-icon { color: var(--color-text-muted); }
-.dark .login-password-toggle:hover { background: rgba(255, 255, 255, 0.08); }
-.dark .login-error {
-  background: rgba(198, 40, 40, 0.16);
-  border-color: rgba(198, 40, 40, 0.5);
-  color: #f87171;
-}
-.dark .login-footnote { color: var(--color-text-muted); }
-.dark .login-mobile-brand .login-hero-logo--small {
-  background: var(--color-green);
-  color: #fff;
-}
-@media (max-width: 900px) {
-  .dark .login-card-zone { background: var(--color-surface-bg); }
-}
 .dark .login-page input,
 .dark .login-page select {
   background: var(--color-bg-muted);
   border-color: var(--color-border);
   color: var(--color-text);
+}
+.dark .login-page input::placeholder { color: rgba(142, 142, 147, 0.35); }
+.dark .login-page input:focus,
+.dark .login-page select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.18);
+}
+.dark .login-password-toggle { color: var(--color-text-muted); }
+.dark .login-password-toggle:hover { background: rgba(41, 151, 255, 0.15); color: var(--color-primary); }
+.dark .login-error {
+  background: rgba(255, 59, 48, 0.12);
+  border-color: rgba(255, 59, 48, 0.35);
+  color: #ff453a;
+}
+.dark .login-session-expired {
+  background: rgba(255, 149, 0, 0.1);
+  border-color: rgba(255, 149, 0, 0.3);
+  color: var(--color-high);
+}
+.dark .login-submit-btn,
+.dark .login-page button[type="submit"] {
+  background: var(--color-primary);
+}
+.dark .login-submit-btn:hover:not(:disabled),
+.dark .login-page button[type="submit"]:hover:not(:disabled) {
+  background: var(--color-primary-focus);
+}
+.dark .login-footnote { color: var(--color-text-muted); }
+.dark .login-mobile-brand .login-hero-logo--small {
+  background: var(--color-primary);
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .dark .login-card-zone { background: var(--color-surface-bg); }
 }
 
 /* --- Dashboard layout --- */
@@ -76,8 +112,8 @@
 
 /* --- Executive summary --- */
 .dark .executive-summary {
-  background: rgba(45, 125, 70, 0.06);
-  border-color: rgba(45, 125, 70, 0.15);
+  background: rgba(41, 151, 255, 0.06);
+  border-color: rgba(41, 151, 255, 0.15);
 }
 .dark .executive-summary h2 { color: var(--color-text); }
 .dark .executive-summary p { color: var(--color-text-secondary); }
@@ -86,7 +122,7 @@
 .dark .error-boundary { background: var(--color-surface-bg); }
 .dark .error-boundary-card {
   background: var(--color-surface-card);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 .dark .error-boundary-card h2 { color: var(--color-text); }
 .dark .error-boundary-message { color: var(--color-text-muted); }
@@ -145,10 +181,10 @@
 .dark .data-table tbody tr:hover,
 .dark .district-table tbody tr:hover,
 .dark .chw-row:hover { background: var(--color-bg-muted); }
-.dark .chw-row.visits-low { background: rgba(249, 168, 37, 0.08); }
-.dark .chw-row.visits-low:hover { background: rgba(249, 168, 37, 0.15); }
-.dark .chw-row.sync-stale { background: rgba(198, 40, 40, 0.08); }
-.dark .chw-row.sync-stale:hover { background: rgba(198, 40, 40, 0.15); }
+.dark .chw-row.visits-low { background: rgba(255, 159, 10, 0.08); }
+.dark .chw-row.visits-low:hover { background: rgba(255, 159, 10, 0.15); }
+.dark .chw-row.sync-stale { background: rgba(255, 59, 48, 0.08); }
+.dark .chw-row.sync-stale:hover { background: rgba(255, 59, 48, 0.15); }
 .dark .chw-households-row td { background: var(--color-bg-muted); }
 .dark .household-table thead th {
   background: var(--color-bg-muted);
@@ -182,9 +218,9 @@
 
 /* --- Alert command center --- */
 .dark .alert-command-card { background: var(--color-surface-card); }
-.dark .alert-red { background: rgba(198, 40, 40, 0.08); }
-.dark .alert-yellow { background: rgba(249, 168, 37, 0.08); }
-.dark .alert-green { background: rgba(46, 125, 50, 0.08); }
+.dark .alert-red { background: rgba(255, 59, 48, 0.08); }
+.dark .alert-yellow { background: rgba(255, 214, 10, 0.08); }
+.dark .alert-green { background: rgba(48, 209, 88, 0.08); }
 .dark .alert-disease { color: var(--color-text); }
 .dark .alert-ta { color: var(--color-text-muted); }
 .dark .alert-body { color: var(--color-text-secondary); }
@@ -203,10 +239,10 @@
 .dark .alert-actions button:hover { background: var(--color-border); }
 
 /* --- Status badges --- */
-.dark .status-pending { background: rgba(230, 81, 0, 0.12); color: #ffa726; }
-.dark .status-acknowledged { background: rgba(21, 101, 192, 0.12); color: #42a5f5; }
-.dark .status-in_progress { background: rgba(123, 31, 162, 0.12); color: #ba68c8; }
-.dark .status-resolved { background: rgba(45, 125, 70, 0.12); color: #66bb6a; }
+.dark .status-pending { background: rgba(255, 214, 10, 0.12); color: var(--color-medium); }
+.dark .status-acknowledged { background: rgba(41, 151, 255, 0.12); color: var(--color-primary); }
+.dark .status-in_progress { background: rgba(191, 64, 255, 0.12); color: #bf40ff; }
+.dark .status-resolved { background: rgba(48, 209, 88, 0.12); color: var(--color-low); }
 
 /* --- Budget modeler --- */
 .dark .budget-modeler fieldset { border-color: var(--color-border); }
@@ -216,7 +252,7 @@
 .dark .scenario-output > div strong { color: var(--color-text); }
 .dark .scenario-output > div span { color: var(--color-text-muted); }
 .dark .scenario-comparison {
-  background: rgba(249, 251, 231, 0.06);
+  background: rgba(255, 214, 10, 0.06);
   color: var(--color-text-secondary);
 }
 
@@ -244,10 +280,10 @@
 .dark .pdf-export-btn:hover { background: var(--color-border); }
 
 /* --- WS status --- */
-.dark .ws-connected { background: rgba(45, 125, 70, 0.12); color: #66bb6a; }
-.dark .ws-connecting { background: rgba(230, 81, 0, 0.12); color: #ffa726; }
+.dark .ws-connected { background: rgba(48, 209, 88, 0.12); color: var(--color-low); }
+.dark .ws-connecting { background: rgba(255, 214, 10, 0.12); color: var(--color-medium); }
 .dark .ws-error,
-.dark .ws-disconnected { background: rgba(198, 40, 40, 0.12); color: #ef5350; }
+.dark .ws-disconnected { background: rgba(255, 59, 48, 0.12); color: var(--color-critical); }
 
 /* --- Mobile nav --- */
 .dark .mobile-nav {
@@ -268,7 +304,7 @@
 }
 .dark .household-card:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.08);
+  box-shadow: 0 2px 8px rgba(41, 151, 255, 0.08);
 }
 .dark .household-card-info strong { color: var(--color-text); }
 .dark .household-card-meta { color: var(--color-text-muted); }
@@ -276,8 +312,8 @@
   border-top-color: var(--color-border-light);
   color: var(--color-text-secondary);
 }
-.dark .household-high-risk { border-left-color: #ef5350; }
-.dark .high-risk-tag { background: rgba(198, 40, 40, 0.12); }
+.dark .household-high-risk { border-left-color: var(--color-critical); }
+.dark .high-risk-tag { background: rgba(255, 59, 48, 0.12); }
 .dark .visit-status { color: var(--color-text-muted); }
 
 /* --- Patient card --- */
@@ -300,14 +336,14 @@
   color: var(--color-primary);
 }
 .dark .symptom-active {
-  background: rgba(15, 123, 138, 0.15);
+  background: rgba(41, 151, 255, 0.15);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
 /* --- Voice input --- */
-.dark .voice-btn { background: var(--color-teal); }
-.dark .voice-btn:hover:not(:disabled) { background: var(--color-primary); }
+.dark .voice-btn { background: var(--color-primary); }
+.dark .voice-btn:hover:not(:disabled) { background: var(--color-primary-focus); }
 .dark .voice-status { color: var(--color-text-muted); }
 .dark .voice-notes-row .input-field {
   background: var(--color-bg-muted);
@@ -353,7 +389,7 @@
 .dark .facility-bed-total-big { color: var(--color-text); }
 .dark .facility-bed-total-label { color: var(--color-text-muted); }
 .dark .facility-bed-bar { background: var(--color-border); }
-.dark .facility-stock-alert { background: rgba(198, 40, 40, 0.1); }
+.dark .facility-stock-alert { background: rgba(255, 59, 48, 0.1); }
 .dark .facility-stock-bar { background: var(--color-border); }
 .dark .facility-stock-name { color: var(--color-text); }
 .dark .facility-staff-chip { border-bottom-color: var(--color-border-light); }
@@ -373,16 +409,16 @@
 .dark .referral-condition { background: var(--color-bg-muted); color: var(--color-text); }
 .dark .referral-card { border-color: var(--color-border); background: var(--color-bg-muted); }
 .dark .referral-card--recommended {
-  background: rgba(45, 125, 70, 0.08);
+  background: rgba(41, 151, 255, 0.08);
   border-color: var(--color-primary);
 }
 .dark .referral-card--unreachable { background: var(--color-bg-muted); }
 .dark .referral-card-title strong { color: var(--color-text); }
 .dark .referral-card-distance { color: var(--color-text-muted); }
 .dark .referral-rank { color: var(--color-text-muted); }
-.dark .referral-urgency--immediate { background: rgba(198, 40, 40, 0.12); color: #ef5350; }
-.dark .referral-urgency--urgent { background: rgba(217, 119, 6, 0.12); color: #ffb300; }
-.dark .referral-urgency--routine { background: rgba(22, 163, 74, 0.12); color: #66bb6a; }
+.dark .referral-urgency--immediate { background: rgba(255, 59, 48, 0.12); color: var(--color-critical); }
+.dark .referral-urgency--urgent { background: rgba(255, 159, 10, 0.12); color: var(--color-high); }
+.dark .referral-urgency--routine { background: rgba(48, 209, 88, 0.12); color: var(--color-low); }
 
 /* --- CHW Presence --- */
 .dark .chw-presence-panel,
@@ -409,7 +445,7 @@
 }
 .dark .chw-presence-note { background: var(--color-bg-muted); color: var(--color-text-muted); }
 .dark .chw-dot { background: var(--color-bg-muted); }
-.dark .chw-dot--emergency { background: rgba(198, 40, 40, 0.1); }
+.dark .chw-dot--emergency { background: rgba(255, 59, 48, 0.1); }
 .dark .chw-dot-label { color: var(--color-text); }
 .dark .chw-ghost-label { color: var(--color-text-muted); }
 .dark .chw-checkin-btn { border-color: var(--color-border); color: var(--color-text-muted); }
@@ -461,7 +497,7 @@
 .dark .map-toolbar-actions { border-top-color: var(--color-border); }
 
 /* --- Map legend --- */
-.dark .map-legend { background: var(--color-surface); border-color: var(--color-border); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+.dark .map-legend { background: var(--color-surface); border-color: var(--color-border); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4); }
 .dark .map-legend-header { color: var(--color-text); }
 .dark .map-legend-header:hover { background: var(--color-bg-muted); }
 .dark .map-legend-section-toggle { color: var(--color-text-muted); }
@@ -471,7 +507,7 @@
 
 /* --- Skeleton loading --- */
 .dark .skeleton {
-  background: linear-gradient(90deg, #302820 25%, #3C3327 50%, #302820 75%);
+  background: linear-gradient(90deg, #363638 25%, #48484a 50%, #363638 75%);
   background-size: 200% 100%;
 }
 .dark .skeleton-table { background: var(--color-surface-card); border-color: var(--color-border); }
@@ -491,7 +527,7 @@
 .dark .nutrition-layer,
 .dark .health-weather-panel {
   background: var(--color-surface-card);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark .immunization-toggle,
@@ -528,7 +564,7 @@
   border-color: var(--color-primary);
 }
 
-.dark .imm-stat { color: #ef5350; }
+.dark .imm-stat { color: var(--color-critical); }
 .dark .imm-stat-label { color: var(--color-text-muted); }
 .dark .imm-note { color: var(--color-text-muted); }
 
@@ -551,7 +587,7 @@
 .dark .imm-stock-alert,
 .dark .supply-alert,
 .dark .nutrition-alert {
-  background: rgba(230, 81, 0, 0.1);
+  background: rgba(255, 159, 10, 0.1);
 }
 
 .dark .imm-route-card {
@@ -595,8 +631,8 @@
   border-color: var(--color-border);
 }
 .dark .supply-truck-card--breach {
-  background: rgba(198, 40, 40, 0.08);
-  border-color: #ef5350;
+  background: rgba(255, 59, 48, 0.08);
+  border-color: var(--color-critical);
 }
 .dark .supply-truck-driver { color: var(--color-text); }
 .dark .supply-truck-dest,
@@ -629,15 +665,15 @@
   border-color: var(--color-border);
 }
 .dark .leaflet-control-attribution {
-  background: rgba(26, 26, 46, 0.85) !important;
+  background: rgba(28, 28, 30, 0.85) !important;
   color: var(--color-text-muted) !important;
 }
 .dark .leaflet-control-attribution a { color: var(--color-text-muted) !important; }
 
 /* --- Moyo Map header / status / district panel (dark) --- */
-.dark .moyo-map-tagline { color: #4db6ac; }
-.dark .moyo-refresh-btn { color: #4db6ac; }
-.dark .moyo-refresh-btn:hover { background: rgba(77, 182, 172, 0.12); }
+.dark .moyo-map-tagline { color: var(--color-primary); }
+.dark .moyo-refresh-btn { color: var(--color-primary); }
+.dark .moyo-refresh-btn:hover { background: rgba(41, 151, 255, 0.12); }
 .dark .moyo-district-panel {
   background: var(--color-surface-elevated);
   border-color: var(--color-border);
@@ -654,27 +690,27 @@
 }
 .dark .scorecard-carousel-card--selected,
 .dark .scorecard-carousel-card--selected:hover {
-  border-color: #D98F63;
-  box-shadow: 0 0 0 4px rgba(217, 143, 99, 0.18), 0 8px 20px rgba(0, 0, 0, 0.45);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.18), 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 .dark .carousel-metric-value,
 .dark .map-layer-label,
 .dark .exec-header h2,
 .dark .exec-section-title h3,
 .dark .exec-ai-title { color: var(--color-text); }
-.dark .trend-good { color: #81c784; }
-.dark .trend-bad { color: #ef9a9a; }
-.dark .scorecard-alerts.has-alerts { color: #ef9a9a; }
-.dark .scorecard-stock.has-stockouts { color: #ffcc80; }
-.dark .scorecard-clear { color: #81c784; }
-.dark .scorecard-map-hint { color: #4db6ac; }
+.dark .trend-good { color: var(--color-low); }
+.dark .trend-bad { color: var(--color-critical); }
+.dark .scorecard-alerts.has-alerts { color: var(--color-critical); }
+.dark .scorecard-stock.has-stockouts { color: var(--color-high); }
+.dark .scorecard-clear { color: var(--color-low); }
+.dark .scorecard-map-hint { color: var(--color-primary); }
 .dark .scorecard-carousel-arrow {
   background: var(--color-surface-elevated);
   border-color: var(--color-border);
   color: var(--color-text);
 }
-.dark .scorecard-carousel-dot { background: #3a3a55; }
-.dark .scorecard-carousel-dot--active { background: #D98F63; }
+.dark .scorecard-carousel-dot { background: var(--color-border); }
+.dark .scorecard-carousel-dot--active { background: var(--color-primary); }
 
 /* --- Map toolbar rich panel (dark) --- */
 .dark .map-toolbar-toggle {
@@ -683,28 +719,28 @@
   color: var(--color-text);
 }
 .dark .map-toolbar-toggle:hover { background: var(--color-bg-muted); }
-.dark .map-toolbar-count--active { background: #D98F63; }
+.dark .map-toolbar-count--active { background: var(--color-primary); }
 
 /* --- Executive summary (dark) --- */
 .dark .exec-critical-banner {
-  background: rgba(198, 40, 40, 0.16);
-  border-color: rgba(198, 40, 40, 0.4);
-  color: #ef9a9a;
+  background: rgba(255, 59, 48, 0.16);
+  border-color: rgba(255, 59, 48, 0.4);
+  color: var(--color-critical);
 }
-.dark .exec-critical-detail { color: #ef9a9a; }
-.dark .exec-badge--red { background: rgba(198, 40, 40, 0.25); color: #ef9a9a; }
-.dark .exec-badge--green { background: rgba(76, 175, 80, 0.2); color: #a5d6a7; }
-.dark .exec-badge--amber { background: rgba(230, 81, 0, 0.22); color: #ffcc80; }
-.dark .exec-badge--blue { background: rgba(21, 101, 192, 0.25); color: #90caf9; }
-.dark .exec-icon--red { background: rgba(198, 40, 40, 0.25); color: #ef9a9a; }
-.dark .exec-icon--amber { background: rgba(249, 168, 37, 0.22); color: #ffd54f; }
-.dark .exec-icon--orange { background: rgba(230, 81, 0, 0.25); color: #ffab91; }
-.dark .exec-icon--teal { background: rgba(15, 123, 138, 0.28); color: #4dd0e1; }
+.dark .exec-critical-detail { color: var(--color-critical); }
+.dark .exec-badge--red { background: rgba(255, 59, 48, 0.25); color: var(--color-critical); }
+.dark .exec-badge--green { background: rgba(48, 209, 88, 0.2); color: var(--color-low); }
+.dark .exec-badge--amber { background: rgba(255, 159, 10, 0.22); color: var(--color-high); }
+.dark .exec-badge--blue { background: rgba(41, 151, 255, 0.25); color: var(--color-primary); }
+.dark .exec-icon--red { background: rgba(255, 59, 48, 0.25); color: var(--color-critical); }
+.dark .exec-icon--amber { background: rgba(255, 214, 10, 0.22); color: var(--color-medium); }
+.dark .exec-icon--orange { background: rgba(255, 159, 10, 0.25); color: var(--color-high); }
+.dark .exec-icon--teal { background: rgba(41, 151, 255, 0.28); color: var(--color-primary); }
 .dark .exec-ai-recommendation {
-  background: rgba(76, 175, 80, 0.12);
-  border-color: rgba(76, 175, 80, 0.3);
+  background: rgba(48, 209, 88, 0.12);
+  border-color: rgba(48, 209, 88, 0.3);
 }
-.dark .exec-ai-icon { background: rgba(76, 175, 80, 0.22); color: #81c784; }
+.dark .exec-ai-icon { background: rgba(48, 209, 88, 0.22); color: var(--color-low); }
 .dark .exec-section-body,
 .dark .exec-header-meta,
 .dark .exec-ai-text { color: var(--color-text-secondary); }
@@ -729,6 +765,6 @@
 .dark .toast-item {
   background: var(--color-surface-elevated);
   color: var(--color-text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 .dark .toast-close:hover { background: rgba(255, 255, 255, 0.1); }

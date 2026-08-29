@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { Facility } from "../../services/facilityService";
 import type { ReferralRequest, ReferralResult } from "../../types";
 import { Icon } from "../design/Icon";
+import { useModalDialog } from "../../hooks/useModalDialog";
 
 interface ReferralEngineProps {
   request: ReferralRequest;
@@ -72,7 +73,10 @@ function scoreFacility(facility: Facility, request: ReferralRequest): ReferralRe
   };
 }
 
-export function ReferralEngine({ request, facilities, onSelectFacility, onDismiss }: ReferralEngineProps) {
+export function ReferralEngine({ request, facilities, onSelectFacility, onDismiss = () => {} }: ReferralEngineProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useModalDialog(dialogRef, closeRef, onDismiss);
   const results = useMemo(() => {
     const scored = facilities.map((f) => scoreFacility(f, request));
     scored.sort((a, b) => b.score - a.score || a.distance_km - b.distance_km);
@@ -81,11 +85,11 @@ export function ReferralEngine({ request, facilities, onSelectFacility, onDismis
   }, [request, facilities]);
 
   return (
-    <div className="referral-engine" role="dialog" aria-label="Referral routing">
+    <div ref={dialogRef} className="referral-engine" role="dialog" aria-modal="true" aria-label="Referral routing">
       <div className="referral-header">
-        <Icon name="ArrowRight" size={20} color="#0f7b8a" />
+        <Icon name="ArrowRight" size={20} color="var(--color-primary)" />
         <h3>Referral Routing</h3>
-        <button className="referral-close" onClick={onDismiss} aria-label="Close">
+        <button ref={closeRef} className="referral-close" onClick={onDismiss} aria-label="Close">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>

@@ -8,10 +8,10 @@ interface SyncIndicatorProps {
 
 export function SyncIndicator({ status, count, total }: SyncIndicatorProps) {
   const config: Record<string, { icon: IconName; label: string; color: string; weight: "regular" | "fill" }> = {
-    synced: { icon: "CloudCheck", label: "Synced", color: "#2D7D46", weight: "fill" },
-    syncing: { icon: "Cloud", label: `${count ?? 0}/${total ?? 0}`, color: "#17646C", weight: "regular" },
+    synced: { icon: "CloudCheck", label: "Synced", color: "#2D6A4F", weight: "fill" },
+    syncing: { icon: "Cloud", label: `${count ?? 0}/${total ?? 0}`, color: "#40916C", weight: "regular" },
     offline: { icon: "Cloud", label: "Offline", color: "#999", weight: "regular" },
-    error: { icon: "CloudWarning", label: "Error", color: "#C62828", weight: "fill" },
+    error: { icon: "CloudWarning", label: "Error", color: "#ff3b30", weight: "fill" },
   };
 
   const c = config[status] ?? config.offline;
