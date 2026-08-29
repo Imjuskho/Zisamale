@@ -50,7 +50,7 @@ fun FacilityCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isEmergencyReceiving) 4.dp else 2.dp),
     ) {
@@ -197,7 +197,7 @@ fun ReferralCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (recommended) RiskLowLight.copy(alpha = 0.3f)
             else MaterialTheme.colorScheme.surface,

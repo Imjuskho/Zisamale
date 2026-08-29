@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.zisamale.ui.theme.*
 
 /**
- * Risk Badge — pill-style risk indicator matching web RiskBadge.tsx
+ * Risk Badge — square stamp matching web RiskBadge.tsx (2dp radius).
  * Score ranges: 1-3 low, 4-6 medium, 7-8 high, 9-10 critical
  */
 @Composable
@@ -27,7 +27,7 @@ fun RiskBadge(
 ) {
     val (bgColor, textColor, label) = when {
         score <= 3 -> Triple(RiskLow, Color.White, "LOW")
-        score <= 6 -> Triple(RiskMedium, ZisamaleDark, "MEDIUM")
+        score <= 6 -> Triple(RiskMedium, Ink, "MEDIUM")
         score <= 8 -> Triple(RiskHigh, Color.White, "HIGH")
         else -> Triple(RiskCritical, Color.White, "CRITICAL")
     }
@@ -40,7 +40,7 @@ fun RiskBadge(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(bgColor)
             .padding(horizontal = horizontalPadding, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,

@@ -175,6 +175,26 @@ interface ZisamaleApi {
         @Part file: MultipartBody.Part,
         @Part("visit_id") visitId: okhttp3.RequestBody?
     ): Response<PhotoUploadResponse>
+
+    // ── SAMALA-AI: Knowledge Translation ──────────────────────
+
+    @GET("api/v1/samala/for-household/{householdId}")
+    suspend fun getContextualAssets(@Path("householdId") householdId: String): ContextualAssetsResponse
+
+    @GET("api/v1/samala/guides")
+    suspend fun getSelfCareGuides(): Response<Map<String, List<SamalaGuide>>>
+
+    @GET("api/v1/samala/guides/{guideId}")
+    suspend fun getSelfCareGuide(@Path("guideId") guideId: String): SamalaGuide
+
+    @GET("api/v1/samala/talks")
+    suspend fun getHealthTalks(): Response<Map<String, List<SamalaTalk>>>
+
+    @GET("api/v1/samala/talks/{talkId}")
+    suspend fun getHealthTalk(@Path("talkId") talkId: String): SamalaTalk
+
+    @POST("api/v1/samala/deployments")
+    suspend fun createDeployment(@Body deployment: DeploymentCreateRequest): Response<DeploymentCreateResponse>
 }
 
 data class PhotoUploadResponse(

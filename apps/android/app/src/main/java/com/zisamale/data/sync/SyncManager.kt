@@ -20,7 +20,7 @@ import java.util.TimeZone
 
 class SyncManager(
     private val db: ZisamaleDatabase,
-    private val api: ZisamaleApi,
+    val api: ZisamaleApi,
     private val session: SessionStore
 ) {
     suspend fun login(username: String, password: String) = withContext(Dispatchers.IO) {

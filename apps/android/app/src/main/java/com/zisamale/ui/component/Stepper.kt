@@ -51,7 +51,7 @@ fun Stepper(
             enabled = value > min,
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Icon(
@@ -78,7 +78,7 @@ fun Stepper(
             enabled = value < max,
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Icon(

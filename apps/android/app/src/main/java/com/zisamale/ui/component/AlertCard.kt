@@ -1,6 +1,7 @@
 package com.zisamale.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -45,10 +46,18 @@ fun AlertCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            // Editorial: critical alerts get a 4dp terracotta/blood left
+            // border - structural emphasis instead of shadow.
+            .border(
+                width = if (riskScore > 8) 4.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(2.dp),
+            ),
+        shape = RoundedCornerShape(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header
@@ -94,7 +103,7 @@ fun AlertCard(
 
             // Status badge
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(2.dp),
                 color = statusColor.copy(alpha = 0.1f),
             ) {
                 Text(

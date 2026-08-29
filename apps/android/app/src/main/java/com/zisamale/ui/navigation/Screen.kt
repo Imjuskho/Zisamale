@@ -14,4 +14,22 @@ sealed class Screen(val route: String) {
     object ReferralForm : Screen("referral/{visitId}") {
         fun createRoute(visitId: String) = "referral/$visitId"
     }
+    object RegisterPregnancy : Screen("pregnancy-register/{householdId}") {
+        fun createRoute(householdId: String) = "pregnancy-register/$householdId"
+    }
+    object RegisterChild : Screen("child-register/{householdId}") {
+        fun createRoute(householdId: String) = "child-register/$householdId"
+    }
+
+    // ── SAMALA-AI: Knowledge Translation ──────────────────────
+
+    object KnowledgeAssets : Screen("knowledge-assets/{householdId}") {
+        fun createRoute(householdId: String) = "knowledge-assets/$householdId"
+    }
+    object SelfCareGuide : Screen("self-care-guide/{guideId}") {
+        fun createRoute(guideId: String) = "self-care-guide/$guideId"
+    }
+    object TalkPresenter : Screen("talk-presenter/{talkId}") {
+        fun createRoute(talkId: String) = "talk-presenter/$talkId"
+    }
 }

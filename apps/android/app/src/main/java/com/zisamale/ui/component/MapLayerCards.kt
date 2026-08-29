@@ -8,6 +8,7 @@ package com.zisamale.ui.component
  */
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import com.zisamale.ui.theme.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,9 +57,9 @@ fun ImmunizationVillageCard(
     onClick: () -> Unit = {}
 ) {
     val coverageColor = when {
-        village.dpt3Coverage >= 0.8f -> Color(0xFF2D7D46)
-        village.dpt3Coverage >= 0.5f -> Color(0xFFF9A825)
-        else -> Color(0xFFC62828)
+        village.dpt3Coverage >= 0.8f -> RiskLow
+        village.dpt3Coverage >= 0.5f -> RiskMedium
+        else -> RiskCritical
     }
     val dotSize = when {
         village.under5Population > 500 -> 14.dp
@@ -107,8 +108,8 @@ data class ColdChainFacility(
 @Composable
 fun ColdChainStatusCard(facility: ColdChainFacility) {
     val statusColor = when (facility.fridgeStatus) {
-        "working" -> Color(0xFF2D7D46)
-        "broken" -> Color(0xFFC62828)
+        "working" -> RiskLow
+        "broken" -> RiskCritical
         else -> Color(0xFF999999)
     }
 
@@ -131,7 +132,7 @@ fun ColdChainStatusCard(facility: ColdChainFacility) {
                 )
             }
             if (facility.solarPowered) {
-                Icon(Icons.Filled.WbSunny, "Solar", tint = Color(0xFFF9A825), modifier = Modifier.size(12.dp))
+                Icon(Icons.Filled.WbSunny, "Solar", tint = RiskMedium, modifier = Modifier.size(12.dp))
             }
         }
     }
@@ -153,8 +154,8 @@ fun MaternityHomeCard(
     onClick: () -> Unit = {}
 ) {
     val statusColor = when (home.status) {
-        "open" -> Color(0xFF2D7D46)
-        "full" -> Color(0xFFE65100)
+        "open" -> RiskLow
+        "full" -> RiskMedium
         else -> Color(0xFF999999)
     }
     val occupancyPct = if (home.capacity > 0) home.occupied.toFloat() / home.capacity else 0f
@@ -194,7 +195,7 @@ data class SupplyTruck(
 
 @Composable
 fun SupplyTruckCard(truck: SupplyTruck) {
-    val borderColor = if (truck.temperatureBreach) Color(0xFFC62828) else Color(0xFF2D7D46)
+    val borderColor = if (truck.temperatureBreach) RiskCritical else RiskLow
 
     ZisamaleCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -215,7 +216,7 @@ fun SupplyTruckCard(truck: SupplyTruck) {
             Text(
                 "⚠ Temperature breach",
                 fontSize = 10.sp,
-                color = Color(0xFFC62828),
+                color = RiskCritical,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -236,9 +237,9 @@ data class NutritionData(
 @Composable
 fun NutritionCard(data: NutritionData) {
     val stuntingColor = when {
-        data.stuntingRate < 0.2f -> Color(0xFF2D7D46)
-        data.stuntingRate < 0.3f -> Color(0xFFF9A825)
-        else -> Color(0xFFC62828)
+        data.stuntingRate < 0.2f -> RiskLow
+        data.stuntingRate < 0.3f -> RiskMedium
+        else -> RiskCritical
     }
 
     ZisamaleCard(modifier = Modifier.fillMaxWidth()) {
@@ -265,7 +266,7 @@ fun NutritionCard(data: NutritionData) {
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
-                        .background(Color(0xFFE65100), RoundedCornerShape(10.dp))
+                        .background(RiskMedium, RoundedCornerShape(2.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
@@ -284,9 +285,9 @@ fun HealthWeatherCard(
     onRefresh: () -> Unit = {}
 ) {
     val alertColor = when (alertLevel) {
-        "red" -> Color(0xFFC62828)
-        "yellow" -> Color(0xFFE65100)
-        else -> Color(0xFF2D7D46)
+        "red" -> RiskCritical
+        "yellow" -> RiskMedium
+        else -> RiskLow
     }
 
     ZisamaleCard(modifier = Modifier.fillMaxWidth()) {

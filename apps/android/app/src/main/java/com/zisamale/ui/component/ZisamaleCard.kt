@@ -1,6 +1,7 @@
 package com.zisamale.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -17,18 +18,20 @@ import androidx.compose.ui.unit.sp
 import com.zisamale.ui.theme.*
 
 /**
- * Zisamale Card — base container component matching web design system.
- * 8dp padding, 12dp radius, subtle shadow.
+ * Zisamale Card — base container matching the editorial system:
+ * 1dp warm-stone border, 2dp radius, zero elevation.
  */
 @Composable
 fun ZisamaleCard(
     modifier: Modifier = Modifier,
-    elevation: Dp = 2.dp,
+    elevation: Dp = 0.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, WarmStone, RoundedCornerShape(2.dp)),
+        shape = RoundedCornerShape(2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
@@ -69,7 +72,7 @@ fun KPICard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(iconTint.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
