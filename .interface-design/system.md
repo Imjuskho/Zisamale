@@ -3,32 +3,26 @@
 Decisions made. Hold to them; don't reinvent.
 
 ## Direction and feel
-**Malawi earth editorial** — warm paper, terracotta clay, lake teal. A field
-operations room printed on heavy paper stock: authoritative but humane,
-editorial not SaaS-chrome. Serif display voice (Fraunces) for page/section
-titles; Archivo for everything functional. Paper-grain texture on the canvas
-(`--grain-image`) is the signature — never add gradients or glassmorphism on top.
+**Apple health operations** — quiet, precise, high-confidence interfaces with
+Action Blue reserved for intent and system feedback. SF Pro/Inter form the
+functional type voice; elevated white surfaces, compact charts, and generous
+touch targets keep field and policy work clear without visual noise.
 
 ## Token architecture (`src/index.css` :root)
-- Surfaces: `--color-surface-bg #F6F1E7` → `--color-surface-card #FFFDF8` → `--color-surface-elevated #FFFFFF`
-- Ink: `--color-text #29241C`, secondary `#55503F`, muted `#776D5C`
-- Brand: `--color-primary #A8502F` (clay), `--color-teal #17646C`, `--color-green #2D7D46`
-- Risk scale: `#C62828 / #E65100 / #F9A825 / #2E7D32` — single source in
-  `src/design/riskScale.ts`; Tailwind `risk.*` tokens mirror it. Never invent
-  status hexes (`#15803d`, `#dc2626`, `#0f7b8a` are retired).
-- Charts bind to the same world: grid/borders `#E3D9C6`, ticks `#776D5C`,
-  ink lines `#29241C`, teal series `#17646C`.
+- Surfaces: `--color-surface-bg #FFFFFF` → `--color-surface-card #FAFAFC` → `--color-surface-elevated #FFFFFF`
+- Ink: `--color-text #1D1D1F`, secondary `#48484A`, muted `#8E8E93`
+- Brand: `--color-primary #0066CC`, `--color-primary-focus #0071E3`, and teal `#0F7B8A` for operational cues.
+- Risk scale: `#FF3B30 / #FF9500 / #FFCC00 / #34C759` — single source in `src/design/riskScale.ts`.
+- Charts use blue data, charcoal observed series, and `#F0F0F0` grids.
 
 ## Depth strategy
-Subtle layered shadows only (tokens `shadow.card/card-hover/elevated`);
-borders are quiet dividers `#E3D9C6`. Dark mode flips to surface shifts +
-`#3C3327` borders (see `.dark` block + `src/styles/dark.css`). One hue per
-surface family; lightness does the elevation work.
+Quiet hairlines plus subtle layered shadows (`shadow.card/card-hover/elevated`);
+dark mode uses surface shifts and `#3A3A3C` borders. Color communicates state,
+not decoration.
 
 ## Spacing & density
-4px base unit; card padding 16–24px; control zones tight (8–12px gaps),
-real air between sections (32px+). Buttons 56px min-height/min-width (glove +
-outdoor use). Hit areas ≥44px everywhere interactive.
+4px base unit; card padding 16–24px; control zones tight (8–12px gaps), with
+32px+ between sections. Buttons and touch targets are at least 44px.
 
 ## Hierarchy decisions
 - Type scale ≈1.2–1.25 from 16px body; weight + color carry hierarchy more
@@ -48,8 +42,8 @@ outdoor use). Hit areas ≥44px everywhere interactive.
 - `prefers-reduced-motion` collapses everything to opacity/color.
 
 ## Component patterns (reused 2+ times)
-- Button primary — 56px h · 14px 24px pad · r12 · bg clay, hover `#8A3E22`
-- Card — bg `#FFFDF8` · border `#E3D9C6` · r12–16 · `shadow.card`
+- Button primary — 44px minimum hit area · 14px 20–24px pad · r12 · Action Blue `#0066CC`, hover `#004F9E`
+- Card — elevated white `#FFFFFF`/card `#FAFAFC` · quiet `#E8E8ED` hairline · r12–16 · `shadow.card`
 - Risk chip — pill, bg from `riskScale.toneToColor(score)`, white text,
   tabular % figure
 - Map legend/markers read colors from `riskScale.ts` — never local copies

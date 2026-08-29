@@ -5,7 +5,7 @@
 
 ## OVERVIEW
 
-Build **Zisamale**, an AI-augmented community health intelligence platform for Malawi. The platform integrates three engines into Malawi's existing digital health infrastructure (DHIS2, iCHIS/CHT, LMIS). It is **offline-first, edge-AI capable, and human-in-the-loop by design**.
+Build **Zisamale**, an AI-augmented community health intelligence platform for Malawi. The platform integrates four engines into Malawi's existing digital health infrastructure (DHIS2, iCHIS/CHT, LMIS): three built around collecting new data and acting on it (MAMA-AI, ULALO-AI, CHUMA-AI), and a fourth — **SAMALA-AI** — built around the reverse direction: taking research and knowledge that already exists and making it reach, and change the lives of, the communities it concerns. "Kuzisamala" — to take care of yourself — is the platform's own namesake; SAMALA-AI is the engine that makes that literal. It is **offline-first, edge-AI capable, and human-in-the-loop by design**.
 
 **Target users:** 450 Community Health Workers (CHWs/HSAs), 3 District Health Offices, 45 health facilities, and the Ministry of Health (MoHP).
 
@@ -29,6 +29,9 @@ EDGE LAYER (Android, Offline-First)
   CHUMA-AI Referral Initiator (Kotlin)
     - Offline facility lookup
     - Referral form
+  SAMALA-AI Knowledge Library (Kotlin)
+    - Offline-cached content library (video/audio/flyers), catchment-scoped
+    - Delivery logging ("shared with household/community")
   CHT / iCHIS Sync Adapter
     - SQLite local DB (encrypted)
     - Sync when connectivity available
@@ -50,6 +53,10 @@ CLOUD LAYER (AWS / Azure / GCP -- Malawi region or South Africa)
     - Demand forecasting
     - Multi-criteria referral optimization
     - Budget modeling
+  SAMALA-AI Cloud Service (Python/FastAPI)
+    - Research study intake and status tracking
+    - Knowledge asset review/approval workflow
+    - Knowledge translation program scoping and reach tracking
   INTEGRATION LAYER
     - DHIS2 API Adapter
     - iCHIS/CHT API Adapter
@@ -391,6 +398,55 @@ Screens:
 4. **Policy Target Tracker:** Real-time progress on National Health Policy targets (e.g., "Facilities delivering essential services: 54% -> 100% by 2030")
 5. **NLG Executive Summary:** Auto-generated weekly brief in plain English: "This week, 3 districts are predicted to experience malaria outbreaks. Nsanje requires emergency ACT resupply. Maternal mortality in Neno has decreased 12% since CHW AI deployment."
 
+### 3.4 SAMALA-AI: Knowledge Translation & Self-Care
+
+**Full specification:** `docs/SAMALA_AI_Technical_Spec.md`
+
+SAMALA-AI is the fourth engine — the namesake. Where the other three engines collect, predict, and optimize, SAMALA translates. It takes existing research and makes it reach the communities it was conducted on. It maintains a self-care library for CHWs. "Kuzisamala" — to take care of yourself.
+
+#### 3.4.1 Core Functions
+
+1. **Research Ingestion:** PubMed, AJOL, WHO IRIS, local university repositories. Studies are anchored to geographic locations (district/TA/facility). Researcher consent required before translation.
+2. **Knowledge Synthesis:** LLM-powered extraction of key findings, actionable takeaways, and plain-language summaries. Dual-language output (English + Chichewa).
+3. **Asset Factory:** Generates communication assets from synthesized content — CHW briefs, videos, audio narrations, posters, flipbooks, SMS templates, community health talks.
+4. **Self-Care Library:** Structured health guides (what to do, what not to do, when to seek help) with severity levels. CHWs use these during home visits. The app surfaces relevant guides based on MAMA-AI risk assessment.
+5. **Deployment & Impact:** Tracks which assets were delivered where, by whom, and measures knowledge change (pre/post scores) and behavior change.
+
+#### 3.4.2 Data Model
+
+Five new tables (see `docs/SAMALA_AI_Technical_Spec.md` for full SQL):
+- `research_studies` — ingested research anchored to geography
+- `knowledge_assets` — synthesized communication assets (typed, bilingual)
+- `knowledge_deployments` — delivery records with impact measurement
+- `self_care_guides` — structured health guides with severity levels
+- `community_health_talks` — 15-minute group session templates
+
+#### 3.4.3 API
+
+All routes under `/api/v1/samala/`:
+- `GET/POST /studies` — research inventory
+- `PATCH /studies/{id}/consent` — researcher consent workflow
+- `GET/POST /assets` — knowledge asset library
+- `PATCH /assets/{id}/approve` — quality gate
+- `GET/POST /deployments` — delivery tracking
+- `PATCH /deployments/{id}/impact` — impact reporting
+- `GET/POST /guides` — self-care guide library
+- `GET/POST /talks` — community health talk templates
+- `GET /summary` — dashboard aggregates
+
+#### 3.4.4 Engine Integrations
+
+- **MAMA-AI → SAMALA:** High-risk visit triggers relevant self-care guide in CHW app response
+- **ULALO-AI → SAMALA:** Outbreak alert triggers automatic surfacing of prevention assets for affected TAs
+- **CHUMA-AI → SAMALA:** Budget modeling includes knowledge translation costs (printing, training, deployment)
+- **DHIS2 ← SAMALA:** Knowledge uptake indicators pushed as custom data elements
+
+#### 3.4.5 Frontend
+
+- **SAMALA Dashboard** (`/samala`): DHO/MoHP view — research inventory, asset library, deployment map, impact metrics
+- **Self-Care Library** (`/samala/guides`): CHW-facing guide browser — category grid, severity badges, full bilingual content with audio playback
+- **Sidebar:** "Kuzisamala" navigation link
+
 ---
 
 ## 4. DATA SECURITY & PRIVACY
@@ -465,6 +521,14 @@ Screens:
 - [ ] Develop national scale-up plan
 - [ ] Train PHIM data scientists for handover
 - [ ] Government transition and budget integration
+
+### Phase 7: SAMALA-AI MVP (Months 10-16, parallel to Phase 5-6)
+- [ ] Build `research_studies`, `knowledge_assets`, `self_care_guides`, `community_health_talks`, `knowledge_deployments` data model (see `docs/SAMALA_AI_Technical_Spec.md`)
+- [ ] Ship Standing Self-Care Pathway first: curated guides + MAMA-AI risk-category trigger hook + CHW app Knowledge Library screen (MVP step 1, spec §7)
+- [ ] Build MoHP/PHIM/DHO research intake form and researcher-consent workflow
+- [ ] Run one Research Translation Pathway program end-to-end by hand to validate the model before generalizing (MVP step 2, spec §7)
+- [ ] Wire `knowledge_deployments` reach logging through the existing sync engine from day one
+- [ ] Build `/samala` DHO/MoHP dashboard tab and `/samala/guides` CHW-facing library
 
 ---
 
@@ -610,6 +674,38 @@ GET /api/v1/national/forecast?scenario={budget_scenario}
     budget_scenario: object
     executive_summary: string  # NLG-generated
 
+### 6.4 SAMALA-AI API
+
+Full request/response detail: `docs/SAMALA_AI_Technical_Spec.md` §2. Summary:
+
+GET/POST /api/v1/samala/studies
+  Research inventory. POST role: mohp | phim | dho.
+
+PATCH /api/v1/samala/studies/{study_id}/consent
+  Researcher consent workflow — gates the discovered -> synthesizing transition.
+
+GET/POST /api/v1/samala/assets
+  Knowledge asset library (study-linked or standing self-care content).
+
+PATCH /api/v1/samala/assets/{asset_id}/approve
+  Review/approval quality gate — study-linked assets require researcher_reviewed before mohp_approved.
+
+GET/POST /api/v1/samala/guides
+GET/POST /api/v1/samala/talks
+  Self-care guide and community health talk libraries.
+
+GET/POST /api/v1/samala/deployments
+  Delivery tracking, routed through the existing sync engine (not a new ingestion path).
+
+PATCH /api/v1/samala/deployments/{deployment_id}/impact
+  Pre/post knowledge-score and outcome-indicator capture.
+
+GET /api/v1/samala/summary
+  Dashboard aggregate. District-scoped for dho role — enforce at build time, not as a follow-up fix.
+
+GET /api/v1/chw/{chw_id}/knowledge-library
+  Catchment-scoped bundle for offline caching — mirrors GET /chw/{chw_id}/priority-list.
+
 ---
 
 ## 7. TESTING REQUIREMENTS
@@ -689,11 +785,12 @@ The platform is considered "production ready" when:
 1. **MAMA-AI:** 450 CHWs can complete a full home visit (registration -> assessment -> risk score -> referral) in <10 minutes, with 100% offline functionality.
 2. **ULALO-AI:** Model achieves AUC-ROC >=0.75 for 2-week malaria outbreak prediction on prospective validation data.
 3. **CHUMA-AI:** Stockout prediction accuracy >=70% (PPV) at 4-week horizon; referral optimization reduces "wrong facility" referrals by >=30%.
-4. **Security:** Passes independent penetration test with no critical vulnerabilities.
-5. **Privacy:** All patient data encrypted; no identifiable data in cloud analytics; compliance audit passed.
-6. **Usability:** CHW task completion rate >=90%; DHO alert response rate >=80% within 24 hours.
-7. **Integration:** Bidirectional sync with DHIS2 and iCHIS functioning with <1% data loss.
-8. **Policy:** Ministerial dashboard adopted by MoHP for at least one budget planning cycle.
+4. **SAMALA-AI:** ≥80% of Malawi-relevant health research synthesized within 30 days; self-care library covers top 20 causes of morbidity; CHW app Kuzisamala section works offline after initial sync; ≥50% of pilot households receive ≥1 knowledge asset per quarter; knowledge retention (post-test) ≥60%.
+5. **Security:** Passes independent penetration test with no critical vulnerabilities.
+6. **Privacy:** All patient data encrypted; no identifiable data in cloud analytics; compliance audit passed.
+7. **Usability:** CHW task completion rate >=90%; DHO alert response rate >=80% within 24 hours.
+8. **Integration:** Bidirectional sync with DHIS2 and iCHIS functioning with <1% data loss.
+9. **Policy:** Ministerial dashboard adopted by MoHP for at least one budget planning cycle.
 
 ---
 
