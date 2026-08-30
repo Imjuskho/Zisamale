@@ -37,6 +37,10 @@ jobs:
             context: services/dashboards
             dockerfile: services/dashboards/Dockerfile.prod
             image: zisamale-dashboard
+          - name: public
+            context: services/public
+            dockerfile: services/public/Dockerfile.prod
+            image: zisamale-public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,6 +108,7 @@ jobs:
             --set api.image.tag=${{ github.sha }} \
             --set ml.image.tag=${{ github.sha }} \
             --set dashboard.image.tag=${{ github.sha }} \
+            --set public.image.tag=${{ github.sha }} \
             --atomic --timeout 10m
 
   deploy-production:
@@ -146,9 +151,11 @@ jobs:
             --set api.image.tag=${{ steps.ver.outputs.version }} \
             --set ml.image.tag=${{ steps.ver.outputs.version }} \
             --set dashboard.image.tag=${{ steps.ver.outputs.version }} \
+            --set public.image.tag=${{ steps.ver.outputs.version }} \
             --atomic --timeout 15m
 
       - name: Verify rollout
         run: |
           kubectl -n zisamale rollout status deployment/zisamale-api --timeout=5m
           kubectl -n zisamale rollout status deployment/zisamale-dashboard --timeout=5m
+          kubectl -n zisamale rollout status deployment/zisamale-public --timeout=5m

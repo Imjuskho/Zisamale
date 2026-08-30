@@ -32,6 +32,9 @@ ml:
 dashboard:
   replicaCount: 2
 
+public:
+  replicaCount: 2
+
 postgres:
   storageSize: 20Gi
   resources:

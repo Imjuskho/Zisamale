@@ -95,6 +95,19 @@ services:
     volumes:
       - ./services/dashboards/src:/app/src
 
+  public:
+    build:
+      context: ./services/public
+      dockerfile: Dockerfile
+    container_name: zisamale-public
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api
+    volumes:
+      - ./services/public/src:/app/src
+
 volumes:
   postgres_data:
   redis_data:
