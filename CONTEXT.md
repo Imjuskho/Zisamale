@@ -103,3 +103,25 @@ deployments, households reached, average knowledge change, topic coverage.
 Status transitions enforce: consent must be granted before review, Chichewa
 title required before approval, reviewer identity required for approval.
 No asset deploys without at least one deployment record.
+
+## Public Site (Samala)
+
+**Public read seam** (`services/api/app/routers/public.py`)
+Unauthenticated `/api/v1/public` endpoints serving aggregate, no-household data
+for the public site: `guides` (active, severity/category filter),
+`guides/{guide_id}`, `districts` (aggregate risk derived from the most severe
+active alert, `_SEVERITY_TO_RISK = {3:"high",2:"medium",1:"low"}`, `null` when
+no active alert, 120s TTL cache), `facilities`. Registering/advertising in
+public routers stays explicitly off this router — it is the only data surface
+for the general public.
+
+**Samala site** (`services/public`)
+The public-facing Vite + React app (Chichewa-first, mobile-first; default
+language "ny"). Safe for any villager to open: no auth, no names, no household
+or health-record data. District is remembered locally (localStorage
+`samala-district`), never sent. Pins risk/severity semantics to the shared
+palette via `design/risk.ts` (kept in lockstep with dashboards `riskScale.ts`).
+Pages: Home (district + heat barometer + featured guides), Zindule (guide
+library by severity/topic), guide detail (tiered care steps, emergency call
+card `tel:102`, SMS share), Dziko Lathu (district risk map-by-list), Thandizo
+(emergency numbers + nearest health-centre finder).

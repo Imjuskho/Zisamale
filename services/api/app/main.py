@@ -17,6 +17,7 @@ from app.routers import chw_sync, map_layers, demo_seeder, export_routes, facili
 from app.routers import pregnancies, children
 from app.routers import registry
 from app.routers import knowledge
+from app.routers import public
 
 
 @asynccontextmanager
@@ -81,6 +82,7 @@ app.include_router(pregnancies.router)
 app.include_router(children.router)
 app.include_router(registry.router)
 app.include_router(knowledge.router)
+app.include_router(public.router)
 
 
 @app.get("/health")

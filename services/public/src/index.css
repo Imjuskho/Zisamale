@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  --color-primary-dark: #004f9e;
+  --color-surface-bg: #ffffff;
+  --color-surface: #f8f8fa;
+  --color-surface-card: #fafafc;
+  --color-surface-elevated: #ffffff;
+  --color-text: #1d1d1f;
+  --color-text-secondary: #48484a;
+  --color-text-muted: #8e8e93;
+  --color-border: #e8e8ed;
+  --color-border-subtle: #f0f0f4;
+  --color-low: #34c759;
+  --color-medium: #ffcc00;
+  --color-high: #ff9500;
+  --color-critical: #ff3b30;
+  --color-clay: #b4543b;
+  --color-leaf: #2d6a4f;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-surface-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+/* Tabular figures everywhere a number can move. */
+.text-data,
+.barometer-cell,
+.badge-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headings balance their last line; body text kills orphans. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p,
+li {
+  text-wrap: pretty;
+}
+
+/* Accessible focus ring without harsh blue boxes on every tap. */
+:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
