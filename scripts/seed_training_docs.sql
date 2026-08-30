@@ -991,6 +991,8 @@ INSERT INTO knowledge_assets (
 -- ════════════════════════════════════════════════════════════════
 
 -- Nutrition: Guide on Child Feeding
+-- Rerun-safe: drop any older same-title guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'How to Feed Your Child: A Guide for Mothers';
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,
@@ -1057,6 +1059,8 @@ INSERT INTO self_care_guides (
 ) ON CONFLICT DO NOTHING;
 
 -- TB: Guide on Recognising TB
+-- Rerun-safe: drop any older same-title guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'Recognising Tuberculosis: What You Need to Know';
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,
@@ -1123,6 +1127,8 @@ INSERT INTO self_care_guides (
 ) ON CONFLICT DO NOTHING;
 
 -- Malaria: Guide on Child Fever
+-- Rerun-safe: drop any older same-title guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'Child Has Fever? What to Do About Malaria';
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,

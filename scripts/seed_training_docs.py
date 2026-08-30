@@ -1140,7 +1140,12 @@ INSERT INTO knowledge_assets (
     lines.append("")
 
     # Nutrition guide
-    lines.append(f"""-- Nutrition: Guide on Child Feeding
+    lines.append("""-- Nutrition: Guide on Child Feeding
+-- Reruns are idempotent: a fresh uuid is minted per run, so drop any older
+-- same-title guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'How to Feed Your Child: A Guide for Mothers';
+""")
+    lines.append(f"""-- Nutrition: Guide on Child Feeding (guide row follows)
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,
@@ -1208,7 +1213,11 @@ INSERT INTO self_care_guides (
 """)
 
     # TB guide
-    lines.append(f"""-- TB: Guide on Recognising TB
+    lines.append("""-- TB: Guide on Recognising TB
+-- Reruns are idempotent: drop any older same-title guide first.
+DELETE FROM self_care_guides WHERE title = 'Recognising Tuberculosis: What You Need to Know';
+""")
+    lines.append(f"""-- TB: Guide on Recognising TB (guide row follows)
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,
@@ -1276,7 +1285,11 @@ INSERT INTO self_care_guides (
 """)
 
     # Malaria guide
-    lines.append(f"""-- Malaria: Guide on Child Fever
+    lines.append("""-- Malaria: Guide on Child Fever
+-- Reruns are idempotent: drop any older same-title guide first.
+DELETE FROM self_care_guides WHERE title = 'Child Has Fever? What to Do About Malaria';
+""")
+    lines.append(f"""-- Malaria: Guide on Child Fever (guide row follows)
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
     what_it_is, what_it_is_chichewa,

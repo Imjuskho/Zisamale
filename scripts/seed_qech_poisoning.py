@@ -225,6 +225,12 @@ INSERT INTO knowledge_assets (
 
     # ── 3. SELF-CARE GUIDE ─────────────────────────────────────────
     lines.append("-- ── 3. SELF-CARE GUIDE ─────────────────────────────────────────")
+    lines.append("""
+-- Reruns must be idempotent: a fresh uuid is minted each run, so a plain
+-- ON CONFLICT would duplicate an existing title. Drop any older same-title
+-- guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'What to Do If Someone Has Been Poisoned';
+""")
     lines.append(f"""
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,

@@ -179,6 +179,9 @@ INSERT INTO knowledge_assets (
 ) ON CONFLICT DO NOTHING;
 
 -- ── 3. SELF-CARE GUIDE ─────────────────────────────────────────
+-- Rerun-safe: a fresh uuid is minted each run, so drop any older same-title
+-- guide first (public list stays deduped).
+DELETE FROM self_care_guides WHERE title = 'What to Do If Someone Has Been Poisoned';
 
 INSERT INTO self_care_guides (
     guide_id, title, title_chichewa, category, audience, severity,
