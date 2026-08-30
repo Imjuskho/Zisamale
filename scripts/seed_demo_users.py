@@ -70,6 +70,14 @@ async def seed(url: str) -> None:
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.execute(
+                text(
+                    "INSERT INTO districts (district_id, name, region) "
+                    "VALUES (:district_id, 'Nsanje', 'south') "
+                    "ON CONFLICT (district_id) DO NOTHING"
+                ),
+                {"district_id": DISTRICT_NSANJE},
+            )
             for op in OPERATORS:
                 await conn.execute(
                     text(
@@ -87,14 +95,6 @@ async def seed(url: str) -> None:
                         "password_hash": _bcrypt_hash(OPERATOR_PASSWORD),
                     },
                 )
-            await conn.execute(
-                text(
-                    "INSERT INTO districts (district_id, name, region) "
-                    "VALUES (:district_id, 'Nsanje', 'south') "
-                    "ON CONFLICT (district_id) DO NOTHING"
-                ),
-                {"district_id": DISTRICT_NSANJE},
-            )
             await conn.execute(
                 text(
                     "INSERT INTO households (household_id, chw_id, ta_name, village_name, "

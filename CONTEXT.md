@@ -22,6 +22,14 @@ cross-catchment paths get 403 at the seam. Roles accept `*` for
 any-authenticated reads. Opt in per-endpoint via `scoped_db(...)`.
 Malformed UUID path ids return the empty contract (200 + `[]`), never a 500.
 
+**Schema migrations** (`services/api/migrations`, `alembic.ini`)
+Single reconcile baseline (`ff23260c9ee3`) is the source of truth for the app
+schema. `alembic upgrade head` on an empty DB builds it end-to-end; on a
+drifted legacy DB it is idempotent — it creates missing tables from mapped
+metadata and heals the known drift (visits/pregnancies `chw_id` varchar→uuid
++ dropped `''` default, `audit_log.user_id` uuid+FK→plain varchar). Never
+hand-ALTER a database; the drift fixes live in the migration chain now.
+
 **Alert emission point** (`services/api/app/alerts/service.py`)
 `emit_alert()` is the only way an alert enters the system. Normalizes risk to a
 canonical 0–1 scale, derives alert_level, dedupes by uuid5 idempotency key,

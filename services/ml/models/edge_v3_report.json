@@ -22,7 +22,7 @@
       "model_version": 3,
       "n_train": 4800,
       "n_test": 1200,
-      "fit_seconds": 0.25,
+      "fit_seconds": 0.27,
       "mae": 0.2937,
       "rmse": 0.3772,
       "r2": 0.9338,

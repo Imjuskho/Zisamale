@@ -34,22 +34,12 @@ jobs:
           cd services/api
           pip install -r requirements.txt
           pip install pytest pytest-asyncio
-      - name: Create database schema
+      - name: Create database schema (alembic)
         env:
           DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
         run: |
           cd services/api
-          python -c "
-          import asyncio
-          import app.models  # register all tables
-          from app.database import Base, engine
-
-          async def create():
-              async with engine.begin() as conn:
-                  await conn.run_sync(Base.metadata.create_all)
-
-          asyncio.run(create())
-          "
+          alembic upgrade head
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
@@ -138,19 +128,10 @@ jobs:
         run: |
           pip install -r services/api/requirements.txt
           pip install pytest pytest-asyncio
-      - name: Create schema + seed demo operators
+      - name: Create schema (alembic) + seed demo operators
         run: |
-          PYTHONPATH=services/api python -c "
-          import asyncio
-          import app.models  # noqa
-          from app.database import Base
-          async def create():
-              from sqlalchemy.ext.asyncio import create_async_engine
-              engine = create_async_engine('$DATABASE_URL')
-              async with engine.begin() as conn:
-                  await conn.run_sync(Base.metadata.create_all)
-          asyncio.run(create())
-          " && python scripts/seed_demo_users.py
+          cd services/api && alembic upgrade head
+          cd ../.. && python scripts/seed_demo_users.py
       - name: Start API server
         run: |
           PYTHONPATH=services/api nohup python -m uvicorn app.main:app \
