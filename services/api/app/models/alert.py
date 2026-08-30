@@ -22,8 +22,8 @@ class Alert(Base):
     confidence_interval_upper: Mapped[int | None] = mapped_column(Integer)
     recommended_actions: Mapped[dict | None] = mapped_column(JSONB, default=list)
     model_version: Mapped[str | None] = mapped_column(String(50))
-    generated_at: Mapped[str | None] = mapped_column(DateTime)
-    valid_until: Mapped[str | None] = mapped_column(DateTime)
+    generated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    valid_until: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(
         Enum("pending", "acknowledged", "in_progress", "resolved", name="response_status"),
         default="pending",
@@ -32,4 +32,4 @@ class Alert(Base):
     response_notes: Mapped[str | None] = mapped_column(String)
     actions_taken: Mapped[dict | None] = mapped_column(JSONB, default=list)
     resources_deployed: Mapped[dict | None] = mapped_column(JSONB)
-    responded_at: Mapped[str | None] = mapped_column(DateTime)
+    responded_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))

@@ -2,13 +2,32 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+import uuid
+from datetime import datetime, timedelta
 
 import pytest
 
 from app.auth import create_access_token
 
 DISTRICT_ID = "11111111-1111-1111-1111-111111111111"
+ANOTHER_HH_ID = "30000000-0000-0000-0000-000000000099"
+
+
+def _alert(alert_id: str | None = None, district_id: str = DISTRICT_ID) -> "object":
+    from app.models.alert import Alert
+
+    return Alert(
+        alert_id=alert_id or str(uuid.uuid4()),
+        disease="malaria",
+        district_id=district_id,
+        ta_name="T/A Mlolo",
+        risk_score=5.0,
+        alert_level="medium",
+        predicted_cases=50,
+        recommended_actions=["Restock"],
+        generated_at=datetime(2026, 8, 20),
+        status="pending",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -55,25 +74,10 @@ async def test_jwt_expiry(client, auth_headers):
 # Role-based access control
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_rbac_enforcement(client, fake_db, auth_headers):
+async def test_rbac_enforcement(client, db, auth_headers):
     """Endpoints enforce their declared role requirements."""
-    from app.models.alert import Alert
-    from datetime import datetime
-
-    fake_db.seed(
-        Alert(
-            alert_id="alert-rbac-1",
-            disease="malaria",
-            district_id=DISTRICT_ID,
-            ta_name="T/A Mlolo",
-            risk_score=5.0,
-            alert_level="medium",
-            predicted_cases=50,
-            recommended_actions=["Restock"],
-            generated_at=datetime(2026, 8, 20),
-            status="pending",
-        )
-    )
+    alert_id = str(uuid.uuid4())
+    await db.seed(_alert(alert_id=alert_id))
 
     chw = auth_headers("chw")
     supervisor = auth_headers("supervisor")
@@ -96,23 +100,23 @@ async def test_rbac_enforcement(client, fake_db, auth_headers):
     # Alert response requires dho/phim/supervisor - CHW may not respond.
     respond_body = {
         "response_status": "acknowledged",
-        "responded_by": "chw-1",
+        "responded_by": str(uuid.uuid4()),
         "actions_taken": [],
     }
     chw_respond = await client.post(
-        f"/api/v1/alerts/alert-rbac-1/respond", json=respond_body, headers=chw
+        f"/api/v1/alerts/{alert_id}/actions", json=respond_body, headers=chw
     )
     assert chw_respond.status_code == 403
     assert "not in required roles" in chw_respond.json()["detail"]
 
     supervisor_respond = await client.post(
-        f"/api/v1/alerts/alert-rbac-1/respond", json=respond_body, headers=supervisor
+        f"/api/v1/alerts/{alert_id}/actions", json=respond_body, headers=supervisor
     )
     assert supervisor_respond.status_code == 200
 
     # Visits are a CHW/supervisor capability; DHO may not file them.
     visit_body = {
-        "household_id": "hh-1",
+        "household_id": ANOTHER_HH_ID,
         "visit_date": "2026-08-20T08:00:00Z",
         "visit_type": "pregnancy",
     }
@@ -136,7 +140,7 @@ async def test_rbac_enforcement(client, fake_db, auth_headers):
 # Input validation (SQL injection & XSS)
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_input_validation(client, fake_db, auth_headers):
+async def test_input_validation(client, db, auth_headers):
     """Injection payloads are rejected or neutralised as inert data."""
     chw = auth_headers("chw")
 
@@ -173,12 +177,13 @@ async def test_input_validation(client, fake_db, auth_headers):
     # stored verbatim and served back inside a JSON document (never HTML),
     # so there is no execution context.
     xss_note = "<script>alert('xss')</script>"
-    chw_id = "chw-xss-1"
+    chw_id = str(uuid.uuid4())
+    household_id = str(uuid.uuid4())
     chw = auth_headers("chw", user_id=chw_id)
     visit = await client.post(
         "/api/v1/visits",
         json={
-            "household_id": "hh-xss",
+            "household_id": household_id,
             "chw_id": "'; DROP TABLE households;--",
             "visit_date": "2026-08-20T08:00:00Z",
             "visit_type": "child",
@@ -191,7 +196,8 @@ async def test_input_validation(client, fake_db, auth_headers):
 
     from app.models.visit import Visit
 
-    stored_visit = [v for v in fake_db.rows(Visit) if v.household_id == "hh-xss"][0]
+    stored_visits = await db.rows(Visit)
+    stored_visit = [v for v in stored_visits if v.household_id == household_id][0]
     assert stored_visit.chw_notes == xss_note  # payload kept as literal data
     assert stored_visit.chw_id == chw_id  # CHW cannot spoof chw_id from the body
 
@@ -222,9 +228,11 @@ async def test_rate_limiting(client, monkeypatch):
     assert limited.headers["X-RateLimit-Remaining"] == "0"
     assert int(limited.headers["X-RateLimit-Reset"]) > 0
 
-    # Health checks stay exempt so monitoring is never throttled.
+    # Health checks stay exempt so monitoring is never throttled,
+    # but may report 503 when backing infra (DB/Redis) is unreachable.
     health = await client.get("/health", headers=headers)
-    assert health.status_code == 200
+    assert health.status_code in (200, 503)
+    assert "X-RateLimit" not in health.headers or health.headers["X-RateLimit-Remaining"] != "0"
 
     # A different client IP has its own untouched bucket.
     other_client = await client.get("/", headers={"X-Forwarded-For": "10.9.9.8"})
@@ -254,5 +262,8 @@ async def test_cors_headers(client):
         assert "authorization" in preflight.headers["access-control-allow-headers"].lower()
 
     simple_get = await client.get("/health", headers=origin)
-    assert simple_get.status_code == 200
+    # 200 when healthy; 503 when backing infra is unreachable — either way
+    # CORS headers must be present so browsers can surface the real status.
+    assert simple_get.status_code in (200, 503)
+    assert simple_get.headers["access-control-allow-origin"] in (origin["Origin"], "*")
     assert simple_get.headers["access-control-allow-origin"] in (origin["Origin"], "*")

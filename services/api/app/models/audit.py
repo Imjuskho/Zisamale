@@ -11,7 +11,9 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     log_id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
-    user_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))
+    # The JWT ``sub`` is an opaque principal identifier, not necessarily a
+    # database UUID, so this is a plain string column.
+    user_id: Mapped[str | None] = mapped_column(String(255))
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))

@@ -184,12 +184,13 @@ async def _upsert_alert(
     return created
 
 
-def _coerce_date(value: Any) -> str | None:
+def _coerce_date(value: Any) -> datetime | None:
+    """Normalise an ISO date string to a real date for Date columns."""
     if not value:
         return None
     text = str(value)
     if len(text) >= 10 and text[4] == "-":
-        return text[:10]
+        return datetime.strptime(text[:10], "%Y-%m-%d").date()
     return None
 
 

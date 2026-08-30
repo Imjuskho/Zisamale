@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -15,12 +16,27 @@ from app.schemas.alert import AlertResponse, AlertRespond
 router = APIRouter(prefix="/api/v1", tags=["alerts"])
 
 
+def _require_uuid(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        # A malformed id must be a client error, not a database 500.
+        raise HTTPException(status_code=404, detail="Unknown resource id") from exc
+
+
 @router.get("/district/{district_id}/alerts")
 async def get_district_alerts(
     district_id: str,
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role("dho", "phim", "mohp", "supervisor")),
 ):
+    try:
+        _require_uuid(district_id)
+    except HTTPException:
+        # A malformed id can never reference a district; respond as a district
+        # with no open alerts rather than a database error (or leaking 404
+        # semantics that imply the district is known).
+        return {"alerts": []}
     result = await db.execute(
         select(Alert)
         .where(Alert.district_id == district_id)
@@ -64,6 +80,7 @@ async def respond_to_alert(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role("dho", "phim", "supervisor")),
 ):
+    _require_uuid(alert_id)
     result = await db.execute(select(Alert).where(Alert.alert_id == alert_id))
     alert = result.scalar_one_or_none()
     if not alert:

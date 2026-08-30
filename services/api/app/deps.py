@@ -4,9 +4,10 @@ import os
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import event
+from sqlalchemy import and_, event, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, with_loader_criteria
+from sqlalchemy.orm import Session
+from sqlalchemy.sql.selectable import Select as _Select
 
 from app.auth import decode_token
 from app.database import get_db
@@ -60,26 +61,42 @@ def actor_user_id(user: dict) -> str:
 # identity inside the JWT, or the request is rejected before any query runs.
 
 
-def _scoped_models() -> tuple[type, ...]:
-    # Imported lazily to avoid import cycles at module load.
-    from app.models.child import Child
-    from app.models.household import Household
-    from app.models.pregnancy import Pregnancy
-    from app.models.visit import Visit
-
-    return (Visit, Household, Pregnancy, Child)
-
-
 @event.listens_for(Session, "do_orm_execute")
 def _apply_chw_scope(execute_state):
     scope = execute_state.session.info.get("scope_chw_id")
     if not scope or execute_state.is_column_load or execute_state.is_relationship_load:
         return
-    options = [
-        with_loader_criteria(model, lambda cls, s=scope: cls.chw_id == s, include_aliases=True)
-        for model in _scoped_models()
-    ]
-    execute_state.statement = execute_state.statement.options(*options)
+    stmt = execute_state.statement
+    if not isinstance(stmt, _Select):
+        return
+    # Build fresh predicates per event. A value-capturing criteria lambda is
+    # unsafe here: SQLAlchemy's lambda registry can reuse a stale compiled
+    # form whose captured scope belongs to another CHW, silently narrowing the
+    # wrong catchment. Direct WHERE injection avoids that class of bug.
+    from app.models.child import Child
+    from app.models.household import Household
+    from app.models.pregnancy import Pregnancy
+    from app.models.visit import Visit
+
+    conditions: list[object] = []
+    tables = {from_.name for from_ in stmt.get_final_froms()}
+    if "households" in tables:
+        conditions.append(Household.chw_id == scope)
+    if "visits" in tables:
+        conditions.append(Visit.chw_id == scope)
+    owning_households = select(Household.household_id).where(Household.chw_id == scope)
+    if "pregnancies" in tables:
+        # Rows can carry the owner on the row itself (registration endpoints)
+        # or only via their household (scoring/ingest write paths).
+        conditions.append(
+            or_(Pregnancy.chw_id == scope, Pregnancy.household_id.in_(owning_households))
+        )
+    if "children" in tables:
+        conditions.append(
+            or_(Child.chw_id == scope, Child.household_id.in_(owning_households))
+        )
+    if conditions:
+        execute_state.statement = stmt.where(and_(*conditions))
 
 
 def scoped_db(*roles: str):

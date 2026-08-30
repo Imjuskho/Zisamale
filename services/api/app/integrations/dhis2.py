@@ -142,7 +142,9 @@ class DHIS2Client:
 
     @property
     def configured(self) -> bool:
-        return bool(self.base_url)
+        # A base URL alone is not usable: the client needs credentials to
+        # authenticate (and an empty placeholder URL must not read as ready).
+        return bool(self.base_url and (self.username or self.password))
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:

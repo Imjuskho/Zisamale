@@ -34,6 +34,22 @@ jobs:
           cd services/api
           pip install -r requirements.txt
           pip install pytest pytest-asyncio
+      - name: Create database schema
+        env:
+          DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+        run: |
+          cd services/api
+          python -c "
+          import asyncio
+          import app.models  # register all tables
+          from app.database import Base, engine
+
+          async def create():
+              async with engine.begin() as conn:
+                  await conn.run_sync(Base.metadata.create_all)
+
+          asyncio.run(create())
+          "
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
@@ -61,6 +77,90 @@ jobs:
       - name: Edge model regression (train + export parity + size budget)
         run: |
           PYTHONPATH=services/ml python -m pipelines.train_edge_models
+
+  integration-tests:
+    name: Integration Tests (real Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: zisamale_test
+          POSTGRES_USER: zisamale_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r services/api/requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Run integration suite
+        run: |
+          python -m pytest tests/integration -v
+
+  battle-tests:
+    name: Battle Tests (live API)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: zisamale_test
+          POSTGRES_USER: zisamale_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r services/api/requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Create schema + seed demo operators
+        run: |
+          PYTHONPATH=services/api python -c "
+          import asyncio
+          import app.models  # noqa
+          from app.database import Base
+          async def create():
+              from sqlalchemy.ext.asyncio import create_async_engine
+              engine = create_async_engine('$DATABASE_URL')
+              async with engine.begin() as conn:
+                  await conn.run_sync(Base.metadata.create_all)
+          asyncio.run(create())
+          " && python scripts/seed_demo_users.py
+      - name: Start API server
+        run: |
+          PYTHONPATH=services/api nohup python -m uvicorn app.main:app \
+            --host 127.0.0.1 --port 8000 > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/health && break
+            sleep 1
+          done
+      - name: Run battle suite
+        run: python -m pytest tests/battle -v
 
   android-tests:
     name: Android Build & Unit Tests

@@ -38,20 +38,20 @@ class ResearchStudy(Base):
         Enum("pending", "granted", "denied", "withdrawn", name="consent_status"),
         default="pending",
     )
-    consent_date: Mapped[str | None] = mapped_column(DateTime)
+    consent_date: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     researcher_notes: Mapped[str | None] = mapped_column(Text)
 
     health_topic: Mapped[str] = mapped_column(String(100), nullable=False)
     audience: Mapped[str | None] = mapped_column(String(100))
 
-    discovered_at: Mapped[str | None] = mapped_column(DateTime)
+    discovered_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     ingested_by: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(
         Enum("discovered", "under_review", "approved", "synthesized", "deployed", name="study_status"),
         default="discovered",
     )
-    created_at: Mapped[str | None] = mapped_column(DateTime)
-    updated_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
 
 class KnowledgeAsset(Base):
@@ -89,7 +89,7 @@ class KnowledgeAsset(Base):
     poster_url: Mapped[str | None] = mapped_column(String(500))
     flipbook_urls: Mapped[list | None] = mapped_column(JSONB, default=list)
 
-    synthesized_at: Mapped[str | None] = mapped_column(DateTime)
+    synthesized_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     synthesized_by: Mapped[str | None] = mapped_column(String(100))
     confidence_level: Mapped[str | None] = mapped_column(String(20))
     reviewed_by: Mapped[str | None] = mapped_column(String(255))
@@ -99,8 +99,8 @@ class KnowledgeAsset(Base):
         Enum("draft", "review", "approved", "deployed", name="asset_status"),
         default="draft",
     )
-    created_at: Mapped[str | None] = mapped_column(DateTime)
-    updated_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
 
 class KnowledgeDeployment(Base):
@@ -125,7 +125,7 @@ class KnowledgeDeployment(Base):
     )
     households_reached: Mapped[int | None] = mapped_column(Integer, default=0)
     individuals_reached: Mapped[int | None] = mapped_column(Integer, default=0)
-    deployed_at: Mapped[str | None] = mapped_column(DateTime)
+    deployed_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     deployed_by: Mapped[str | None] = mapped_column(String(255))
 
     knowledge_pre_score: Mapped[float | None] = mapped_column(Float)
@@ -135,10 +135,10 @@ class KnowledgeDeployment(Base):
     cases_identified: Mapped[int | None] = mapped_column(Integer, default=0)
     referrals_made: Mapped[int | None] = mapped_column(Integer, default=0)
     outcomes_tracked: Mapped[dict | None] = mapped_column(JSONB, default=dict)
-    follow_up_date: Mapped[str | None] = mapped_column(DateTime)
+    follow_up_date: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     follow_up_completed: Mapped[bool | None] = mapped_column(default=False)
     follow_up_notes: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
 
 class SelfCareGuide(Base):
@@ -174,11 +174,11 @@ class SelfCareGuide(Base):
     video_url: Mapped[str | None] = mapped_column(String(500))
 
     source: Mapped[str | None] = mapped_column(String(500))
-    last_reviewed: Mapped[str | None] = mapped_column(DateTime)
+    last_reviewed: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     reviewed_by: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool | None] = mapped_column(default=True)
-    created_at: Mapped[str | None] = mapped_column(DateTime)
-    updated_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
 
 class CommunityHealthTalk(Base):
@@ -206,8 +206,8 @@ class CommunityHealthTalk(Base):
         Enum("draft", "review", "approved", name="talk_status"),
         default="draft",
     )
-    created_at: Mapped[str | None] = mapped_column(DateTime)
-    updated_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
 
 
 class MentalHealthReferral(Base):
@@ -230,8 +230,8 @@ class MentalHealthReferral(Base):
     presenting_concern: Mapped[str | None] = mapped_column(Text)
 
     referred_to: Mapped[str | None] = mapped_column(String(255))
-    referral_date: Mapped[str | None] = mapped_column(DateTime)
-    follow_up_date: Mapped[str | None] = mapped_column(DateTime)
+    referral_date: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    follow_up_date: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     outcome: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(
         Enum("identified", "referred", "in_care", "followed_up", "resolved", "lost_to_followup", name="mh_referral_status"),
@@ -239,5 +239,5 @@ class MentalHealthReferral(Base):
     )
     chw_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))
     notes: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[str | None] = mapped_column(DateTime)
-    updated_at: Mapped[str | None] = mapped_column(DateTime)
+    created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))

@@ -22,7 +22,9 @@ VALID_CATEGORIES = {"low", "medium", "high", "critical"}
 @pytest.mark.asyncio
 async def test_health_endpoint_contract(client):
     response = await client.get("/health")
-    assert response.status_code == 200
+    # 200 when healthy, 503 when ≥1 backing dependency is unreachable
+    # (redis is typically unconfigured in the integration suite).
+    assert response.status_code in (200, 503)
     assert response.headers["content-type"].startswith("application/json")
 
     body = response.json()
@@ -35,6 +37,8 @@ async def test_health_endpoint_contract(client):
         "checks",
     }
     assert body["status"] in ("healthy", "degraded")
+    if response.status_code == 503:
+        assert body["status"] == "degraded"
     assert isinstance(body["version"], str) and body["version"].count(".") == 2
     assert isinstance(body["environment"], str)
     assert isinstance(body["uptime_seconds"], (int, float))

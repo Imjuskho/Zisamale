@@ -1,7 +1,7 @@
 """End-to-end flow tests for the Zisamale platform.
 
 Each test walks a complete business flow through the real FastAPI application
-(in-memory database, real JWT auth, real middleware stack):
+(real PostgreSQL, real JWT auth, real middleware stack):
 
 household -> pregnancy registration -> visit -> risk score -> referral
 -> facility notification, plus surveillance ingestion, alert lifecycle and
@@ -17,6 +17,7 @@ import pytest
 
 from app.models.alert import Alert
 from app.models.child import Child
+from app.models.geography import District
 from app.models.household import Household
 from app.models.pregnancy import Pregnancy
 from app.models.referral import Referral
@@ -24,12 +25,38 @@ from app.models.visit import Visit
 
 DISTRICT_ID = "11111111-1111-1111-1111-111111111111"
 FACILITY_ID = "22222222-2222-2222-2222-222222222222"
-CHW_ID = "chw-001"
+# Ownership columns (household/visit/pregnancy.chw_id) store the owning user's
+# UUID, so the CHW identity used throughout must itself be a UUID.
+CHW_ID = "10000000-0000-0000-0000-000000000001"
+DHO_ID = "20000000-0000-0000-0000-000000000001"
 
 
-def _seed_household_and_pregnancy(db) -> tuple[Household, Pregnancy]:
+def _uuid() -> str:
+    return str(uuid.uuid4())
+
+
+def _alert(district_id: str = DISTRICT_ID, disease: str = "malaria", **kw) -> Alert:
+    defaults = {
+        "alert_id": _uuid(),
+        "disease": disease,
+        "district_id": district_id,
+        "ta_name": "T/A Mlolo",
+        "risk_score": 6.4,
+        "alert_level": "medium",
+        "predicted_cases": 120,
+        "confidence_interval_lower": 90,
+        "confidence_interval_upper": 160,
+        "recommended_actions": ["Restock ACTs"],
+        "generated_at": datetime(2026, 8, 18, 10, 0, 0),
+        "status": "pending",
+    }
+    defaults.update(kw)
+    return Alert(**defaults)
+
+
+async def _seed_household_and_pregnancy(db) -> tuple[Household, Pregnancy]:
     household = Household(
-        household_id=str(uuid.uuid4()),
+        household_id=_uuid(),
         chw_id=CHW_ID,
         village_name="Chikwawa",
         ta_name="T/A Mlolo",
@@ -39,7 +66,7 @@ def _seed_household_and_pregnancy(db) -> tuple[Household, Pregnancy]:
         sync_status="synced",
     )
     pregnancy = Pregnancy(
-        pregnancy_id=str(uuid.uuid4()),
+        pregnancy_id=_uuid(),
         household_id=household.household_id,
         woman_name="Esnat Phiri",
         age=17,
@@ -52,15 +79,15 @@ def _seed_household_and_pregnancy(db) -> tuple[Household, Pregnancy]:
         risk_category="low",
         is_active=True,
     )
-    db.seed(household, pregnancy)
+    await db.seed(household, pregnancy)
     return household, pregnancy
 
 
 @pytest.mark.asyncio
-async def test_visit_flow(client, fake_db, auth_headers):
+async def test_visit_flow(client, db, auth_headers):
     """household -> pregnancy -> visit -> risk score -> referral -> facility."""
-    chw = auth_headers("chw")
-    household, pregnancy = _seed_household_and_pregnancy(fake_db)
+    chw = auth_headers("chw", user_id=CHW_ID)
+    household, pregnancy = await _seed_household_and_pregnancy(db)
 
     # 1. Risk score computed server-side from the pregnancy's vitals.
     risk_response = await client.post(
@@ -111,9 +138,12 @@ async def test_visit_flow(client, fake_db, auth_headers):
     assert visit_body["sync_status"] == "synced"
     assert visit_body["next_visit_recommendation"]["visit_type"] == "followup"
 
-    stored_visit = fake_db.rows(Visit)[0]
+    stored_visits = await db.rows(Visit)
+    assert len(stored_visits) == 1
+    stored_visit = stored_visits[0]
     assert stored_visit.pregnancy_id == pregnancy.pregnancy_id
     assert stored_visit.photos_queued == 1
+    assert stored_visit.chw_id == CHW_ID  # owner = token identity, never the body
 
     # 3. Visit triggers an emergency referral to the nearest equipped facility.
     referral_response = await client.post(
@@ -143,7 +173,9 @@ async def test_visit_flow(client, fake_db, auth_headers):
     assert referral["facility_notification_status"] == "queued"
 
     # 4. Facility notification was queued against the persisted referral.
-    stored_referral = fake_db.rows(Referral)[0]
+    stored_referrals = await db.rows(Referral)
+    assert len(stored_referrals) == 1
+    stored_referral = stored_referrals[0]
     assert stored_referral.selected_facility_id == FACILITY_ID
     assert stored_referral.facility_notified is False  # queued for dispatch
     assert stored_referral.status == "pending"
@@ -152,18 +184,16 @@ async def test_visit_flow(client, fake_db, auth_headers):
     # 5. The full trail is auditable.
     from app.models.audit import AuditLog
 
-    visit_audit_entries = [
-        entry
-        for entry in fake_db.rows(AuditLog)
-        if entry.action == "POST /api/v1/visits"
-    ]
-    assert visit_audit_entries, "visit creation should be captured in the audit log"
+    audit_rows = await db.rows(AuditLog)
+    assert any(
+        entry.action == "POST /api/v1/visits" for entry in audit_rows
+    ), "visit creation should be captured in the audit log"
 
 
 @pytest.mark.asyncio
-async def test_surveillance_flow(client, fake_db, auth_headers):
+async def test_surveillance_flow(client, db, auth_headers):
     """DHIS2 ingestion -> alert generation -> dashboard display."""
-    dho = auth_headers("dho", user_id="dho-user-1")
+    dho = auth_headers("dho", user_id=DHO_ID)
 
     ingest = await client.post(
         "/api/v1/integrations/dhis2/ingest",
@@ -202,31 +232,18 @@ async def test_surveillance_flow(client, fake_db, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_alert_lifecycle(client, fake_db, auth_headers):
+async def test_alert_lifecycle(client, db, auth_headers):
     """Create -> acknowledge -> investigate -> resolve."""
-    dho = auth_headers("dho", user_id="dho-user-1")
-    alert = Alert(
-        alert_id=str(uuid.uuid4()),
-        disease="cholera",
-        district_id=DISTRICT_ID,
-        ta_name="T/A Nyachikadza",
-        risk_score=7.9,
-        alert_level="high",
-        predicted_cases=65,
-        confidence_interval_lower=40,
-        confidence_interval_upper=95,
-        recommended_actions=["Preposition ORS", "Water treatment campaign"],
-        generated_at=datetime(2026, 8, 19, 8, 0, 0),
-        status="pending",
-    )
-    fake_db.seed(alert)
+    dho = auth_headers("dho", user_id=DHO_ID)
+    alert = _alert(disease="cholera", ta_name="T/A Nyachikadza", status="pending")
+    await db.seed(alert)
 
     async def respond(status: str, actions: list[str], notes: str):
         return await client.post(
-            f"/api/v1/alerts/{alert.alert_id}/respond",
+            f"/api/v1/alerts/{alert.alert_id}/actions",
             json={
                 "response_status": status,
-                "responded_by": "dho-user-1",
+                "responded_by": DHO_ID,
                 "actions_taken": actions,
                 "resources_deployed": {"teams": 2},
                 "notes": notes,
@@ -238,7 +255,7 @@ async def test_alert_lifecycle(client, fake_db, auth_headers):
     ack = await respond("acknowledged", ["Alert reviewed by DHO"], "Assigning surveillance team")
     assert ack.status_code == 200
     assert ack.json() == {"status": "updated", "alert_id": alert.alert_id}
-    assert fake_db.rows(Alert)[0].status == "acknowledged"
+    assert (await db.rows(Alert))[0].status == "acknowledged"
 
     # Investigate
     investigate = await respond(
@@ -247,9 +264,9 @@ async def test_alert_lifecycle(client, fake_db, auth_headers):
         "12 suspected cases under follow-up",
     )
     assert investigate.status_code == 200
-    stored = fake_db.rows(Alert)[0]
+    stored = (await db.rows(Alert))[0]
     assert stored.status == "in_progress"
-    assert stored.responded_by == "dho-user-1"
+    assert stored.responded_by == DHO_ID
     assert stored.responded_at is not None
 
     # Resolve
@@ -259,7 +276,7 @@ async def test_alert_lifecycle(client, fake_db, auth_headers):
         "No new cases for 7 consecutive days",
     )
     assert resolve.status_code == 200
-    assert fake_db.rows(Alert)[0].status == "resolved"
+    assert (await db.rows(Alert))[0].status == "resolved"
 
     # Resolved alerts no longer appear on the active dashboard.
     listing = await client.get(f"/api/v1/district/{DISTRICT_ID}/alerts", headers=dho)
@@ -268,38 +285,25 @@ async def test_alert_lifecycle(client, fake_db, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_multi_user_roles(client, fake_db, auth_headers):
+async def test_multi_user_roles(client, db, auth_headers):
     """CHWs, DHOs and MoHP users each see the data appropriate to their role."""
-    alert = Alert(
-        alert_id=str(uuid.uuid4()),
-        disease="malaria",
-        district_id=DISTRICT_ID,
-        ta_name="T/A Mlolo",
-        risk_score=6.4,
-        alert_level="medium",
-        predicted_cases=120,
-        confidence_interval_lower=90,
-        confidence_interval_upper=160,
-        recommended_actions=["Restock ACTs"],
-        generated_at=datetime(2026, 8, 18, 10, 0, 0),
-        status="pending",
-    )
-    fake_db.seed(alert)
+    await db.seed(_alert())
 
     chw = auth_headers("chw", user_id=CHW_ID)
-    dho = auth_headers("dho")
+    dho = auth_headers("dho", user_id=DHO_ID)
     mohp = auth_headers("mohp")
 
     household = Household(
-        household_id=str(uuid.uuid4()),
+        household_id=_uuid(),
         chw_id=CHW_ID,
         village_name="Chikwawa",
         distance_to_facility_km=12.0,
         sync_status="synced",
     )
     pregnancy = Pregnancy(
-        pregnancy_id=str(uuid.uuid4()),
+        pregnancy_id=_uuid(),
         household_id=household.household_id,
+        chw_id=CHW_ID,
         woman_name="Esnat Phiri",
         risk_score=8.5,
         risk_category="high",
@@ -307,14 +311,14 @@ async def test_multi_user_roles(client, fake_db, auth_headers):
         top_risk_factors=["High BP"],
     )
     child = Child(
-        child_id=str(uuid.uuid4()),
+        child_id=_uuid(),
         household_id=household.household_id,
         child_name="Chisomo Banda",
         risk_score=4.2,
         risk_category="medium",
         top_risk_factors=["Low MUAC"],
     )
-    fake_db.seed(household, pregnancy, child)
+    await db.seed(household, pregnancy, child)
 
     # CHW: field-level access only.
     assert (
@@ -337,7 +341,12 @@ async def test_multi_user_roles(client, fake_db, auth_headers):
         await client.get("/api/v1/national/overview", headers=dho)
     ).status_code == 403
 
-    # MoHP: full national visibility.
+    # MoHP: full national visibility generated by real registry SQL.
+    await db.seed(*(District(district_id=_uid, name=name, region="south") for _uid, name in [
+        ("30000000-0000-0000-0000-000000000001", "Nsanje"),
+        ("30000000-0000-0000-0000-000000000002", "Neno"),
+        ("30000000-0000-0000-0000-000000000003", "Blantyre"),
+    ]))
     overview = await client.get("/api/v1/national/overview", headers=mohp)
     assert overview.status_code == 200
     districts = overview.json()["districts"]

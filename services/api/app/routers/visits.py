@@ -50,6 +50,16 @@ def _as_list(value) -> list:
     return []
 
 
+def _valid_chw_id(value: str) -> bool:
+    # chw_id columns are UUIDs; a malformed path segment can never reference a
+    # CHW, so answer with the empty contract instead of letting asyncpg 500.
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _overdue_days(next_visit) -> int:
     if next_visit is None:
         return 0
@@ -164,6 +174,8 @@ async def get_priority_list(
     db: AsyncSession = Depends(scoped_db("*")),
     user: dict = Depends(require_role("*")),
 ):
+    if not _valid_chw_id(chw_id):
+        return {"visits": []}
     households_result = await db.execute(
         select(Household).where(Household.chw_id == chw_id)
     )
@@ -240,6 +252,8 @@ async def list_overrides(
     """CHW/supervisor review queue: overrides are the primary model-improvement labels."""
     include_notes = user.get("role") == "chw"
 
+    if not _valid_chw_id(chw_id):
+        return {"overrides": []}
     result = await db.execute(select(Visit).where(Visit.chw_id == chw_id))
     rows = [row for row in result.scalars().all() if row.chw_override]
     rows.sort(key=lambda row: str(row.visit_date or ""), reverse=True)
@@ -341,6 +355,8 @@ async def get_chw_households(
     child and visit records; head_of_household falls back to the village
     label because the schema has no household-head column.
     """
+    if not _valid_chw_id(chw_id):
+        return {"households": []}
     # Raw SQL bypasses the session row filter, so identity is bound from
     # the token here rather than taken from the path.
     chw_id = token_chw_id(user, chw_id) or chw_id

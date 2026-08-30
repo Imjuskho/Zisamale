@@ -13,10 +13,10 @@ from app.models.pregnancy import Pregnancy
 from app.models.referral import Referral
 from app.models.visit import Visit
 
-CHW_ID = "chw-sync-001"
+CHW_ID = "10000000-0000-0000-0000-0000000000b1"
 
 
-def _seed_catchment(db, chw_id: str = CHW_ID):
+async def _seed_catchment(db, chw_id: str = CHW_ID):
     household = Household(
         household_id=str(uuid.uuid4()),
         chw_id=chw_id,
@@ -42,14 +42,14 @@ def _seed_catchment(db, chw_id: str = CHW_ID):
         risk_category="low",
         top_risk_factors=[],
     )
-    db.seed(household, pregnancy, child)
+    await db.seed(household, pregnancy, child)
     return household, pregnancy, child
 
 
 @pytest.mark.asyncio
-async def test_visit_sync_is_idempotent(client, fake_db, auth_headers):
+async def test_visit_sync_is_idempotent(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
-    household, pregnancy, _ = _seed_catchment(fake_db)
+    household, pregnancy, _ = await _seed_catchment(db)
     visit_id = str(uuid.uuid4())
     payload = {
         "visit_id": visit_id,
@@ -72,7 +72,7 @@ async def test_visit_sync_is_idempotent(client, fake_db, auth_headers):
     assert second.status_code == 200
     assert second.json()["created"] is False
     assert second.json()["visit_id"] == visit_id
-    assert fake_db.count(Visit) == 1
+    assert await db.count(Visit) == 1
 
     conflict = await client.post(
         "/api/v1/visits",
@@ -83,7 +83,7 @@ async def test_visit_sync_is_idempotent(client, fake_db, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_chw_cannot_spoof_another_chw_id(client, fake_db, auth_headers):
+async def test_chw_cannot_spoof_another_chw_id(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
     response = await client.post(
         "/api/v1/visits",
@@ -96,13 +96,13 @@ async def test_chw_cannot_spoof_another_chw_id(client, fake_db, auth_headers):
         headers=chw,
     )
     assert response.status_code == 201
-    assert fake_db.rows(Visit)[0].chw_id == CHW_ID
+    assert (await db.rows(Visit))[0].chw_id == CHW_ID
 
 
 @pytest.mark.asyncio
-async def test_priority_list_comes_from_database(client, fake_db, auth_headers):
+async def test_priority_list_comes_from_database(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
-    household, pregnancy, child = _seed_catchment(fake_db)
+    household, pregnancy, child = await _seed_catchment(db)
 
     empty = await client.get(f"/api/v1/chw/{CHW_ID}/priority-list", headers=chw)
     assert empty.status_code == 200
@@ -125,7 +125,7 @@ async def test_priority_list_comes_from_database(client, fake_db, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_referral_sync_is_idempotent(client, fake_db, auth_headers):
+async def test_referral_sync_is_idempotent(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
     referral_id = str(uuid.uuid4())
     payload = {
@@ -144,11 +144,11 @@ async def test_referral_sync_is_idempotent(client, fake_db, auth_headers):
     assert second.status_code == 200
     assert second.json()["referral_id"] == referral_id
     assert second.json()["referral_code"] == code
-    assert fake_db.count(Referral) == 1
+    assert await db.count(Referral) == 1
 
 
 @pytest.mark.asyncio
-async def test_override_requires_reason(client, fake_db, auth_headers):
+async def test_override_requires_reason(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
     missing = await client.post(
         "/api/v1/visits",
@@ -176,7 +176,7 @@ async def test_override_requires_reason(client, fake_db, auth_headers):
         headers=chw,
     )
     assert ok.status_code == 201
-    stored = fake_db.rows(Visit)[-1]
+    stored = (await db.rows(Visit))[-1]
     assert stored.chw_override is True
     assert stored.ai_recommendation["model_version"] == "rule-based-v1"
 
@@ -191,7 +191,7 @@ async def test_override_requires_reason(client, fake_db, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_visit_gps_is_coarsened(client, fake_db, auth_headers):
+async def test_visit_gps_is_coarsened(client, db, auth_headers):
     chw = auth_headers("chw", user_id=CHW_ID)
     response = await client.post(
         "/api/v1/visits",
@@ -205,6 +205,6 @@ async def test_visit_gps_is_coarsened(client, fake_db, auth_headers):
         headers=chw,
     )
     assert response.status_code == 201
-    stored = fake_db.rows(Visit)[-1]
+    stored = (await db.rows(Visit))[-1]
     assert stored.gps_lat == -16.53
     assert stored.gps_lon == 35.14

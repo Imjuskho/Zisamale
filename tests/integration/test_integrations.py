@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+from datetime import date
+
 import pytest
 
 from app.models.alert import Alert
@@ -11,6 +14,11 @@ from app.models.surveillance import SurveillanceWeekly
 from app.models.visit import Visit
 
 DISTRICT_ID = "11111111-1111-1111-1111-111111111111"
+HH_ID = "40000000-0000-0000-0000-000000000001"
+PREG_ID = "40000000-0000-0000-0000-000000000002"
+VISIT_ID = "40000000-0000-0000-0000-000000000003"
+CHW_ID = "40000000-0000-0000-0000-000000000004"
+PATIENT_ID = "40000000-0000-0000-0000-000000000005"
 
 
 @pytest.mark.asyncio
@@ -28,37 +36,37 @@ async def test_cht_field_map_requires_staff(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_cht_ingest_maps_documents(client, fake_db, auth_headers):
+async def test_cht_ingest_maps_documents(client, db, auth_headers):
     phim = auth_headers("phim")
     body = {
         "documents": [
             {
-                "_id": "hh-cht-1",
+                "_id": HH_ID,
                 "type": "contact",
                 "contact_type": "household",
                 "name": "Should Not Persist",
-                "parent": {"_id": "chw-cht"},
+                "parent": {"_id": CHW_ID},
                 "geolocation": {"latitude": -16.53281, "longitude": 35.14199},
             },
             {
-                "_id": "preg-cht-1",
+                "_id": PREG_ID,
                 "type": "data_record",
                 "form": "pregnancy",
-                "contact": {"_id": "chw-cht"},
+                "contact": {"_id": CHW_ID},
                 "fields": {
-                    "place_id": "hh-cht-1",
-                    "patient_uuid": "woman-uuid",
+                    "place_id": HH_ID,
+                    "patient_uuid": PATIENT_ID,
                     "lmp_date": "2026-02-01",
                     "age": 22,
                 },
             },
             {
-                "_id": "visit-cht-1",
+                "_id": VISIT_ID,
                 "type": "data_record",
                 "form": "pregnancy_home_visit",
                 "reported_date": "2026-08-20T09:00:00Z",
-                "contact": {"_id": "chw-cht"},
-                "fields": {"place_id": "hh-cht-1", "fever": "yes"},
+                "contact": {"_id": CHW_ID},
+                "fields": {"place_id": HH_ID, "fever": "yes"},
             },
             {
                 "_id": "ignored",
@@ -75,25 +83,25 @@ async def test_cht_ingest_maps_documents(client, fake_db, auth_headers):
     assert counts["visits"] == 1
     assert counts["skipped"] == 1
 
-    household = fake_db.rows(Household)[0]
-    assert household.household_id == "hh-cht-1"
+    household = (await db.rows(Household))[0]
+    assert household.household_id == HH_ID
     assert household.village_name is None
     assert household.gps_lat == -16.53
-    pregnancy = fake_db.rows(Pregnancy)[0]
+    pregnancy = (await db.rows(Pregnancy))[0]
     assert pregnancy.woman_name is None
-    assert pregnancy.lmp_date == "2026-02-01"
-    visit = fake_db.rows(Visit)[0]
-    assert visit.visit_id == "visit-cht-1"
+    assert pregnancy.lmp_date == date(2026, 2, 1)
+    visit = (await db.rows(Visit))[0]
+    assert visit.visit_id == VISIT_ID
     assert "fever" in (visit.danger_signs or [])
 
     again = await client.post("/api/v1/integrations/cht/ingest", json=body, headers=phim)
     assert again.json()["visits"] == 1
-    assert fake_db.count(Visit) == 1
+    assert await db.count(Visit) == 1
 
 
 @pytest.mark.asyncio
 async def test_dhis2_weekly_ingest_writes_surveillance_and_alerts(
-    client, fake_db, auth_headers
+    client, db, auth_headers
 ):
     dho = auth_headers("dho")
     payload = {
@@ -112,11 +120,11 @@ async def test_dhis2_weekly_ingest_writes_surveillance_and_alerts(
     assert body["weeks_upserted"] == 2
     assert body["alerts_created"] == 1
 
-    weeks = {row.epidemiological_week: row.confirmed_cases for row in fake_db.rows(SurveillanceWeekly)}
+    weeks = {row.epidemiological_week: row.confirmed_cases for row in await db.rows(SurveillanceWeekly)}
     assert weeks["2026W32"] == 180
     assert weeks["2026W33"] == 410
 
-    alerts = fake_db.rows(Alert)
+    alerts = await db.rows(Alert)
     assert len(alerts) == 1
     assert alerts[0].disease == "malaria"
     assert alerts[0].alert_level == "red"
@@ -138,5 +146,5 @@ async def test_dhis2_weekly_ingest_writes_surveillance_and_alerts(
         "/api/v1/integrations/dhis2/ingest", json=payload, headers=dho
     )
     assert repeat.json()["alerts_created"] == 0
-    assert fake_db.count(Alert) == 1
-    assert fake_db.count(SurveillanceWeekly) == 2
+    assert await db.count(Alert) == 1
+    assert await db.count(SurveillanceWeekly) == 2
