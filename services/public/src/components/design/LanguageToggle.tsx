@@ -18,7 +18,7 @@ export function LanguageToggle() {
           language === "ny" ? "bg-apple-ink text-white" : "text-apple-muted48"
         }`}
       >
-        {language === "ny" ? "CH" : "CY"}
+        CH
       </span>
       <span
         className={`flex h-9 items-center rounded-pill px-3 transition-colors ${
