@@ -24,6 +24,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd redis-cli ping
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,12 +46,14 @@ jobs:
       - name: Create database schema (alembic)
         env:
           DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+          REDIS_URL: redis://localhost:6380/0
         run: |
           cd services/api
           alembic upgrade head
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://zisamale_test:test_password@localhost:5432/zisamale_test
+          REDIS_URL: redis://localhost:6380/0
           ENVIRONMENT: testing
         run: |
           cd services/api
