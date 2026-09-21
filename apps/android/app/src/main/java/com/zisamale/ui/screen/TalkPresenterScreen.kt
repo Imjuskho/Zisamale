@@ -1,6 +1,7 @@
 package com.zisamale.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
  * CHWs use this on a tablet during village health meetings.
  * "Log Deployment" creates a deployment record via the API.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TalkPresenterScreen(
     talk: SamalaTalk,
