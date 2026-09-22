@@ -14,20 +14,41 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MAMA_FEATURES = [
-    "age", "parity", "gravida", "prior_stillbirths", "prior_csections",
-    "prior_pph", "bp_systolic", "bp_diastolic", "hemoglobin",
-    "food_security_score", "distance_to_facility_km",
+    "age",
+    "parity",
+    "gravida",
+    "prior_stillbirths",
+    "prior_csections",
+    "prior_pph",
+    "bp_systolic",
+    "bp_diastolic",
+    "hemoglobin",
+    "food_security_score",
+    "distance_to_facility_km",
 ]
 
 SURV_FEATURES = [
-    "cases_lag1", "cases_lag2", "cases_lag4", "cases_lag8",
-    "rainfall_lag1", "rainfall_lag2", "rainfall_lag4",
-    "temperature_lag1", "humidity_lag1", "week_number", "population_density",
+    "cases_lag1",
+    "cases_lag2",
+    "cases_lag4",
+    "cases_lag8",
+    "rainfall_lag1",
+    "rainfall_lag2",
+    "rainfall_lag4",
+    "temperature_lag1",
+    "humidity_lag1",
+    "week_number",
+    "population_density",
 ]
 
 SUPPLY_FEATURES = [
-    "stock_on_hand", "monthly_consumption", "months_of_supply",
-    "lead_time_days", "consumption_trend", "consumption_volatility", "seasonal_factor",
+    "stock_on_hand",
+    "monthly_consumption",
+    "months_of_supply",
+    "lead_time_days",
+    "consumption_trend",
+    "consumption_volatility",
+    "seasonal_factor",
 ]
 
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parent.parent / "models" / "trained"
@@ -100,7 +121,9 @@ def predict_outbreak_risk(
         "predicted_class": int(pred_idx),
         "probabilities": {
             "no_outbreak": round(float(proba[0]), 4),
-            "outbreak": round(float(proba[1]) if len(proba) > 1 else float(proba[0]), 4),
+            "outbreak": round(
+                float(proba[1]) if len(proba) > 1 else float(proba[0]), 4
+            ),
         },
         "model_version": _get_model_version(model_path),
     }
@@ -117,15 +140,29 @@ def _get_model_version(model_path: Path) -> str:
 
 if __name__ == "__main__":
     sample_mama = {
-        "age": 22, "parity": 0, "gravida": 1, "prior_stillbirths": 0,
-        "prior_csections": 0, "prior_pph": 0, "bp_systolic": 130,
-        "bp_diastolic": 85, "hemoglobin": 10.5, "food_security_score": 3,
+        "age": 22,
+        "parity": 0,
+        "gravida": 1,
+        "prior_stillbirths": 0,
+        "prior_csections": 0,
+        "prior_pph": 0,
+        "bp_systolic": 130,
+        "bp_diastolic": 85,
+        "hemoglobin": 10.5,
+        "food_security_score": 3,
         "distance_to_facility_km": 8.0,
     }
     sample_surv = {
-        "cases_lag1": 25, "cases_lag2": 20, "cases_lag4": 18, "cases_lag8": 15,
-        "rainfall_lag1": 30.0, "rainfall_lag2": 25.0, "rainfall_lag4": 20.0,
-        "temperature_lag1": 27.0, "humidity_lag1": 65.0, "week_number": 42,
+        "cases_lag1": 25,
+        "cases_lag2": 20,
+        "cases_lag4": 18,
+        "cases_lag8": 15,
+        "rainfall_lag1": 30.0,
+        "rainfall_lag2": 25.0,
+        "rainfall_lag4": 20.0,
+        "temperature_lag1": 27.0,
+        "humidity_lag1": 65.0,
+        "week_number": 42,
         "population_density": 200.0,
     }
 

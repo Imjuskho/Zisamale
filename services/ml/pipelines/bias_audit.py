@@ -113,7 +113,7 @@ def audit_model_fairness(
     report = {
         "overall_metrics": {
             "auc_roc": round(overall_auc, 4) if overall_auc is not None else None,
-            "n_samples": int(len(y_test)),
+            "n_samples": len(y_test),
         },
         "subgroup_analysis": subgroup_reports,
         "fairness_flags": fairness_flags,

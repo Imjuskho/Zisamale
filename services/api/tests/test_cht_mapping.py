@@ -82,7 +82,11 @@ def test_outbound_visit_is_a_cht_report_not_a_register():
             "danger_signs": ["fever"],
             "chw_override": True,
             "chw_override_reason": "Already referred",
-            "ai_recommendation": {"risk_score": 8.2, "risk_category": "high", "model_version": "rule-based-v1"},
+            "ai_recommendation": {
+                "risk_score": 8.2,
+                "risk_category": "high",
+                "model_version": "rule-based-v1",
+            },
         }
     )
     assert report["type"] == "data_record"
@@ -98,9 +102,7 @@ def test_field_map_catalog_is_explicit():
 
 
 def test_parse_analytics_list_and_json():
-    cells = parse_analytics_payload(
-        [["malaria_confirmed", "ou1", "2026W33", "410"]]
-    )
+    cells = parse_analytics_payload([["malaria_confirmed", "ou1", "2026W33", "410"]])
     assert cells[0]["value"] == "410"
     payload = {
         "headers": [{"name": "dx"}, {"name": "ou"}, {"name": "pe"}, {"name": "value"}],

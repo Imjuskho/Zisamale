@@ -86,17 +86,13 @@ async def test_national_overview_requires_auth(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_national_overview_shape(client: AsyncClient):
     """Districts come from the geography registry; unknown metrics are null."""
-    response = await client.get(
-        "/api/v1/national/overview", headers=_mohp_headers()
-    )
+    response = await client.get("/api/v1/national/overview", headers=_mohp_headers())
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data["districts"], list)
     assert isinstance(data["national_summary"]["districts_monitored"], int)
     for district in data["districts"]:
-        assert {"district_id", "district_name", "facility_count", "active_alerts"} <= set(
-            district
-        )
+        assert {"district_id", "district_name", "facility_count", "active_alerts"} <= set(district)
         assert district["maternal_mortality_ratio"] is None
         assert district["essential_service_coverage"] is None
         assert district["malaria_risk_level"] in ("low", "medium", "high", None)
@@ -106,9 +102,7 @@ async def test_national_overview_shape(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_national_overview_forbidden_for_chw(client: AsyncClient):
-    response = await client.get(
-        "/api/v1/national/overview", headers=_chw_headers()
-    )
+    response = await client.get("/api/v1/national/overview", headers=_chw_headers())
     assert response.status_code == 403
 
 

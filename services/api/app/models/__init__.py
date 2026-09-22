@@ -1,14 +1,8 @@
-from app.models.user import User
-from app.models.geography import District, TraditionalAuthority, Village
-from app.models.facility import Facility
-from app.models.household import Household
-from app.models.pregnancy import Pregnancy
-from app.models.child import Child
-from app.models.visit import Visit
-from app.models.referral import Referral
 from app.models.alert import Alert
+from app.models.audit import AuditLog
+from app.models.child import Child
+from app.models.climate import ClimateDaily
 from app.models.commodity import Commodity, FacilityStock, StockoutHistory
-from app.models.surveillance import SurveillanceWeekly
 from app.models.community import (
     ColdChainUnit,
     CommunityPin,
@@ -16,18 +10,24 @@ from app.models.community import (
     SupplyTruck,
     TraditionalBirthAttendant,
 )
-from app.models.climate import ClimateDaily
-from app.models.audit import AuditLog
-from app.models.ml_model import MLModel
-from app.models.ml_telemetry import ModelTelemetry
+from app.models.facility import Facility
+from app.models.geography import District, TraditionalAuthority, Village
+from app.models.household import Household
 from app.models.knowledge import (
-    ResearchStudy,
+    CommunityHealthTalk,
     KnowledgeAsset,
     KnowledgeDeployment,
-    SelfCareGuide,
-    CommunityHealthTalk,
     MentalHealthReferral,
+    ResearchStudy,
+    SelfCareGuide,
 )
+from app.models.ml_model import MLModel
+from app.models.ml_telemetry import ModelTelemetry
+from app.models.pregnancy import Pregnancy
+from app.models.referral import Referral
+from app.models.surveillance import SurveillanceWeekly
+from app.models.user import User
+from app.models.visit import Visit
 
 __all__ = [
     "User",

@@ -7,7 +7,9 @@ def _coerce_list_str(v: object) -> list[str]:
     """Ensure value is a list of strings. Coerces dicts by extracting 'finding' or 'action'."""
     if isinstance(v, list):
         return [
-            item.get("finding", item.get("action", str(item))) if isinstance(item, dict) else str(item)
+            item.get("finding", item.get("action", str(item)))
+            if isinstance(item, dict)
+            else str(item)
             for item in v
         ]
     if isinstance(v, dict):
@@ -131,7 +133,9 @@ class KnowledgeAssetResponse(BaseModel):
     def coerce_jsonb(cls, data: dict) -> dict:
         if isinstance(data, dict):
             data["actionable_takeaways"] = _coerce_list_str(data.get("actionable_takeaways", []))
-            data["actionable_takeaways_chichewa"] = _coerce_list_str(data.get("actionable_takeaways_chichewa", []))
+            data["actionable_takeaways_chichewa"] = _coerce_list_str(
+                data.get("actionable_takeaways_chichewa", [])
+            )
             data["evidence_refs"] = _coerce_list_dict(data.get("evidence_refs", []))
         return data
 
@@ -249,10 +253,14 @@ class SelfCareGuideResponse(BaseModel):
     def coerce_jsonb(cls, data: dict) -> dict:
         if isinstance(data, dict):
             for field in (
-                "what_to_do_now", "what_to_do_now_chichewa",
-                "what_not_to_do", "what_not_to_do_chichewa",
-                "prevention", "prevention_chichewa",
-                "treatment_limitations", "treatment_limitations_chichewa",
+                "what_to_do_now",
+                "what_to_do_now_chichewa",
+                "what_not_to_do",
+                "what_not_to_do_chichewa",
+                "prevention",
+                "prevention_chichewa",
+                "treatment_limitations",
+                "treatment_limitations_chichewa",
             ):
                 data[field] = _coerce_list_str(data.get(field, []))
             for field in ("clinical_decision_points", "clinical_decision_points_chichewa"):

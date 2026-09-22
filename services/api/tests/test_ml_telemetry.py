@@ -15,8 +15,6 @@ def _chw_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-
-
 @pytest_asyncio.fixture
 async def client():
     transport = ASGITransport(app=app)

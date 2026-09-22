@@ -166,9 +166,6 @@ async def test_child_idempotent(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_pregnancy_gps_coarsened(client: AsyncClient):
-    from sqlalchemy import select
-    from app.database import get_db
-    from app.models.pregnancy import Pregnancy
 
     payload = _pregnancy(gps_lat=-15.4167, gps_lon=35.2333)
     await client.post(
@@ -228,25 +225,29 @@ async def test_batch_sync_includes_pregnancies_and_children(client: AsyncClient)
             "device_id": "test-device",
             "chw_id": "f6a1f844-81e6-4331-a169-764676c36565",
             "chw_name": "Grace Test",
-            "pregnancies": [{
-                "pregnancy_id": preg_id,
-                "household_id": hh_id,
-                "woman_name": "Mary",
-                "age": 24,
-                "parity": 1,
-                "gravida": 2,
-                "gps_lat": -15.4167,
-                "gps_lon": 35.2333,
-            }],
-            "children": [{
-                "child_id": child_id,
-                "household_id": hh_id,
-                "child_name": "Chiwanja",
-                "sex": "male",
-                "birth_weight_kg": 3.2,
-                "gps_lat": -15.4167,
-                "gps_lon": 35.2333,
-            }],
+            "pregnancies": [
+                {
+                    "pregnancy_id": preg_id,
+                    "household_id": hh_id,
+                    "woman_name": "Mary",
+                    "age": 24,
+                    "parity": 1,
+                    "gravida": 2,
+                    "gps_lat": -15.4167,
+                    "gps_lon": 35.2333,
+                }
+            ],
+            "children": [
+                {
+                    "child_id": child_id,
+                    "household_id": hh_id,
+                    "child_name": "Chiwanja",
+                    "sex": "male",
+                    "birth_weight_kg": 3.2,
+                    "gps_lat": -15.4167,
+                    "gps_lon": 35.2333,
+                }
+            ],
         },
     )
     assert response.status_code == 200

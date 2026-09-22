@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from app.security.file_scanner import scan_file, quarantine_suspicious
+from app.security.file_scanner import quarantine_suspicious, scan_file
 
 UPLOAD_DIR = Path("uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -24,7 +24,9 @@ _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 
 async def save_upload(file: UploadFile, visit_id: str | None = None) -> dict:
     if file.content_type not in ALLOWED_TYPES:
-        raise ValueError(f"File type '{file.content_type}' not allowed. Use: {list(ALLOWED_TYPES.keys())}")
+        raise ValueError(
+            f"File type '{file.content_type}' not allowed. Use: {list(ALLOWED_TYPES.keys())}"
+        )
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
@@ -40,10 +42,7 @@ async def save_upload(file: UploadFile, visit_id: str | None = None) -> dict:
     ext = ALLOWED_TYPES.get(file.content_type, ".bin")
 
     # Sanitize visit_id — must be UUID format or "unassigned"
-    if visit_id and _UUID_RE.match(visit_id):
-        subdir = visit_id
-    else:
-        subdir = "unassigned"
+    subdir = visit_id if visit_id and _UUID_RE.match(visit_id) else "unassigned"
 
     upload_path = UPLOAD_DIR / subdir
     upload_path.mkdir(parents=True, exist_ok=True)

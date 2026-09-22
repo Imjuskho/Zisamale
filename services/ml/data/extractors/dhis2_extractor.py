@@ -16,6 +16,7 @@ otherwise). The HTTP session is injectable for testing without network access.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 from collections.abc import Mapping, Sequence
@@ -125,17 +126,19 @@ class DHIS2Extractor(BaseExtractor):
         response = getattr(exc, "response", None)
         status = getattr(response, "status_code", None)
         if status is not None and status in _RETRYABLE_STATUS_CODES:
-            return TransientError(f"DHIS2 returned {status}: retryable upstream failure")
+            return TransientError(
+                f"DHIS2 returned {status}: retryable upstream failure"
+            )
         if status is not None:
             body = ""
-            try:
+            with contextlib.suppress(Exception):
                 body = str(getattr(response, "text", ""))[:300]
-            except Exception:  # pragma: no cover - defensive
-                pass
             return PermanentError(f"DHIS2 rejected request ({status}): {body}")
         return TransientError(f"DHIS2 connection failure: {exc}")
 
-    def _get_json(self, path: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    def _get_json(
+        self, path: str, params: Mapping[str, Any] | None = None
+    ) -> dict[str, Any]:
         """GET a JSON document with retries, breaker protection and error mapping."""
         url = self._url(path)
 
@@ -199,7 +202,9 @@ class DHIS2Extractor(BaseExtractor):
             TransientError: When retries against 5xx/timeout are exhausted.
         """
         if not org_units or not data_elements or not periods:
-            raise ValueError("org_units, data_elements and periods must all be non-empty")
+            raise ValueError(
+                "org_units, data_elements and periods must all be non-empty"
+            )
 
         dimension = (
             f"dx:{';'.join(data_elements)};"
@@ -219,8 +224,16 @@ class DHIS2Extractor(BaseExtractor):
                 "displayProperty": "NAME",
                 **dict(self.config.extra_params),
             }
-            key_parts = ["analytics", sorted(org_units), sorted(data_elements), sorted(periods), page]
-            payload = self._cached(key_parts, lambda p=params: self._get_json("/analytics", p))
+            key_parts = [
+                "analytics",
+                sorted(org_units),
+                sorted(data_elements),
+                sorted(periods),
+                page,
+            ]
+            payload = self._cached(
+                key_parts, lambda p=params: self._get_json("/analytics", p)
+            )
 
             headers = payload.get("headers") or headers
             rows.extend(payload.get("rows") or [])
@@ -237,7 +250,9 @@ class DHIS2Extractor(BaseExtractor):
         column_names = [str(h.get("name")) for h in headers]
         frame = pd.DataFrame(rows, columns=column_names)
         if frame.empty:
-            logger.warning("DHIS2 analytics returned 0 rows for the requested dimensions")
+            logger.warning(
+                "DHIS2 analytics returned 0 rows for the requested dimensions"
+            )
             return pd.DataFrame(columns=["org_unit", "data_element", "period", "value"])
 
         rename_map = {"dx": "data_element", "pe": "period", "ou": "org_unit"}
@@ -275,7 +290,9 @@ class DHIS2Extractor(BaseExtractor):
             results.extend(payload.get("organisationUnits") or [])
         return results
 
-    def push_ai_indicators(self, indicators: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    def push_ai_indicators(
+        self, indicators: Sequence[Mapping[str, Any]]
+    ) -> dict[str, Any]:
         """Push Zisamale predictions back to DHIS2 as data values.
 
         Args:
@@ -327,11 +344,9 @@ class _HTTPStatusError(PermanentError):
     def __init__(self, response: Any) -> None:
         self.response = response
         snippet = ""
-        try:
+        with contextlib.suppress(Exception):
             snippet = str(response.text)[:300]
-        except Exception:  # pragma: no cover - defensive
-            pass
         super().__init__(f"HTTP {response.status_code} from DHIS2: {snippet}")
 
 
-__all__ = ["DHIS2Config", "DHIS2Extractor", "MAX_PAGE_SIZE"]
+__all__ = ["MAX_PAGE_SIZE", "DHIS2Config", "DHIS2Extractor"]

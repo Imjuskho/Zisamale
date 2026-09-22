@@ -31,21 +31,21 @@ class ChildCreate(BaseModel):
     @classmethod
     def validate_sex(cls, v: str | None) -> str | None:
         if v is not None and v not in ("male", "female"):
-            raise ValueError(f"sex must be one of: male, female")
+            raise ValueError("sex must be one of: male, female")
         return v
 
     @field_validator("risk_category")
     @classmethod
     def validate_risk_category(cls, v: str) -> str:
         if v not in ("low", "medium", "high", "critical"):
-            raise ValueError(f"risk_category must be one of: low, medium, high, critical")
+            raise ValueError("risk_category must be one of: low, medium, high, critical")
         return v
 
     @field_validator("iccm_category")
     @classmethod
     def validate_iccm_category(cls, v: str) -> str:
         if v not in ("uncomplicated", "severe", "referral"):
-            raise ValueError(f"iccm_category must be one of: uncomplicated, severe, referral")
+            raise ValueError("iccm_category must be one of: uncomplicated, severe, referral")
         return v
 
 

@@ -38,6 +38,7 @@ async def client():
 
 # --- Health endpoint ---
 
+
 @pytest.mark.asyncio
 async def test_health_endpoint_has_all_fields(client: AsyncClient):
     response = await client.get("/health")
@@ -59,6 +60,7 @@ async def test_health_checks_database(client: AsyncClient):
 
 # --- Root endpoint ---
 
+
 @pytest.mark.asyncio
 async def test_root_includes_websocket_info(client: AsyncClient):
     response = await client.get("/")
@@ -68,6 +70,7 @@ async def test_root_includes_websocket_info(client: AsyncClient):
 
 
 # --- ML Predictions ---
+
 
 @pytest.mark.asyncio
 async def test_pregnancy_risk_basic(client: AsyncClient):
@@ -190,6 +193,7 @@ async def test_child_risk_severe_malnutrition(client: AsyncClient):
 
 # --- Export endpoints ---
 
+
 @pytest.mark.asyncio
 async def test_export_alerts_csv(client: AsyncClient):
     response = await client.get(
@@ -216,6 +220,7 @@ async def test_export_surveillance_csv(client: AsyncClient):
 
 
 # --- Upload endpoint ---
+
 
 @pytest.mark.asyncio
 async def test_upload_stats(client: AsyncClient):
@@ -321,6 +326,7 @@ def _dhis2_client(handler, **kwargs) -> DHIS2Client:
 
 def test_dhis2_fetch_analytics_paginates(tmp_path):
     calls: list[httpx.Request] = []
+
     def handler(request: httpx.Request) -> httpx.Response:
         calls.append(request)
         page = int(request.url.params.get("page", "1"))
@@ -438,9 +444,7 @@ def test_dhis2_filesystem_cache_hit_and_expiry(tmp_path):
             json={"organisationUnits": [{"id": "OU-9", "name": "Chilomoni"}]},
         )
 
-    client = _dhis2_client(
-        handler, cache_dir=tmp_path, cache_ttl_seconds=3600
-    )
+    client = _dhis2_client(handler, cache_dir=tmp_path, cache_ttl_seconds=3600)
 
     async def run_twice() -> tuple[dict, dict]:
         try:
@@ -679,9 +683,7 @@ async def test_escalate_skips_recent_or_acknowledged_alerts():
 
 @pytest.mark.asyncio
 async def test_integration_status_endpoint(client: AsyncClient):
-    response = await client.get(
-        "/api/v1/integrations/status", headers=_headers("mohp")
-    )
+    response = await client.get("/api/v1/integrations/status", headers=_headers("mohp"))
     assert response.status_code == 200
     data = response.json()
     integrations = data["integrations"]
@@ -699,9 +701,7 @@ async def test_integration_status_requires_auth(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_dhis2_status_endpoint(client: AsyncClient):
-    response = await client.get(
-        "/api/v1/integrations/dhis2/status", headers=_headers("phim")
-    )
+    response = await client.get("/api/v1/integrations/dhis2/status", headers=_headers("phim"))
     assert response.status_code == 200
     data = response.json()
     assert data["integration"] == "dhis2"

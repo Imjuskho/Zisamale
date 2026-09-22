@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.alerts.service import emit_alert
+from app.config import settings
 from app.integrations.cht_mapping import map_cht_document
 from app.integrations.dhis2 import DHIS2Adapter, parse_analytics_payload
 from app.models.household import Household
@@ -290,7 +290,9 @@ async def ingest_cht_documents(db: AsyncSession, documents: list[dict]) -> dict[
 
 
 async def _upsert_pregnancy(db: AsyncSession, mapped: dict[str, Any]) -> None:
-    result = await db.execute(select(Pregnancy).where(Pregnancy.pregnancy_id == mapped["pregnancy_id"]))
+    result = await db.execute(
+        select(Pregnancy).where(Pregnancy.pregnancy_id == mapped["pregnancy_id"])
+    )
     row = result.scalar_one_or_none()
     values = dict(
         household_id=mapped.get("household_id"),
@@ -319,13 +321,13 @@ async def _upsert_visit(db: AsyncSession, mapped: dict[str, Any]) -> None:
     result = await db.execute(select(Visit).where(Visit.visit_id == visit_id))
     if result.scalar_one_or_none():
         return
-    visit_date = mapped.get("visit_date") or datetime.now(timezone.utc)
+    visit_date = mapped.get("visit_date") or datetime.now(UTC)
     if isinstance(visit_date, (int, float)):
         # CHT reported_date is epoch milliseconds.
         ts = float(visit_date)
         if ts > 10_000_000_000:
             ts = ts / 1000
-        visit_date = datetime.fromtimestamp(ts, tz=timezone.utc)
+        visit_date = datetime.fromtimestamp(ts, tz=UTC)
     db.add(
         Visit(
             visit_id=visit_id,

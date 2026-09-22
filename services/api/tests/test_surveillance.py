@@ -13,9 +13,7 @@ def _token(role: str, **extra) -> dict[str, str]:
     payload = {"sub": f"{role}-surv-test", "role": role}
     if extra:
         payload.update(extra)
-    return {
-        "Authorization": f"Bearer {create_access_token(payload)}"
-    }
+    return {"Authorization": f"Bearer {create_access_token(payload)}"}
 
 
 @pytest.fixture
@@ -50,9 +48,7 @@ async def test_surveillance_forbids_chw_role(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_summary_shape(client: AsyncClient):
-    response = await client.get(
-        SURVEILLANCE_PATHS[0], headers=_token("mohp")
-    )
+    response = await client.get(SURVEILLANCE_PATHS[0], headers=_token("mohp"))
     assert response.status_code == 200
     body = response.json()
     assert set(body) >= {
@@ -69,9 +65,7 @@ async def test_summary_shape(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_heatmap_cells_carry_null_risk_when_no_visits(client: AsyncClient):
-    response = await client.get(
-        "/api/v1/surveillance/chw/heatmap", headers=_token("dho")
-    )
+    response = await client.get("/api/v1/surveillance/chw/heatmap", headers=_token("dho"))
     assert response.status_code == 200
     body = response.json()
     assert set(body) >= {"cells", "max_visit_count", "source_meta"}
@@ -89,9 +83,7 @@ async def test_heatmap_cells_carry_null_risk_when_no_visits(client: AsyncClient)
 
 @pytest.mark.asyncio
 async def test_overrides_shape(client: AsyncClient):
-    response = await client.get(
-        "/api/v1/surveillance/chw/overrides", headers=_token("phim")
-    )
+    response = await client.get("/api/v1/surveillance/chw/overrides", headers=_token("phim"))
     assert response.status_code == 200
     body = response.json()
     assert isinstance(body["overrides"], list)
@@ -101,9 +93,7 @@ async def test_overrides_shape(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_chw_vs_dhis2_is_honest_about_missing_integration(client: AsyncClient):
-    response = await client.get(
-        SURVEILLANCE_PATHS[3], headers=_token("mohp")
-    )
+    response = await client.get(SURVEILLANCE_PATHS[3], headers=_token("mohp"))
     assert response.status_code == 200
     body = response.json()
     assert body["dhis2_connected"] is False

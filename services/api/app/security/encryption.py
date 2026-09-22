@@ -20,9 +20,7 @@ KEY_BYTES = 32
 
 def hash_password_bcrypt(password: str) -> str:
     """Hash a password with bcrypt and a per-hash random salt."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode(
-        "utf-8"
-    )
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
 
 
 def verify_password_bcrypt(password: str, hashed: str) -> bool:

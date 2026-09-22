@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
     roc_auc_score,
 )
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -100,11 +99,15 @@ def _cross_validate(X: pd.DataFrame, y: pd.Series, n_folds: int = 5) -> dict:
 
         acc_scores.append(accuracy_score(y_val, y_pred))
         try:
-            auc_scores.append(roc_auc_score(y_val, y_proba, multi_class="ovr", average="weighted"))
+            auc_scores.append(
+                roc_auc_score(y_val, y_proba, multi_class="ovr", average="weighted")
+            )
         except ValueError:
             auc_scores.append(0.0)
 
-        logger.info(f"  Fold {fold}: accuracy={acc_scores[-1]:.4f}  auc={auc_scores[-1]:.4f}")
+        logger.info(
+            f"  Fold {fold}: accuracy={acc_scores[-1]:.4f}  auc={auc_scores[-1]:.4f}"
+        )
 
     return {
         "cv_accuracy_mean": round(float(np.mean(acc_scores)), 4),
@@ -134,12 +137,10 @@ def train(df: pd.DataFrame, output_dir: Path) -> dict:
     logger.info("Running 5-fold cross-validation...")
     cv_metrics = _cross_validate(X, y_encoded)
 
-    logger.info("Running temporal cross-validation (first 80% train, last 20% validate)...")
-    temporal_metrics = _temporal_cv(X, y_encoded)
-
-    report = classification_report(
-        y_test, y_pred, labels=list(LABEL_MAP.values()), target_names=LABEL_NAMES, zero_division=0
+    logger.info(
+        "Running temporal cross-validation (first 80% train, last 20% validate)..."
     )
+    temporal_metrics = _temporal_cv(X, y_encoded)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     model_path = output_dir / "mama_risk_scorer.joblib"
@@ -163,11 +164,13 @@ def train(df: pd.DataFrame, output_dir: Path) -> dict:
     logger.info("MAMA-AI model trained successfully")
     logger.info(f"  Accuracy: {accuracy:.4f}")
     logger.info(f"  AUC-ROC (weighted): {auc:.4f}")
-    logger.info(f"  CV accuracy: {cv_metrics['cv_accuracy_mean']:.4f} +/- {cv_metrics['cv_accuracy_std']:.4f}")
-    logger.info(f"  CV AUC: {cv_metrics['cv_auc_mean']:.4f} +/- {cv_metrics['cv_auc_std']:.4f}")
     logger.info(
-        f"  Temporal CV AUC: {temporal_metrics['temporal_cv_auc']:.4f}"
+        f"  CV accuracy: {cv_metrics['cv_accuracy_mean']:.4f} +/- {cv_metrics['cv_accuracy_std']:.4f}"
     )
+    logger.info(
+        f"  CV AUC: {cv_metrics['cv_auc_mean']:.4f} +/- {cv_metrics['cv_auc_std']:.4f}"
+    )
+    logger.info(f"  Temporal CV AUC: {temporal_metrics['temporal_cv_auc']:.4f}")
     logger.info(f"  Model saved to: {model_path}")
     logger.info(f"  Metrics saved to: {metrics_path}")
 
@@ -185,9 +188,7 @@ def predict(model_path: Path, features: dict) -> dict:
     return {
         "risk_category": inv_map[pred_idx],
         "risk_score": round(float(max(proba) * 10), 1),
-        "probabilities": {
-            inv_map[i]: round(float(p), 4) for i, p in enumerate(proba)
-        },
+        "probabilities": {inv_map[i]: round(float(p), 4) for i, p in enumerate(proba)},
     }
 
 

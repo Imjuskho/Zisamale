@@ -8,13 +8,10 @@ POST /api/v1/pregnancies
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.deps import require_role, scoped_db
 from app.models.pregnancy import Pregnancy
 from app.schemas.pregnancy import PregnancyCreate, PregnancyResponse
@@ -59,9 +56,7 @@ async def register_pregnancy(
     if payload.edd_date:
         edd_date = parse_client_datetime(payload.edd_date).date()
     next_visit_date = (
-        parse_client_datetime(payload.next_visit_date).date()
-        if payload.next_visit_date
-        else None
+        parse_client_datetime(payload.next_visit_date).date() if payload.next_visit_date else None
     )
 
     row = Pregnancy(

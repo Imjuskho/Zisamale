@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from collections import defaultdict
 
@@ -42,14 +41,20 @@ class ConnectionManager:
 
     async def broadcast_alert(self, alert: dict) -> None:
         district_id = alert.get("district_id", "all")
-        await self.broadcast(f"alerts:{district_id}", {
-            "type": "alert",
-            "data": alert,
-        })
-        await self.broadcast("alerts:all", {
-            "type": "alert",
-            "data": alert,
-        })
+        await self.broadcast(
+            f"alerts:{district_id}",
+            {
+                "type": "alert",
+                "data": alert,
+            },
+        )
+        await self.broadcast(
+            "alerts:all",
+            {
+                "type": "alert",
+                "data": alert,
+            },
+        )
 
     def get_connection_count(self) -> int:
         return sum(len(conns) for conns in self._connections.values())

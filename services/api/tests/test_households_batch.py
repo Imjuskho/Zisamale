@@ -33,8 +33,6 @@ def _household(**overrides) -> dict:
     return base
 
 
-
-
 @pytest_asyncio.fixture
 async def client():
     transport = ASGITransport(app=app)
@@ -81,9 +79,7 @@ async def test_household_repush_is_update_not_duplicate(client: AsyncClient):
     second = await client.post(
         "/api/v1/households/batch",
         headers=_chw_headers(),
-        json={
-            "households": [{**payload, "village_name": "Mkhoma II"}]
-        },
+        json={"households": [{**payload, "village_name": "Mkhoma II"}]},
     )
     assert second.status_code == 200
     body = second.json()

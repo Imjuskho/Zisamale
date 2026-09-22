@@ -25,8 +25,8 @@ import random
 import threading
 import time
 from abc import ABC
-from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, TypeVar
@@ -146,11 +146,17 @@ class RetryPolicy:
     jitter: float = 0.25
     retry_on: tuple[type[Exception], ...] = (TransientError,)
 
-    def delay_for_attempt(self, attempt: int, rng: random.Random | None = None) -> float:
+    def delay_for_attempt(
+        self, attempt: int, rng: random.Random | None = None
+    ) -> float:
         """Sleep duration in seconds after ``attempt`` (1-indexed) failed."""
         delay = min(self.backoff_base * (2 ** (attempt - 1)), self.backoff_max)
         jitter_frac = max(0.0, min(self.jitter, 1.0))
-        return delay * (1.0 + rng.uniform(-jitter_frac, jitter_frac) if rng else jitter_frac * random.random())
+        return delay * (
+            1.0 + rng.uniform(-jitter_frac, jitter_frac)
+            if rng
+            else jitter_frac * random.random()
+        )
 
 
 class TTLCache:
@@ -190,7 +196,9 @@ class TTLCache:
         return "none"
 
     def _make_key(self, key_parts: Iterable[Any]) -> str:
-        canonical = json.dumps([self.namespace, *key_parts], sort_keys=True, default=str)
+        canonical = json.dumps(
+            [self.namespace, *key_parts], sort_keys=True, default=str
+        )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def get(self, key_parts: Iterable[Any]) -> Any | None:
@@ -207,7 +215,7 @@ class TTLCache:
                 return None
             try:
                 expires_at, payload = pickle.loads(path.read_bytes())
-            except Exception:  # corrupted entry -- treat as a miss
+            except Exception:  # noqa: BLE001 - corrupted entry, treat as a miss
                 logger.warning("Discarding corrupted cache file %s", path)
                 path.unlink(missing_ok=True)
                 return None
@@ -217,7 +225,9 @@ class TTLCache:
             return payload
         return None
 
-    def set(self, key_parts: Iterable[Any], value: Any, ttl_seconds: float | None = None) -> None:
+    def set(
+        self, key_parts: Iterable[Any], value: Any, ttl_seconds: float | None = None
+    ) -> None:
         """Store ``value`` under ``key_parts`` with a time-to-live."""
         ttl = ttl_seconds if ttl_seconds is not None else self.ttl_seconds
         key = self._make_key(key_parts)

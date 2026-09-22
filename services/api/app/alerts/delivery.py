@@ -48,9 +48,7 @@ class DeliveryReceipt:
     alert_id: str
     channel: str
     status: str
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     recipient: str | None = None
     detail: str | None = None
 
@@ -214,9 +212,7 @@ class AlertDeliveryService:
             )
 
         area = (
-            _alert_field(payload, "ta_name")
-            or _alert_field(payload, "district_id")
-            or "your area"
+            _alert_field(payload, "ta_name") or _alert_field(payload, "district_id") or "your area"
         )
         predicted = _alert_field(payload, "predicted_cases", "n/a")
         message = (
@@ -298,8 +294,7 @@ class AlertDeliveryService:
             f"Predicted cases: {_alert_field(payload, 'predicted_cases')}\n\n"
             f"Recommended actions:\n"
             + "\n".join(
-                f"- {action}"
-                for action in (_alert_field(payload, "recommended_actions") or [])
+                f"- {action}" for action in (_alert_field(payload, "recommended_actions") or [])
             )
         )
 
@@ -398,9 +393,11 @@ class AlertDeliveryService:
         Returns a summary; `escalated` is False when the alert was already
         acknowledged, is too recent, or is unknown to this service.
         """
-        snapshot = dict(alert_to_dict(alert)) if alert is not None else (
-            self._alerts.get(alert_id) or {}
-        ).copy()
+        snapshot = (
+            dict(alert_to_dict(alert))
+            if alert is not None
+            else (self._alerts.get(alert_id) or {}).copy()
+        )
         if not snapshot:
             return {"escalated": False, "reason": "unknown_alert", "alert_id": alert_id}
 
@@ -441,11 +438,10 @@ class AlertDeliveryService:
         recipients = escalation_recipients or {}
         recipient_key = {"sms": "phone", "email": "email"}
         if recipients:
-            channels = [
-                ch
-                for ch in ("sms", "email")
-                if recipients.get(recipient_key[ch])
-            ] or ["sms", "email"]
+            channels = [ch for ch in ("sms", "email") if recipients.get(recipient_key[ch])] or [
+                "sms",
+                "email",
+            ]
         else:
             channels = ["sms", "email"]
 

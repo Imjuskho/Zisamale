@@ -77,14 +77,9 @@ def parse_analytics_payload(payload: dict[str, Any] | list) -> list[dict[str, An
 def _cell_from_mapping(cell: dict[str, Any]) -> dict[str, Any]:
     return {
         "data_element": str(
-            cell.get("dx")
-            or cell.get("dataElement")
-            or cell.get("data_element")
-            or ""
+            cell.get("dx") or cell.get("dataElement") or cell.get("data_element") or ""
         ),
-        "org_unit": str(
-            cell.get("ou") or cell.get("orgUnit") or cell.get("org_unit") or ""
-        ),
+        "org_unit": str(cell.get("ou") or cell.get("orgUnit") or cell.get("org_unit") or ""),
         "period": str(cell.get("pe") or cell.get("period") or ""),
         "value": cell.get("value"),
     }
@@ -112,9 +107,7 @@ class DHIS2Client:
         breaker_name: str = "dhis2",
         transport: httpx.AsyncTransport | None = None,
     ) -> None:
-        self.base_url = (
-            base_url if base_url is not None else settings.dhis2_base_url
-        ).rstrip("/")
+        self.base_url = (base_url if base_url is not None else settings.dhis2_base_url).rstrip("/")
         self.username = username if username is not None else settings.dhis2_username
         self.password = password if password is not None else settings.dhis2_password
         self.timeout = timeout
@@ -127,9 +120,7 @@ class DHIS2Client:
             else os.path.join(tempfile.gettempdir(), "zisamale_cache", "dhis2")
         )
         self.cache_ttl_seconds = (
-            cache_ttl_seconds
-            if cache_ttl_seconds is not None
-            else self.DEFAULT_CACHE_TTL_SECONDS
+            cache_ttl_seconds if cache_ttl_seconds is not None else self.DEFAULT_CACHE_TTL_SECONDS
         )
         self.breaker = breaker or get_or_create_breaker(breaker_name)
         self._transport = transport
@@ -190,9 +181,7 @@ class DHIS2Client:
                 logger.debug("dhis2.cache_hit", extra={"url": url})
                 return cached
 
-        result = await self.breaker.call(
-            self._request_with_retries, method, url, params, json_body
-        )
+        result = await self.breaker.call(self._request_with_retries, method, url, params, json_body)
 
         if cache_key is not None:
             self._cache_set(cache_key, result)
@@ -210,14 +199,10 @@ class DHIS2Client:
         last_status: int | None = None
         for attempt in range(1, max_attempts + 1):
             try:
-                response = await client.request(
-                    method, url, params=params, json=json_body
-                )
+                response = await client.request(method, url, params=params, json=json_body)
             except httpx.TransportError as exc:
                 if attempt >= max_attempts:
-                    raise DHIS2Error(
-                        f"DHIS2 unreachable after {attempt} attempts: {exc}"
-                    ) from exc
+                    raise DHIS2Error(f"DHIS2 unreachable after {attempt} attempts: {exc}") from exc
                 logger.warning(
                     "dhis2.transport_error_retry",
                     extra={"attempt": attempt, "error": str(exc)},
@@ -245,9 +230,7 @@ class DHIS2Client:
             try:
                 return response.json()
             except ValueError as exc:
-                raise DHIS2Error(
-                    f"DHIS2 returned invalid JSON for {method} {url}"
-                ) from exc
+                raise DHIS2Error(f"DHIS2 returned invalid JSON for {method} {url}") from exc
 
         raise DHIS2Error(
             f"DHIS2 request failed after {max_attempts} attempts "
@@ -264,9 +247,7 @@ class DHIS2Client:
         params: list[tuple[str, str]] | dict[str, Any] | None,
     ) -> str:
         if isinstance(params, dict):
-            normalised: list[list[str]] = sorted(
-                [str(k), str(v)] for k, v in params.items()
-            )
+            normalised: list[list[str]] = sorted([str(k), str(v)] for k, v in params.items())
         else:
             normalised = sorted([str(k), str(v)] for k, v in (params or []))
         blob = json.dumps(
@@ -323,9 +304,7 @@ class DHIS2Client:
         Returns normalised cells: {data_element, org_unit, period, value}.
         """
         if not org_units or not data_elements or not periods:
-            raise ValueError(
-                "org_units, data_elements and periods are all required"
-            )
+            raise ValueError("org_units, data_elements and periods are all required")
         values: list[dict[str, Any]] = []
         page = 1
         while page <= self.MAX_PAGES:
@@ -391,29 +370,21 @@ class DHIS2Client:
             if not isinstance(event, dict):
                 raise ValueError(f"event #{index} must be a mapping")
             missing = [
-                field
-                for field in ("orgUnit", "eventDate", "dataValues")
-                if not event.get(field)
+                field for field in ("orgUnit", "eventDate", "dataValues") if not event.get(field)
             ]
             if missing:
                 raise ValueError(f"event #{index} missing fields: {missing}")
             program = event.get("program") or settings.dhis2_event_program
             if not program:
-                raise ValueError(
-                    f"event #{index} has no program and dhis2_event_program unset"
-                )
+                raise ValueError(f"event #{index} has no program and dhis2_event_program unset")
             normalised.append({**event, "program": program})
 
-        payload = await self.request(
-            "POST", "/events.json", json_body={"events": normalised}
-        )
+        payload = await self.request("POST", "/events.json", json_body={"events": normalised})
         summary = self._import_summary(payload)
         logger.info("dhis2.events_pushed", extra={**summary, "sent": len(normalised)})
         return summary
 
-    async def push_data_values(
-        self, data_values: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    async def push_data_values(self, data_values: list[dict[str, Any]]) -> dict[str, Any]:
         """Push aggregate data values to /api/dataValueSets."""
         if not data_values:
             return {"status": "skipped", "imported": 0, "updated": 0, "ignored": 0}
@@ -426,16 +397,12 @@ class DHIS2Client:
 
     @staticmethod
     def _import_summary(payload: dict[str, Any]) -> dict[str, Any]:
-        summaries = payload.get("importSummaries") or (
-            [payload] if payload.get("status") else []
-        )
+        summaries = payload.get("importSummaries") or ([payload] if payload.get("status") else [])
         imported = sum(int(s.get("importCount", {}).get("imported") or 0) for s in summaries)
         updated = sum(int(s.get("importCount", {}).get("updated") or 0) for s in summaries)
         ignored = sum(int(s.get("importCount", {}).get("ignored") or 0) for s in summaries)
         status = "ok"
-        if summaries and any(
-            str(s.get("status", "")).upper() != "SUCCESS" for s in summaries
-        ):
+        if summaries and any(str(s.get("status", "")).upper() != "SUCCESS" for s in summaries):
             status = "partial"
         return {
             "status": status,

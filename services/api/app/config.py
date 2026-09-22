@@ -46,8 +46,7 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
 
     cors_origins: str = (
-        "http://localhost:3000,http://localhost:5173,"
-        "https://dashboard.zisamale.health.mw"
+        "http://localhost:3000,http://localhost:5173,https://dashboard.zisamale.health.mw"
     )
 
     @property

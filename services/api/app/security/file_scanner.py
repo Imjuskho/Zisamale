@@ -86,12 +86,7 @@ def scan_file(content: bytes, filename: str) -> dict:
     if any(marker in lowered for marker in SCRIPT_MARKERS):
         issues.append("embedded_script")
 
-    if (
-        ".." in filename
-        or "/" in filename
-        or "\\" in filename
-        or filename.startswith("~")
-    ):
+    if ".." in filename or "/" in filename or "\\" in filename or filename.startswith("~"):
         issues.append("path_traversal_in_filename")
 
     return {

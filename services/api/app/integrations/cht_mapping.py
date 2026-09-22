@@ -95,9 +95,7 @@ def _pick(fields: dict[str, Any], logical: str) -> Any:
 def _truthy(value: Any) -> bool:
     if value is True or value == 1:
         return True
-    if isinstance(value, str) and value.strip().lower() in {"yes", "true", "1", "ok"}:
-        return True
-    return False
+    return bool(isinstance(value, str) and value.strip().lower() in {"yes", "true", "1", "ok"})
 
 
 def _danger_signs(fields: dict[str, Any]) -> list[str]:
@@ -139,7 +137,10 @@ def _geopoint(doc: dict[str, Any], fields: dict[str, Any]) -> tuple[float | None
         lat = geo.get("latitude") or geo.get("lat")
         lon = geo.get("longitude") or geo.get("lon") or geo.get("lng")
         try:
-            return (float(lat) if lat is not None else None, float(lon) if lon is not None else None)
+            return (
+                float(lat) if lat is not None else None,
+                float(lon) if lon is not None else None,
+            )
         except (TypeError, ValueError):
             return None, None
     return None, None
@@ -148,9 +149,7 @@ def _geopoint(doc: dict[str, Any], fields: dict[str, Any]) -> tuple[float | None
 def _is_household_contact(doc: dict[str, Any]) -> bool:
     if doc.get("type") in {"clinic"}:
         return True
-    if doc.get("type") == "contact" and doc.get("contact_type") in HOUSEHOLD_CONTACT_TYPES:
-        return True
-    return False
+    return bool(doc.get("type") == "contact" and doc.get("contact_type") in HOUSEHOLD_CONTACT_TYPES)
 
 
 def map_cht_document(doc: dict[str, Any]) -> dict[str, Any] | None:
@@ -180,7 +179,8 @@ def map_cht_document(doc: dict[str, Any]) -> dict[str, Any] | None:
     patient = _pick(fields, "patient_uuid")
     place = _pick(fields, "household_id") or (
         doc.get("contact", {}).get("parent", {}).get("_id")
-        if isinstance(doc.get("contact"), dict) and isinstance(doc.get("contact", {}).get("parent"), dict)
+        if isinstance(doc.get("contact"), dict)
+        and isinstance(doc.get("contact", {}).get("parent"), dict)
         else None
     )
     chw_id = _chw_id(doc)
@@ -212,7 +212,9 @@ def map_cht_document(doc: dict[str, Any]) -> dict[str, Any] | None:
             "kind": "visit",
             "visit_id": doc["_id"],
             "household_id": place or "unknown",
-            "pregnancy_id": doc["_id"] if visit_type == "pregnancy" and form in PREGNANCY_REGISTER_FORMS else None,
+            "pregnancy_id": doc["_id"]
+            if visit_type == "pregnancy" and form in PREGNANCY_REGISTER_FORMS
+            else None,
             "child_id": patient if visit_type == "child" else None,
             "patient_uuid": patient,
             "chw_id": chw_id,
@@ -233,8 +235,10 @@ def map_cht_document(doc: dict[str, Any]) -> dict[str, Any] | None:
 def visit_to_cht_report(visit: dict[str, Any]) -> dict[str, Any]:
     """Outbound CHT data_record so we push advice, not a second household form."""
     visit_type = visit.get("visit_type") or "routine"
-    form = "pregnancy_home_visit" if visit_type == "pregnancy" else (
-        "assessment" if visit_type == "child" else "zisamale_visit"
+    form = (
+        "pregnancy_home_visit"
+        if visit_type == "pregnancy"
+        else ("assessment" if visit_type == "child" else "zisamale_visit")
     )
     recommendation = visit.get("ai_recommendation") or {}
     return {

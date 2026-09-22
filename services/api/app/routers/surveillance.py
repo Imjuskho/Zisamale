@@ -1,4 +1,4 @@
-'''CHW-first surveillance aggregation.
+"""CHW-first surveillance aggregation.
 
 Field visit data (synced opportunistically from the CHW app) is treated
 as the primary surveillance signal: it is near-real-time and does not
@@ -6,11 +6,11 @@ depend on facility reporting. Every response carries ``source_meta``
 so clients can render data age honestly. Comparison columns that need
 integrations which are not connected yet (DHIS2 case counts) are served
 as null - never fabricated.
-'''
+"""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
@@ -25,11 +25,11 @@ _FRESHNESS_BANDS = ((7, "live"), (30, "recent"), (180, "stale"))
 
 
 def _freshness(last_sync_at) -> str:
-    '''Band a sync timestamp: live <7d, recent <30d, stale <180d, else historic.'''
+    """Band a sync timestamp: live <7d, recent <30d, stale <180d, else historic."""
     if last_sync_at is None:
         return "historic"
-    ts = last_sync_at if last_sync_at.tzinfo else last_sync_at.replace(tzinfo=timezone.utc)
-    age_days = (datetime.now(timezone.utc) - ts).days
+    ts = last_sync_at if last_sync_at.tzinfo else last_sync_at.replace(tzinfo=UTC)
+    age_days = (datetime.now(UTC) - ts).days
     for limit, band in _FRESHNESS_BANDS:
         if age_days < limit:
             return band
@@ -37,12 +37,10 @@ def _freshness(last_sync_at) -> str:
 
 
 def _meta(*, source: str, last_sync_at, record_count, expected_count=None) -> dict:
-    '''Provenance block attached to every surveillance payload.'''
+    """Provenance block attached to every surveillance payload."""
     return {
         "source": source,
-        "last_sync_at": (
-            last_sync_at.isoformat() if last_sync_at is not None else None
-        ),
+        "last_sync_at": (last_sync_at.isoformat() if last_sync_at is not None else None),
         "record_count": int(record_count or 0),
         # True denominators need reporting-expectation registries we do
         # not have yet; served as None instead of an invented ratio.
@@ -56,7 +54,7 @@ async def get_chw_summary(
     user: dict = Depends(require_role("mohp", "phim", "dho", "supervisor")),
     db: AsyncSession = Depends(get_db),
 ):
-    '''This week's field signal: visits, fever clusters, danger-sign referrals.'''
+    """This week's field signal: visits, fever clusters, danger-sign referrals."""
     row = (
         await db.execute(
             text(
@@ -103,8 +101,7 @@ async def get_chw_summary(
         "fever_clusters": int(m.get("fever_clusters") or 0),
         "danger_referrals": int(m.get("danger_referrals") or 0),
         "weekly_trend": [
-            {"week": str(r.week_start), "fever": int(r.fever_count)}
-            for r in trend_rows
+            {"week": str(r.week_start), "fever": int(r.fever_count)} for r in trend_rows
         ],
         "source_meta": _meta(
             source="chw",
@@ -119,10 +116,10 @@ async def get_chw_heatmap(
     user: dict = Depends(require_role("mohp", "phim", "dho", "supervisor")),
     db: AsyncSession = Depends(get_db),
 ):
-    '''TA-level activity cells from CHW visits over the last 14 days.
+    """TA-level activity cells from CHW visits over the last 14 days.
 
     TAs with zero visits return risk_score None so clients can render
-    "No data" instead of a fabricated green.'''
+    "No data" instead of a fabricated green."""
     result = await db.execute(
         text(
             """
@@ -151,7 +148,6 @@ async def get_chw_heatmap(
 
     cells = []
     max_visits = 0
-    newest = None
     for r in result.fetchall():
         visit_count = int(r.visit_count)
         max_visits = max(max_visits, visit_count)
@@ -179,9 +175,7 @@ async def get_chw_heatmap(
     return {
         "cells": cells,
         "max_visit_count": max_visits,
-        "source_meta": _meta(
-            source="chw", last_sync_at=last_sync, record_count=max_visits
-        ),
+        "source_meta": _meta(source="chw", last_sync_at=last_sync, record_count=max_visits),
     }
 
 
@@ -190,10 +184,10 @@ async def get_chw_overrides(
     user: dict = Depends(require_role("mohp", "phim", "dho", "supervisor")),
     db: AsyncSession = Depends(get_db),
 ):
-    '''Override patterns grouped by reason, current 30d vs previous 30d.
+    """Override patterns grouped by reason, current 30d vs previous 30d.
 
     CHW override is a training signal, not a failure - this endpoint
-    surfaces it so supervisors can ask why disagreement clusters.'''
+    surfaces it so supervisors can ask why disagreement clusters."""
     result = await db.execute(
         text(
             """
@@ -249,9 +243,7 @@ async def get_chw_overrides(
     total = sum(r["count"] for r in rows)
     return {
         "overrides": rows,
-        "source_meta": _meta(
-            source="chw", last_sync_at=newest, record_count=total
-        ),
+        "source_meta": _meta(source="chw", last_sync_at=newest, record_count=total),
     }
 
 
@@ -260,10 +252,10 @@ async def get_chw_vs_dhis2(
     user: dict = Depends(require_role("mohp", "phim", "dho", "supervisor")),
     db: AsyncSession = Depends(get_db),
 ):
-    '''CHW-reported fever vs facility-reported malaria, per district.
+    """CHW-reported fever vs facility-reported malaria, per district.
 
     The DHIS2 side is null until a real integration exists; the gap
-    column stays null rather than implying a number we cannot know.'''
+    column stays null rather than implying a number we cannot know."""
     result = await db.execute(
         text(
             """
@@ -312,7 +304,5 @@ async def get_chw_vs_dhis2(
             "DHIS2 case counts are not connected yet; comparison columns "
             "stay empty rather than showing invented numbers."
         ),
-        "source_meta": _meta(
-            source="chw", last_sync_at=newest, record_count=total
-        ),
+        "source_meta": _meta(source="chw", last_sync_at=newest, record_count=total),
     }

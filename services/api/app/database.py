@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -13,10 +15,8 @@ engine = create_async_engine(
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 redis_client = None
-try:
+with contextlib.suppress(Exception):
     redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
-except Exception:
-    pass
 
 
 class Base(DeclarativeBase):

@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
@@ -32,7 +31,9 @@ def export_onnx(
     if hasattr(model, "n_classes_") and model.n_classes_ > 2:
         options = {id(model): {"zipmap": "columns"}}
 
-    onnx_model = convert_sklearn(model, initial_types=initial_type, options=options if options else None)
+    onnx_model = convert_sklearn(
+        model, initial_types=initial_type, options=options if options else None
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:
@@ -54,7 +55,7 @@ def export_metadata(
     metadata = {
         "model_name": model_name,
         "version": version,
-        "export_timestamp": datetime.now(timezone.utc).isoformat(),
+        "export_timestamp": datetime.now(UTC).isoformat(),
         "metrics": metrics,
         "feature_names": feature_names,
         "training_data_info": training_data_info,
@@ -93,7 +94,9 @@ def export_pipeline(
     joblib.dump(model, joblib_path)
 
     meta_path = output_dir / f"{model_name}_metadata.json"
-    export_metadata(model_name, version, metrics, feature_names, training_data_info, meta_path)
+    export_metadata(
+        model_name, version, metrics, feature_names, training_data_info, meta_path
+    )
 
     return {
         "onnx_path": str(onnx_path),
@@ -110,13 +113,16 @@ if __name__ == "__main__":
     from sklearn.ensemble import GradientBoostingClassifier
 
     from data.synthetic import generate_mama_data
-    from pipelines.risk_scoring.train import FEATURE_COLS as MAMA_FEATURES, prepare_features
+    from pipelines.risk_scoring.train import FEATURE_COLS as MAMA_FEATURES
+    from pipelines.risk_scoring.train import prepare_features
 
     df = generate_mama_data(n=500)
     X, y = prepare_features(df)
     y_enc = y.map({"low": 0, "medium": 1, "high": 2, "critical": 3})
 
-    model = GradientBoostingClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42)
+    model = GradientBoostingClassifier(
+        n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42
+    )
     model.fit(X, y_enc)
 
     result = export_pipeline(

@@ -12,7 +12,6 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.deps import require_role, scoped_db
 from app.models.child import Child
 from app.schemas.child import ChildCreate, ChildResponse
@@ -36,9 +35,7 @@ async def register_child(
     chw_id = token_chw_id(user, payload.chw_id)
 
     # Check idempotency
-    existing = await db.execute(
-        select(Child).where(Child.child_id == payload.child_id)
-    )
+    existing = await db.execute(select(Child).where(Child.child_id == payload.child_id))
     row = existing.scalar_one_or_none()
     if row is not None:
         response.status_code = status.HTTP_200_OK

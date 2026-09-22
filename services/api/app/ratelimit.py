@@ -32,6 +32,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not auth.startswith("Bearer "):
             return "default"
         from app.auth import decode_token
+
         token = auth[7:]
         payload = decode_token(token)
         if payload:

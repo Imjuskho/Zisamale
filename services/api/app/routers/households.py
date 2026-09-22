@@ -15,7 +15,6 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.deps import require_role, scoped_db
 from app.models.household import Household
 from app.sync.engine import SyncEntity, apply_batch, coarsen_gps, token_chw_id
@@ -110,11 +109,13 @@ async def sync_households(
     result = HouseholdSyncResult(sync_timestamp=datetime.now(UTC).isoformat())
 
     if len(upload.households) > MAX_BATCH:
-        result.conflicts.append({
-            "type": "batch",
-            "id": None,
-            "reason": f"Batch too large: {len(upload.households)} > {MAX_BATCH}",
-        })
+        result.conflicts.append(
+            {
+                "type": "batch",
+                "id": None,
+                "reason": f"Batch too large: {len(upload.households)} > {MAX_BATCH}",
+            }
+        )
         return result
 
     batch = await apply_batch(

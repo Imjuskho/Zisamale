@@ -7,14 +7,10 @@ primitives, the RBAC matrix, and structured audit logging.
 
 from __future__ import annotations
 
-import json
-
 import pytest
-from fastapi import HTTPException
 
-from app.security import audit_logger, encryption, file_scanner
+from app.security import file_scanner
 from app.security import input_validation as iv
-from app.security import rbac
 
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 JPEG_HEADER = b"\xff\xd8\xff\xe0"
@@ -32,7 +28,7 @@ def test_sanitize_string_strips_tags_and_escapes():
 
 
 def test_sanitize_string_escapes_special_chars_in_plain_text():
-    assert iv.sanitize_string("Tom & Jerry's \"trip\"") == (
+    assert iv.sanitize_string('Tom & Jerry\'s "trip"') == (
         "Tom &amp; Jerry&#x27;s &quot;trip&quot;"
     )
     assert iv.sanitize_string("") == ""

@@ -10,12 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.deps import require_role, scoped_db
-from app.models.pregnancy import Pregnancy
 from app.models.child import Child
-from app.models.household import Household
 from app.models.geography import TraditionalAuthority, Village
+from app.models.household import Household
+from app.models.pregnancy import Pregnancy
 
 router = APIRouter(prefix="/api/v1", tags=["registry"])
 
@@ -50,6 +49,7 @@ async def list_pregnancies(
         stmt = stmt.where(Pregnancy.risk_category == risk_category)
     if synced_after:
         from app.sync.engine import parse_client_datetime
+
         after = parse_client_datetime(synced_after)
         stmt = stmt.where(Pregnancy.updated_at >= after)
 
@@ -58,23 +58,27 @@ async def list_pregnancies(
 
     pregnancies = []
     for pregnancy, household in rows:
-        pregnancies.append({
-            "pregnancy_id": pregnancy.pregnancy_id,
-            "household_id": pregnancy.household_id,
-            "woman_name": _pseudonymize_name(pregnancy.woman_name, pregnancy.pregnancy_id),
-            "age": pregnancy.age,
-            "gravida": pregnancy.gravida,
-            "parity": pregnancy.parity,
-            "risk_score": pregnancy.risk_score,
-            "risk_category": pregnancy.risk_category,
-            "next_visit_date": str(pregnancy.next_visit_date) if pregnancy.next_visit_date else None,
-            "referral_needed": pregnancy.referral_needed,
-            "referral_status": pregnancy.referral_status,
-            "chw_id": pregnancy.chw_id,
-            "ta_name": household.ta_name if household else None,
-            "village_name": household.village_name if household else None,
-            "sync_status": pregnancy.sync_status,
-        })
+        pregnancies.append(
+            {
+                "pregnancy_id": pregnancy.pregnancy_id,
+                "household_id": pregnancy.household_id,
+                "woman_name": _pseudonymize_name(pregnancy.woman_name, pregnancy.pregnancy_id),
+                "age": pregnancy.age,
+                "gravida": pregnancy.gravida,
+                "parity": pregnancy.parity,
+                "risk_score": pregnancy.risk_score,
+                "risk_category": pregnancy.risk_category,
+                "next_visit_date": str(pregnancy.next_visit_date)
+                if pregnancy.next_visit_date
+                else None,
+                "referral_needed": pregnancy.referral_needed,
+                "referral_status": pregnancy.referral_status,
+                "chw_id": pregnancy.chw_id,
+                "ta_name": household.ta_name if household else None,
+                "village_name": household.village_name if household else None,
+                "sync_status": pregnancy.sync_status,
+            }
+        )
 
     return {"pregnancies": pregnancies, "count": len(pregnancies)}
 
@@ -108,25 +112,27 @@ async def list_children(
 
     children = []
     for child, household in rows:
-        children.append({
-            "child_id": child.child_id,
-            "household_id": child.household_id,
-            "child_name": _pseudonymize_name(child.child_name, child.child_id),
-            "dob": str(child.dob) if child.dob else None,
-            "sex": child.sex,
-            "muac": child.muac,
-            "weight_kg": child.weight_kg,
-            "height_cm": child.height_cm,
-            "risk_score": child.risk_score,
-            "risk_category": child.risk_category,
-            "iccm_category": child.iccm_category,
-            "referral_needed": child.referral_needed,
-            "referral_status": child.referral_status,
-            "chw_id": child.chw_id,
-            "ta_name": household.ta_name if household else None,
-            "village_name": household.village_name if household else None,
-            "sync_status": child.sync_status,
-        })
+        children.append(
+            {
+                "child_id": child.child_id,
+                "household_id": child.household_id,
+                "child_name": _pseudonymize_name(child.child_name, child.child_id),
+                "dob": str(child.dob) if child.dob else None,
+                "sex": child.sex,
+                "muac": child.muac,
+                "weight_kg": child.weight_kg,
+                "height_cm": child.height_cm,
+                "risk_score": child.risk_score,
+                "risk_category": child.risk_category,
+                "iccm_category": child.iccm_category,
+                "referral_needed": child.referral_needed,
+                "referral_status": child.referral_status,
+                "chw_id": child.chw_id,
+                "ta_name": household.ta_name if household else None,
+                "village_name": household.village_name if household else None,
+                "sync_status": child.sync_status,
+            }
+        )
 
     return {"children": children, "count": len(children)}
 
@@ -138,13 +144,11 @@ async def pregnancy_timeline(
     user: dict = Depends(require_role("dho", "phim", "mohp")),
 ):
     """Get pregnancy timeline: all visits, risk changes, referrals."""
-    from app.models.visit import Visit
     from app.models.referral import Referral
+    from app.models.visit import Visit
 
     # Get pregnancy
-    preg_result = await db.execute(
-        select(Pregnancy).where(Pregnancy.pregnancy_id == pregnancy_id)
-    )
+    preg_result = await db.execute(select(Pregnancy).where(Pregnancy.pregnancy_id == pregnancy_id))
     pregnancy = preg_result.scalar_one_or_none()
     if not pregnancy:
         raise HTTPException(status_code=404, detail="Pregnancy not found")
@@ -156,9 +160,7 @@ async def pregnancy_timeline(
     visits = visit_result.scalars().all()
 
     # Get referrals
-    referral_result = await db.execute(
-        select(Referral).where(Referral.patient_id == pregnancy_id)
-    )
+    referral_result = await db.execute(select(Referral).where(Referral.patient_id == pregnancy_id))
     referrals = referral_result.scalars().all()
 
     return {
@@ -170,7 +172,9 @@ async def pregnancy_timeline(
             "parity": pregnancy.parity,
             "risk_score": pregnancy.risk_score,
             "risk_category": pregnancy.risk_category,
-            "next_visit_date": str(pregnancy.next_visit_date) if pregnancy.next_visit_date else None,
+            "next_visit_date": str(pregnancy.next_visit_date)
+            if pregnancy.next_visit_date
+            else None,
         },
         "visits": [
             {

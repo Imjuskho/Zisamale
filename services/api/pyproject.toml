@@ -43,6 +43,20 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM"]
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.File", "app.deps.require_role", "app.deps.scoped_db"]
+
+[tool.ruff.lint.per-file-ignores]
+# Triple-quoted HTML/SQL/template bodies — content bytes must stay stable.
+"app/routers/demo_seeder.py" = ["E501"]
+"app/routers/knowledge.py" = ["E501"]
+"app/routers/map_layers.py" = ["E501"]
+"app/routers/visits.py" = ["E501"]
+"app/routers/registry.py" = ["E501"]
+"app/schemas/knowledge.py" = ["E501"]
+"app/integrations/cht_mapping.py" = ["E501"]
+"app/demo_seeder.py" = ["E501"]
+"tests/test_cht_mapping.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from data.synthetic import generate_mama_data, generate_supply_data, generate_surveillance_data
+from data.synthetic import (
+    generate_mama_data,
+    generate_supply_data,
+    generate_surveillance_data,
+)
 from pipelines.bias_audit import audit_model_fairness
 from pipelines.model_monitoring import (
     compute_concept_drift,
@@ -20,9 +21,11 @@ from pipelines.model_monitoring import (
     detect_drift,
     generate_drift_report,
 )
-from pipelines.risk_scoring.train import LABEL_MAP, prepare_features, train as train_mama
-from pipelines.surveillance.train import engineer_features, train as train_ulalo
+from pipelines.risk_scoring.train import LABEL_MAP, prepare_features
+from pipelines.risk_scoring.train import train as train_mama
 from pipelines.supply_chain.train import train as train_chuma
+from pipelines.surveillance.train import engineer_features
+from pipelines.surveillance.train import train as train_ulalo
 
 
 class TestSyntheticData:
@@ -96,9 +99,8 @@ class TestCHUMAPipeline:
 
 class TestXGBoostModels:
     def test_mama_uses_xgboost_and_trains(self, tmp_path):
-        from xgboost import XGBClassifier
-
         import joblib
+        from xgboost import XGBClassifier
 
         df = generate_mama_data(n=200)
         metrics = train_mama(df, tmp_path / "mama")
@@ -117,9 +119,8 @@ class TestXGBoostModels:
         assert "random_forest_auc" in metrics
 
     def test_chuma_xgboost_trains(self, tmp_path):
-        from xgboost import XGBClassifier
-
         import joblib
+        from xgboost import XGBClassifier
 
         df = generate_supply_data(n_facilities=10, n_months=24)
         metrics = train_chuma(df, tmp_path / "chuma")
@@ -178,8 +179,8 @@ class TestBiasAudit:
             classes_ = np.array([0, 1])
 
             def predict_proba(self, X):
-                good_signal = 0.9 * y + 0.05              # strong ranking for group "a"
-                noise = rng.uniform(0.2, 0.8, size=n)     # chance-level for group "b"
+                good_signal = 0.9 * y + 0.05  # strong ranking for group "a"
+                noise = rng.uniform(0.2, 0.8, size=n)  # chance-level for group "b"
                 p1 = np.where(groups == "a", good_signal, noise)
                 return np.column_stack([1 - p1, p1])
 
@@ -194,29 +195,35 @@ class TestModelMonitoring:
     def test_drift_detection(self):
         rng = np.random.default_rng(42)
         reference = rng.normal(0, 1, size=(500, 2))
-        current = np.column_stack([
-            rng.normal(3, 1, size=500),  # drifted
-            rng.normal(0, 1, size=500),  # stable
-        ])
+        current = np.column_stack(
+            [
+                rng.normal(3, 1, size=500),  # drifted
+                rng.normal(0, 1, size=500),  # stable
+            ]
+        )
         feature_names = ["drifted_feature", "stable_feature"]
 
         scores = compute_data_drift(reference, current, feature_names)
         assert set(scores.keys()) == set(feature_names)
         for s in scores.values():
             assert {"ks_statistic", "ks_pvalue", "kl_divergence"} == set(s.keys())
-        assert scores["drifted_feature"]["kl_divergence"] > scores["stable_feature"]["kl_divergence"]
+        assert (
+            scores["drifted_feature"]["kl_divergence"]
+            > scores["stable_feature"]["kl_divergence"]
+        )
 
         drifted = detect_drift(scores, threshold=0.1)
         assert "drifted_feature" in drifted
         assert "stable_feature" not in drifted
 
     def test_concept_drift(self):
-        rng = np.random.default_rng(42)
         n = 200
-        predictions = np.concatenate([
-            np.ones(100, dtype=int),   # perfect early period
-            np.zeros(100, dtype=int),  # inverted later period
-        ])
+        predictions = np.concatenate(
+            [
+                np.ones(100, dtype=int),  # perfect early period
+                np.zeros(100, dtype=int),  # inverted later period
+            ]
+        )
         actuals = np.ones(n, dtype=int)
         windows = compute_concept_drift(predictions, actuals, window_size=50)
 

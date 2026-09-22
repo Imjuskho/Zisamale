@@ -21,7 +21,7 @@ _TAG_RE = re.compile(r"<[^>]*>")
 _SQLI_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
-        r"['\"].*?\bor\b.*?['\"].*?=.*?['\"]",   # ' OR '1'='1
+        r"['\"].*?\bor\b.*?['\"].*?=.*?['\"]",  # ' OR '1'='1
         r"\bunion[\s\S]*?\bselect\b",
         r";\s*(?:drop|delete|insert|update|alter|truncate|create|exec)\b",
         r"\b(?:drop|truncate|alter)\s+table\b",
@@ -92,9 +92,7 @@ def validate_bp(systolic: int, diastolic: int) -> tuple[bool, str]:
     if not 20 <= diastolic <= 250:
         return False, f"Diastolic {diastolic} outside physiological range (20-250 mmHg)"
     if diastolic >= systolic:
-        return False, (
-            f"Diastolic ({diastolic}) must be lower than systolic ({systolic})"
-        )
+        return False, (f"Diastolic ({diastolic}) must be lower than systolic ({systolic})")
     return True, ""
 
 

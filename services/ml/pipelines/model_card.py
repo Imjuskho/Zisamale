@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +29,7 @@ def generate_model_card(
             "name": model_name,
             "version": version,
             "description": description,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         },
         "intended_use": intended_use,
         "training_data": {
@@ -41,12 +41,14 @@ def generate_model_card(
             "geographic_scope": training_data_info.get("geographic_scope", "N/A"),
         },
         "metrics": metrics,
-        "limitations": limitations or [
+        "limitations": limitations
+        or [
             "Model trained on synthetic data; performance on real clinical data may differ.",
             "Does not account for rare comorbidities not represented in training features.",
             "Requires periodic retraining as disease patterns evolve.",
         ],
-        "bias_considerations": bias_considerations or [
+        "bias_considerations": bias_considerations
+        or [
             "Training data is synthetic and may not capture real demographic distributions.",
             "Facility-level variation in the synthetic data may not reflect actual health system disparities.",
             "Model predictions should be reviewed by qualified healthcare professionals.",

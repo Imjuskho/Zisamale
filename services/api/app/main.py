@@ -2,22 +2,38 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.audit import AuditLogMiddleware
 from app.config import settings
 from app.ratelimit import RateLimitMiddleware
-from app.audit import AuditLogMiddleware
-from app.routers import alerts, auth, national, referrals, uploads, visits
-from app.routers import chw_sync, map_layers, demo_seeder, export_routes, facilities, households, integrations, ml_predictions, surveillance, websocket_routes
-from app.routers import pregnancies, children
-from app.routers import registry
-from app.routers import knowledge
-from app.routers import public
+from app.routers import (
+    alerts,
+    auth,
+    children,
+    chw_sync,
+    demo_seeder,
+    export_routes,
+    facilities,
+    households,
+    integrations,
+    knowledge,
+    map_layers,
+    ml_predictions,
+    national,
+    pregnancies,
+    public,
+    referrals,
+    registry,
+    surveillance,
+    uploads,
+    visits,
+    websocket_routes,
+)
 
 
 @asynccontextmanager
@@ -33,6 +49,7 @@ async def lifespan(app: FastAPI):
     # Shutdown — close connection pools
     try:
         from app.database import engine, redis_client
+
         await engine.dispose()
         if redis_client:
             await redis_client.aclose()
@@ -90,8 +107,10 @@ async def health_check(response: Response):
     checks = {"api": "ok", "database": "unknown", "redis": "unknown"}
 
     try:
-        from app.database import engine
         from sqlalchemy import text
+
+        from app.database import engine
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         checks["database"] = "ok"
@@ -100,6 +119,7 @@ async def health_check(response: Response):
 
     try:
         from app.database import redis_client
+
         if redis_client:
             await redis_client.ping()
             checks["redis"] = "ok"

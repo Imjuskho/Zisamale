@@ -18,12 +18,15 @@ async def export_district_alerts(
 ):
     try:
         from sqlalchemy import select
+
         from app.database import async_session
         from app.models.alert import Alert
 
         async with async_session() as db:
             result = await db.execute(
-                select(Alert).where(Alert.district_id == district_id).order_by(Alert.generated_at.desc())
+                select(Alert)
+                .where(Alert.district_id == district_id)
+                .order_by(Alert.generated_at.desc())
             )
             alerts = [
                 {
@@ -57,8 +60,7 @@ async def export_surveillance(
     user: dict = Depends(require_role("dho", "phim", "mohp")),
 ):
     sample_data = [
-        {"week": f"2026-W{w:02d}", "cases": max(0, 50 + w * 3 - (w % 5) * 10)}
-        for w in range(1, 27)
+        {"week": f"2026-W{w:02d}", "cases": max(0, 50 + w * 3 - (w % 5) * 10)} for w in range(1, 27)
     ]
     csv_content = surveillance_to_csv(sample_data)
     return Response(

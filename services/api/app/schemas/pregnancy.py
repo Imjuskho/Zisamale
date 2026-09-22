@@ -34,14 +34,14 @@ class PregnancyCreate(BaseModel):
     @classmethod
     def validate_hiv_status(cls, v: str | None) -> str | None:
         if v is not None and v not in ("positive", "negative", "unknown", "declined"):
-            raise ValueError(f"hiv_status must be one of: positive, negative, unknown, declined")
+            raise ValueError("hiv_status must be one of: positive, negative, unknown, declined")
         return v
 
     @field_validator("risk_category")
     @classmethod
     def validate_risk_category(cls, v: str) -> str:
         if v not in ("low", "medium", "high", "critical"):
-            raise ValueError(f"risk_category must be one of: low, medium, high, critical")
+            raise ValueError("risk_category must be one of: low, medium, high, critical")
         return v
 
     @field_validator("bp_systolic", "bp_diastolic")

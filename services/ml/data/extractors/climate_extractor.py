@@ -24,7 +24,7 @@ import logging
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -125,7 +125,10 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlam = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    a = (
+        math.sin(dphi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    )
     return 2 * 6371.0088 * math.asin(math.sqrt(a))
 
 
@@ -205,7 +208,9 @@ class ClimateExtractor:
 
         frame = self._attempt_era5(specs, start, end)
         if frame is None:
-            logger.warning("ERA5 unavailable -- generating synthetic temperature/humidity")
+            logger.warning(
+                "ERA5 unavailable -- generating synthetic temperature/humidity"
+            )
             frame = self._synthetic_temperature(specs, start, end)
         return self.aggregate_to_ta(frame)
 
@@ -252,7 +257,11 @@ class ClimateExtractor:
             .reset_index(drop=True)
         )
         keep = ["ta", "iso_year", "iso_week", "week_start_date", "n_regions"]
-        keep += [c for c in ("rainfall_mm", "temperature_c", "humidity_pct") if c in weekly.columns]
+        keep += [
+            c
+            for c in ("rainfall_mm", "temperature_c", "humidity_pct")
+            if c in weekly.columns
+        ]
         return weekly[keep]
 
     def assign_ta_labels(
@@ -273,8 +282,11 @@ class ClimateExtractor:
             raise ValueError("ta_centroids must be non-empty")
         assignment: dict[str, str] = {}
         for spec in specs:
-            best_ta, best_dist = min(
-                ((ta, _haversine_km(spec.lat, spec.lon, clat, clon)) for ta, (clat, clon) in ta_centroids.items()),
+            best_ta, _ = min(
+                (
+                    (ta, _haversine_km(spec.lat, spec.lon, clat, clon))
+                    for ta, (clat, clon) in ta_centroids.items()
+                ),
                 key=lambda item: item[1],
             )
             assignment[spec.region_id] = best_ta
@@ -311,7 +323,7 @@ class ClimateExtractor:
                         }
                     )
                 )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.info("Live CHIRPS fetch failed (%s); using fallback", exc)
             return None
         combined = pd.concat(frames, ignore_index=True) if frames else None
@@ -340,7 +352,7 @@ class ClimateExtractor:
             payload = result.to_pandas()
             payload["source"] = "era5"
             return payload
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.info("Live ERA5 fetch failed (%s); using fallback", exc)
             return None
 
@@ -355,14 +367,18 @@ class ClimateExtractor:
         records: list[dict[str, Any]] = []
         n_days = (end - start).days + 1
         for spec in specs:
-            rng = np.random.default_rng(_region_seed("chirps", spec.region_id, start, end))
+            rng = np.random.default_rng(
+                _region_seed("chirps", spec.region_id, start, end)
+            )
             # Northern Malawi is slightly wetter; encode via latitude offset.
             lat_factor = 1.0 + 0.25 * (spec.lat - MALAWI_BBOX["lat_min"]) / (
                 MALAWI_BBOX["lat_max"] - MALAWI_BBOX["lat_min"]
             )
             dates = pd.date_range(start, periods=n_days, freq="D")
             months = np.array([d.month for d in dates])
-            wet_prob = np.array([_MONTH_RAIN_PROFILE[m][0] for m in months]) * lat_factor
+            wet_prob = (
+                np.array([_MONTH_RAIN_PROFILE[m][0] for m in months]) * lat_factor
+            )
             wet_mean = np.array([_MONTH_RAIN_PROFILE[m][1] for m in months])
             is_wet = rng.random(n_days) < wet_prob
             amounts = rng.gamma(shape=1.6, scale=wet_mean / 1.6)
@@ -386,7 +402,9 @@ class ClimateExtractor:
         records: list[dict[str, Any]] = []
         n_days = (end - start).days + 1
         for spec in specs:
-            rng = np.random.default_rng(_region_seed("era5", spec.region_id, start, end))
+            rng = np.random.default_rng(
+                _region_seed("era5", spec.region_id, start, end)
+            )
             dates = pd.date_range(start, periods=n_days, freq="D")
             day_of_year = np.array([d.timetuple().tm_yday for d in dates])
             months = np.array([d.month for d in dates])
@@ -394,10 +412,14 @@ class ClimateExtractor:
 
             # Hottest around Nov (day ~315); coolest Jul (day ~195).
             temp_seasonal = 4.5 * np.cos(2 * np.pi * (day_of_year - 315) / 365.25)
-            altitude_offset = 2.0 * (spec.lat - MALAWI_BBOX["lat_min"]) / (
-                MALAWI_BBOX["lat_max"] - MALAWI_BBOX["lat_min"]
+            altitude_offset = (
+                2.0
+                * (spec.lat - MALAWI_BBOX["lat_min"])
+                / (MALAWI_BBOX["lat_max"] - MALAWI_BBOX["lat_min"])
             )
-            temperature = 23.0 + temp_seasonal - altitude_offset + rng.normal(0, 1.5, n_days)
+            temperature = (
+                23.0 + temp_seasonal - altitude_offset + rng.normal(0, 1.5, n_days)
+            )
             humidity = (
                 58.0
                 + 18.0 * rainy
@@ -433,7 +455,9 @@ def generate_synthetic_climate(
         ``temperature_c`` and ``humidity_pct``.
     """
     extractor = ClimateExtractor(seed=seed)
-    specs = [RegionSpec(ta=ta, region_id=f"grid_{ta}", lat=-13.5, lon=34.0) for ta in tas]
+    specs = [
+        RegionSpec(ta=ta, region_id=f"grid_{ta}", lat=-13.5, lon=34.0) for ta in tas
+    ]
     rain = extractor.fetch_chirps_rainfall(specs, start_date, end_date)
     temp = extractor.fetch_era5_temperature(specs, start_date, end_date)
     return rain.merge(
@@ -444,9 +468,9 @@ def generate_synthetic_climate(
 
 
 __all__ = [
-    "ClimateExtractor",
     "MALAWI_BBOX",
     "RAINY_MONTHS",
+    "ClimateExtractor",
     "RegionSpec",
     "generate_synthetic_climate",
 ]

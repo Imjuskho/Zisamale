@@ -91,10 +91,7 @@ def validate_stock_record(record: dict[str, Any]) -> list[str]:
         problems.append("missing_stock_on_hand")
     elif soh < 0:
         problems.append("negative_stock_on_hand")
-    amc = _to_float(
-        record.get("average_monthly_consumption")
-        or record.get("monthly_consumption")
-    )
+    amc = _to_float(record.get("average_monthly_consumption") or record.get("monthly_consumption"))
     if amc is not None and amc < 0:
         problems.append("negative_consumption")
     return problems
@@ -103,10 +100,7 @@ def validate_stock_record(record: dict[str, Any]) -> list[str]:
 def compute_days_of_stock(record: dict[str, Any]) -> float | None:
     """Days of stock on hand at average monthly consumption burn rate."""
     soh = _to_float(record.get("stock_on_hand"))
-    amc = _to_float(
-        record.get("average_monthly_consumption")
-        or record.get("monthly_consumption")
-    )
+    amc = _to_float(record.get("average_monthly_consumption") or record.get("monthly_consumption"))
     if soh is None:
         return None
     if amc is None or amc <= 0:
@@ -127,8 +121,7 @@ def detect_anomalies(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for record in records:
         code = str(record.get("commodity_code") or "")
         consumption = _to_float(
-            record.get("average_monthly_consumption")
-            or record.get("monthly_consumption")
+            record.get("average_monthly_consumption") or record.get("monthly_consumption")
         )
         if code and consumption is not None and consumption >= 0:
             by_commodity.setdefault(code, []).append(consumption)
@@ -139,8 +132,7 @@ def detect_anomalies(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         code = str(record.get("commodity_code") or "")
         consumption = _to_float(
-            record.get("average_monthly_consumption")
-            or record.get("monthly_consumption")
+            record.get("average_monthly_consumption") or record.get("monthly_consumption")
         )
         peers = by_commodity.get(code) or []
         if consumption is not None and len(peers) >= 3:
@@ -176,13 +168,9 @@ class LMISClient:
         timeout: float = 30.0,
         transport: httpx.AsyncTransport | None = None,
     ) -> None:
-        self.base_url = (
-            base_url if base_url is not None else settings.lmis_base_url
-        ).rstrip("/")
+        self.base_url = (base_url if base_url is not None else settings.lmis_base_url).rstrip("/")
         self.api_key = api_key if api_key is not None else settings.lmis_api_key
-        self.csv_path = Path(
-            csv_path if csv_path is not None else settings.lmis_csv_path
-        )
+        self.csv_path = Path(csv_path if csv_path is not None else settings.lmis_csv_path)
         self.timeout = timeout
         self._transport = transport
         self._client: httpx.AsyncClient | None = None
@@ -263,9 +251,7 @@ class LMISClient:
         detect_anomalies(normalised)
         return normalised
 
-    async def fetch_orders(
-        self, facility_ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
+    async def fetch_orders(self, facility_ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Order history with computed lead times in days."""
         params: dict[str, Any] = {}
         if facility_ids:
@@ -303,13 +289,9 @@ class LMISClient:
         with path.open("r", encoding="utf-8-sig", newline="") as fh:
             reader = csv.DictReader(fh)
             fieldnames = [fn.strip() for fn in (reader.fieldnames or [])]
-            missing_required = [
-                col for col in ("facility_id",) if col not in fieldnames
-            ]
+            missing_required = [col for col in ("facility_id",) if col not in fieldnames]
             if missing_required:
-                raise ValueError(
-                    f"CSV missing required columns: {missing_required}"
-                )
+                raise ValueError(f"CSV missing required columns: {missing_required}")
             for row_number, row in enumerate(reader, start=2):
                 record = {
                     (key.strip() if key else key): (
@@ -339,9 +321,7 @@ class LMISClient:
 class LMISAdapter(LMISClient):
     """Backwards-compatible alias preserving the original adapter methods."""
 
-    async def get_stock_levels(
-        self, facility_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def get_stock_levels(self, facility_id: str | None = None) -> list[dict[str, Any]]:
         ids = [facility_id] if facility_id else None
         return await self.fetch_stock_levels(ids)
 

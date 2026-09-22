@@ -13,9 +13,10 @@ copy-pasted across the CHW sync routers and the CHT ingest path:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,7 +86,7 @@ def parse_client_datetime(raw: Any) -> datetime:
         ts = float(raw)
         if ts > 10_000_000_000:
             ts = ts / 1000
-        parsed = datetime.fromtimestamp(ts, tz=timezone.utc)
+        parsed = datetime.fromtimestamp(ts, tz=UTC)
     else:
         text = str(raw or "").strip()
         if not text:
@@ -94,7 +95,7 @@ def parse_client_datetime(raw: Any) -> datetime:
             ts = int(text)
             if ts > 10_000_000_000:
                 ts = ts / 1000
-            parsed = datetime.fromtimestamp(ts, tz=timezone.utc)
+            parsed = datetime.fromtimestamp(ts, tz=UTC)
         else:
             try:
                 parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
@@ -102,7 +103,7 @@ def parse_client_datetime(raw: Any) -> datetime:
                 raise ValueError(f"invalid date {raw!r}") from exc
     if parsed.tzinfo is None:
         return parsed
-    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed.astimezone(UTC).replace(tzinfo=None)
 
 
 def coerce_datetime_field(key: str) -> Transform:
@@ -132,7 +133,8 @@ async def apply_batch(
 
     # ── Batch pre-load: single query replaces N individual SELECTs ──
     all_keys = [
-        dict(raw).get(entity.natural_key) for raw in items if dict(raw).get(entity.natural_key) is not None
+        k for raw in items
+        if (k := dict(raw).get(entity.natural_key)) is not None
     ]
     existing_map: dict[Any, Any] = {}
     if all_keys:

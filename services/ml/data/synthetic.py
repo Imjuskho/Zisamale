@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 from datetime import date, timedelta
 
 import numpy as np
@@ -51,24 +50,28 @@ def generate_mama_data(n: int = 500, seed: int = 42) -> pd.DataFrame:
 
     risk_score = np.clip(risk_factors + rng.normal(0, 0.5, n), 0, 10)
     risk_category = pd.cut(
-        risk_score, bins=[-0.1, 3.0, 6.0, 8.0, 10.0], labels=["low", "medium", "high", "critical"]
+        risk_score,
+        bins=[-0.1, 3.0, 6.0, 8.0, 10.0],
+        labels=["low", "medium", "high", "critical"],
     )
 
-    return pd.DataFrame({
-        "age": age,
-        "parity": parity,
-        "gravida": gravida,
-        "prior_stillbirths": prior_stillbirths,
-        "prior_csections": prior_csections,
-        "prior_pph": prior_pph,
-        "bp_systolic": bp_systolic,
-        "bp_diastolic": bp_diastolic,
-        "hemoglobin": hemoglobin,
-        "food_security_score": food_security,
-        "distance_to_facility_km": distance_km,
-        "risk_score": risk_score,
-        "risk_category": risk_category,
-    })
+    return pd.DataFrame(
+        {
+            "age": age,
+            "parity": parity,
+            "gravida": gravida,
+            "prior_stillbirths": prior_stillbirths,
+            "prior_csections": prior_csections,
+            "prior_pph": prior_pph,
+            "bp_systolic": bp_systolic,
+            "bp_diastolic": bp_diastolic,
+            "hemoglobin": hemoglobin,
+            "food_security_score": food_security,
+            "distance_to_facility_km": distance_km,
+            "risk_score": risk_score,
+            "risk_category": risk_category,
+        }
+    )
 
 
 def generate_surveillance_data(
@@ -101,30 +104,51 @@ def generate_surveillance_data(
             rainy_boost = rainy * rng.uniform(5, 15)
 
             seasonal = 15 * np.sin(2 * np.pi * (week_num - 1) / 52) + 10
-            rainfall = max(0, rng.normal(
-                20 + 30 * rainy + 15 * np.sin(2 * np.pi * week_num / 52), 10
-            ))
-            temperature = 25 + 5 * np.sin(2 * np.pi * (week_num - 10) / 52) + rng.normal(0, 2)
-            humidity = 60 + 20 * np.sin(2 * np.pi * (week_num - 5) / 52) + rng.normal(0, 5)
+            rainfall = max(
+                0,
+                rng.normal(
+                    20 + 30 * rainy + 15 * np.sin(2 * np.pi * week_num / 52), 10
+                ),
+            )
+            temperature = (
+                25 + 5 * np.sin(2 * np.pi * (week_num - 10) / 52) + rng.normal(0, 2)
+            )
+            humidity = (
+                60 + 20 * np.sin(2 * np.pi * (week_num - 5) / 52) + rng.normal(0, 5)
+            )
 
-            outbreak_wave = 20 * np.exp(-0.5 * ((w - outbreak_center_week) / outbreak_width) ** 2)
+            outbreak_wave = 20 * np.exp(
+                -0.5 * ((w - outbreak_center_week) / outbreak_width) ** 2
+            )
 
             base = ta_base_cases[ta_idx] * ta_susceptibility[ta_idx]
-            cases = max(0, int(base + seasonal + rainy_boost + rainfall * 0.3 + outbreak_wave + rng.normal(0, 5)))
+            cases = max(
+                0,
+                int(
+                    base
+                    + seasonal
+                    + rainy_boost
+                    + rainfall * 0.3
+                    + outbreak_wave
+                    + rng.normal(0, 5)
+                ),
+            )
 
-            records.append({
-                "ta_idx": ta_idx,
-                "year": year,
-                "week_number": week_num,
-                "epidemiological_week": f"{year}-W{week_num:02d}",
-                "disease": "malaria",
-                "confirmed_cases": cases,
-                "suspected_cases": int(cases * rng.uniform(1.2, 2.0)),
-                "rainfall_mm": round(rainfall, 1),
-                "temperature_c": round(temperature, 1),
-                "humidity_pct": round(min(100, max(0, humidity)), 1),
-                "flood_event": bool(rng.random() < (0.06 if rainy else 0.01)),
-            })
+            records.append(
+                {
+                    "ta_idx": ta_idx,
+                    "year": year,
+                    "week_number": week_num,
+                    "epidemiological_week": f"{year}-W{week_num:02d}",
+                    "disease": "malaria",
+                    "confirmed_cases": cases,
+                    "suspected_cases": int(cases * rng.uniform(1.2, 2.0)),
+                    "rainfall_mm": round(rainfall, 1),
+                    "temperature_c": round(temperature, 1),
+                    "humidity_pct": round(min(100, max(0, humidity)), 1),
+                    "flood_event": bool(rng.random() < (0.06 if rainy else 0.01)),
+                }
+            )
 
     return pd.DataFrame(records)
 
@@ -150,7 +174,9 @@ def generate_supply_data(
             rainy = 1 if month in (10, 11, 12, 1, 2, 3) else 0
 
             consumption = max(10, int(base_consumption + rng.normal(0, 30)))
-            seasonal_demand = consumption * (1 + 0.3 * np.sin(2 * np.pi * m / 12) + rainy * 0.2)
+            seasonal_demand = consumption * (
+                1 + 0.3 * np.sin(2 * np.pi * m / 12) + rainy * 0.2
+            )
             stock = max(0, stock - int(seasonal_demand))
 
             stockout_occurred = stock == 0
@@ -161,14 +187,16 @@ def generate_supply_data(
             lead_time_days = max(7, int(rng.normal(21 * (2 - facility_reliability), 8)))
             months_of_supply = round(stock / max(1, seasonal_demand), 1)
 
-            records.append({
-                "facility_idx": fac_idx,
-                "month": m,
-                "stock_on_hand": stock,
-                "monthly_consumption": int(seasonal_demand),
-                "months_of_supply": months_of_supply,
-                "lead_time_days": lead_time_days,
-                "stockout_occurred": stockout_occurred,
-            })
+            records.append(
+                {
+                    "facility_idx": fac_idx,
+                    "month": m,
+                    "stock_on_hand": stock,
+                    "monthly_consumption": int(seasonal_demand),
+                    "months_of_supply": months_of_supply,
+                    "lead_time_days": lead_time_days,
+                    "stockout_occurred": stockout_occurred,
+                }
+            )
 
     return pd.DataFrame(records)

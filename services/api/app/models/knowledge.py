@@ -47,7 +47,9 @@ class ResearchStudy(Base):
     discovered_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     ingested_by: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(
-        Enum("discovered", "under_review", "approved", "synthesized", "deployed", name="study_status"),
+        Enum(
+            "discovered", "under_review", "approved", "synthesized", "deployed", name="study_status"
+        ),
         default="discovered",
     )
     created_at: Mapped[str | None] = mapped_column(DateTime(timezone=True))
@@ -70,8 +72,14 @@ class KnowledgeAsset(Base):
 
     asset_type: Mapped[str] = mapped_column(
         Enum(
-            "chw_brief", "video", "audio", "poster", "flipbook",
-            "sms", "infographic", "community_talk",
+            "chw_brief",
+            "video",
+            "audio",
+            "poster",
+            "flipbook",
+            "sms",
+            "infographic",
+            "community_talk",
             name="asset_type",
         ),
         nullable=False,
@@ -117,8 +125,13 @@ class KnowledgeDeployment(Base):
 
     delivery_method: Mapped[str] = mapped_column(
         Enum(
-            "home_visit", "community_meeting", "clinic", "school",
-            "radio", "sms", "poster",
+            "home_visit",
+            "community_meeting",
+            "clinic",
+            "school",
+            "radio",
+            "sms",
+            "poster",
             name="delivery_method",
         ),
         nullable=False,
@@ -234,7 +247,15 @@ class MentalHealthReferral(Base):
     follow_up_date: Mapped[str | None] = mapped_column(DateTime(timezone=True))
     outcome: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(
-        Enum("identified", "referred", "in_care", "followed_up", "resolved", "lost_to_followup", name="mh_referral_status"),
+        Enum(
+            "identified",
+            "referred",
+            "in_care",
+            "followed_up",
+            "resolved",
+            "lost_to_followup",
+            name="mh_referral_status",
+        ),
         default="identified",
     )
     chw_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False))

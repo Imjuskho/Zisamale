@@ -87,7 +87,9 @@ def _cross_validate(X: pd.DataFrame, y: pd.Series, n_folds: int = 5) -> dict:
         except ValueError:
             auc_scores.append(0.0)
 
-        logger.info(f"  Fold {fold}: accuracy={acc_scores[-1]:.4f}  auc={auc_scores[-1]:.4f}")
+        logger.info(
+            f"  Fold {fold}: accuracy={acc_scores[-1]:.4f}  auc={auc_scores[-1]:.4f}"
+        )
 
     return {
         "cv_accuracy_mean": round(float(np.mean(acc_scores)), 4),
@@ -121,9 +123,7 @@ def train(df: pd.DataFrame, output_dir: Path) -> dict:
     xgb_auc = auc
 
     # Compare XGBoost vs RandomForest, keep the best model
-    rf_model = RandomForestClassifier(
-        n_estimators=100, max_depth=5, random_state=42
-    )
+    rf_model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
     rf_model.fit(X_train, y_train)
     rf_pred = rf_model.predict(X_test)
     rf_proba = rf_model.predict_proba(X_test)[:, 1]
@@ -178,8 +178,12 @@ def train(df: pd.DataFrame, output_dir: Path) -> dict:
     logger.info("ULALO-AI model trained successfully")
     logger.info(f"  Accuracy: {accuracy:.4f}")
     logger.info(f"  AUC-ROC: {auc:.4f}")
-    logger.info(f"  CV accuracy: {cv_metrics['cv_accuracy_mean']:.4f} +/- {cv_metrics['cv_accuracy_std']:.4f}")
-    logger.info(f"  CV AUC: {cv_metrics['cv_auc_mean']:.4f} +/- {cv_metrics['cv_auc_std']:.4f}")
+    logger.info(
+        f"  CV accuracy: {cv_metrics['cv_accuracy_mean']:.4f} +/- {cv_metrics['cv_accuracy_std']:.4f}"
+    )
+    logger.info(
+        f"  CV AUC: {cv_metrics['cv_auc_mean']:.4f} +/- {cv_metrics['cv_auc_std']:.4f}"
+    )
     logger.info(f"  Model saved to: {model_path}")
 
     return metrics

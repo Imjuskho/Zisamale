@@ -111,9 +111,9 @@ def child_dataset(n: int = 6000, seed: int = 7):
     risk += stunting
     y = np.clip(risk + rng.normal(0, 0.4, n), 0, 10)
 
-    X = np.column_stack([age_months, muac, weight_kg, height_cm, fever, cough, diarrhea]).astype(
-        np.float64
-    )
+    X = np.column_stack(
+        [age_months, muac, weight_kg, height_cm, fever, cough, diarrhea]
+    ).astype(np.float64)
     return X, y
 
 
@@ -156,7 +156,11 @@ def export_zgb(model, path: Path, kind: str, feature_count: int) -> dict:
             lines.append(f"{feat} {thr} {left} {right} {float(values[i])!r}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n")
-    return {"init": f0, "learning_rate": model.learning_rate, "n_trees": len(model.estimators_)}
+    return {
+        "init": f0,
+        "learning_rate": model.learning_rate,
+        "n_trees": len(model.estimators_),
+    }
 
 
 def eval_zgb_file(path: Path, X: np.ndarray) -> np.ndarray:
@@ -177,7 +181,11 @@ def eval_zgb_file(path: Path, X: np.ndarray) -> np.ndarray:
         for node in range(node_count):
             parts = lines[idx].split()
             idx += 1
-            feat[node], left[node], right[node] = int(parts[0]), int(parts[2]), int(parts[3])
+            feat[node], left[node], right[node] = (
+                int(parts[0]),
+                int(parts[2]),
+                int(parts[3]),
+            )
             thr[node], value[node] = float(parts[1]), float(parts[4])
         for i, row in enumerate(X):
             node = 0
@@ -191,7 +199,9 @@ def lr_of(lines: list[str]) -> float:
     return float(lines[1].split()[1])
 
 
-def write_goldens(path: Path, X: np.ndarray, scores: np.ndarray, count: int = 60) -> None:
+def write_goldens(
+    path: Path, X: np.ndarray, scores: np.ndarray, count: int = 60
+) -> None:
     sel = slice(0, count)
     rows = []
     for x, s in zip(X[sel], scores[sel]):
@@ -211,7 +221,7 @@ def export_onnx(model, path: Path, feature_count: int) -> float | None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(onnx_model.SerializeToString())
         return len(path.read_bytes())
-    except Exception as exc:  # pragma: no cover - optional artifact
+    except Exception as exc:  # noqa: BLE001 - optional artifact
         print(f"  ONNX export skipped: {exc}")
         return None
 
@@ -228,7 +238,9 @@ def category_of(score: float) -> str:
 
 def train_one(kind: str, X, y) -> dict:
     print(f"[{kind}] n={len(y)}")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=1
+    )
     t0 = time.perf_counter()
     model = fit_gbt(X_train, y_train)
     fit_s = time.perf_counter() - t0
@@ -254,7 +266,9 @@ def train_one(kind: str, X, y) -> dict:
     golden_path = ASSETS_DIR / f"golden_{kind}_v{MODEL_VERSION}.txt"
     write_goldens(golden_path, X_test, sklearn_scores)
 
-    onnx_size = export_onnx(model, MODELS_DIR / f"risk_{kind}_v{MODEL_VERSION}.onnx", X.shape[1])
+    onnx_size = export_onnx(
+        model, MODELS_DIR / f"risk_{kind}_v{MODEL_VERSION}.onnx", X.shape[1]
+    )
 
     report = {
         "kind": kind,
@@ -294,7 +308,9 @@ def main() -> None:
     total = sum(r["zgb_bytes"] for r in reports)
     assert total < 5 * 1024 * 1024, "bundled models must stay under 5MB combined"
     for r in reports:
-        assert r["export_max_abs_error"] < 1e-9, "exported ensemble must match sklearn exactly"
+        assert r["export_max_abs_error"] < 1e-9, (
+            "exported ensemble must match sklearn exactly"
+        )
     print(f"OK: bundled ensembles total {total} bytes (<5MB)")
 
 

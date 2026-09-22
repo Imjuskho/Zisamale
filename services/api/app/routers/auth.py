@@ -54,8 +54,8 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
 
     # Only chw and supervisor roles can self-register.
     # dho, phim, mohp must be created by an existing admin.
-    ALLOWED_PUBLIC_ROLES = {"chw", "supervisor"}
-    if body.role not in ALLOWED_PUBLIC_ROLES:
+    allowed_public_roles = {"chw", "supervisor"}
+    if body.role not in allowed_public_roles:
         raise HTTPException(
             status_code=403,
             detail=f"Role '{body.role}' cannot be self-registered. "

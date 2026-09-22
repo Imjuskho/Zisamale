@@ -15,8 +15,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,10 +116,12 @@ async def emit_alert(
 async def dispatch_alert(alert: Alert, channels: list[str] | None = None) -> None:
     """Fan out after commit; failures are logged, never raised."""
     try:
-        await get_delivery_service().deliver_alert(
-            alert_to_dict(alert), channels or ["websocket"]
-        )
+        await get_delivery_service().deliver_alert(alert_to_dict(alert), channels or ["websocket"])
     except Exception:  # noqa: BLE001 — delivery must not break ingest
-        logger.warning("alert.dispatch_failed", exc_info=True, extra={
-            "alert_id": getattr(alert, "alert_id", None),
-        })
+        logger.warning(
+            "alert.dispatch_failed",
+            exc_info=True,
+            extra={
+                "alert_id": getattr(alert, "alert_id", None),
+            },
+        )

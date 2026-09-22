@@ -74,7 +74,7 @@ def compute_concept_drift(
         return []
 
     windows = []
-    for start in range(0, n - window_size + 1):
+    for start in range(n - window_size + 1):
         end = start + window_size
         window_acc = float(np.mean(predictions[start:end] == actuals[start:end]))
         windows.append(

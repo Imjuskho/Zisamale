@@ -223,8 +223,7 @@ async def lmis_upload(
         "rows_valid": len(records) - len(anomalies),
         "rows_with_anomalies": len(anomalies),
         "anomaly_rows": [
-            {"row_number": r.get("row_number"), "anomalies": r["anomalies"]}
-            for r in anomalies[:25]
+            {"row_number": r.get("row_number"), "anomalies": r["anomalies"]} for r in anomalies[:25]
         ],
     }
 

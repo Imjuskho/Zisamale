@@ -16,18 +16,18 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.alerts.service import dispatch_alert, emit_alert
 from app.deps import require_role, scoped_db
-from app.models.facility import Facility
-from app.models.visit import Visit
-from app.models.pregnancy import Pregnancy
 from app.models.child import Child
+from app.models.facility import Facility
+from app.models.pregnancy import Pregnancy
+from app.models.visit import Visit
 from app.sync.engine import (
     SyncEntity,
     apply_batch,
-    coerce_datetime_field,
     coarsen_gps,
+    coerce_datetime_field,
+    parse_client_datetime,
     require_override_reason,
     token_chw_id,
 )

@@ -23,7 +23,7 @@ async def upload_photo(
             **result,
         }
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
 
 @router.get("/uploads/stats")

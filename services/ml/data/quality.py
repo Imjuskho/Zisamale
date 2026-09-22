@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def check_completeness(
@@ -16,7 +16,10 @@ def check_completeness(
 ) -> dict:
     results = {}
     if facility_col not in df.columns or week_col not in df.columns:
-        return {"error": f"Missing columns: {facility_col} or {week_col}", "overall_pass": False}
+        return {
+            "error": f"Missing columns: {facility_col} or {week_col}",
+            "overall_pass": False,
+        }
 
     for facility in df[facility_col].unique():
         facility_data = df[df[facility_col] == facility]
@@ -47,9 +50,14 @@ def check_consistency(
 ) -> dict:
     results = {}
     if year_col not in df.columns or value_col not in df.columns:
-        return {"error": f"Missing columns: {year_col} or {value_col}", "overall_pass": False}
+        return {
+            "error": f"Missing columns: {year_col} or {value_col}",
+            "overall_pass": False,
+        }
 
-    for facility in df[facility_col].unique() if facility_col in df.columns else ["all"]:
+    for facility in (
+        df[facility_col].unique() if facility_col in df.columns else ["all"]
+    ):
         fdf = df if facility_col not in df.columns else df[df[facility_col] == facility]
         yearly = fdf.groupby(year_col)[value_col].sum()
         if len(yearly) < 2:
@@ -85,7 +93,7 @@ def check_timeliness(
     if reference_date_col not in df.columns:
         return {"error": f"Missing column: {reference_date_col}", "overall_pass": False}
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     dates = pd.to_datetime(df[reference_date_col], errors="coerce")
     max_date = dates.max()
     lag_days = (now - max_date).days if pd.notna(max_date) else float("inf")
@@ -120,11 +128,15 @@ def generate_quality_report(results: dict[str, dict]) -> str:
 
     if "consistency" in results:
         con = results["consistency"]
-        lines.append(f"Consistency: Gate {'PASS' if con.get('overall_pass') else 'FAIL'}")
+        lines.append(
+            f"Consistency: Gate {'PASS' if con.get('overall_pass') else 'FAIL'}"
+        )
 
     if "timeliness" in results:
         t = results["timeliness"]
-        lines.append(f"Timeliness: {t.get('lag_days', '?')} days lag (max: {t.get('max_allowed_lag_days', 14)})")
+        lines.append(
+            f"Timeliness: {t.get('lag_days', '?')} days lag (max: {t.get('max_allowed_lag_days', 14)})"
+        )
         lines.append(f"  Gate: {'PASS' if t.get('passed') else 'FAIL'}")
 
     overall = quality_gate_check(

@@ -45,10 +45,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
     async def _record(self, request: Request, status_code: int, started: float) -> None:
         try:
-            if (
-                request.method not in AUDITED_METHODS
-                or request.url.path in EXCLUDED_PATHS
-            ):
+            if request.method not in AUDITED_METHODS or request.url.path in EXCLUDED_PATHS:
                 return
 
             duration_ms = round((time.perf_counter() - started) * 1000, 2)
@@ -137,6 +134,7 @@ def _extract_entity_id(path: str) -> str | None:
         candidate = parts[3]
         try:
             import uuid as _uuid
+
             _uuid.UUID(candidate)
             return candidate
         except (ValueError, AttributeError):

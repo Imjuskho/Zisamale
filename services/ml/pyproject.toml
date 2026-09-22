@@ -26,5 +26,17 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["pipelines*", "data*"]
 
+
+[tool.ruff.lint.per-file-ignores]
+"data/extractors/dhis2_extractor.py" = ["E501"]
+"data/extractors/lmis_extractor.py" = ["E501"]
+"data/quality.py" = ["E501"]
+"pipelines/feature_analysis.py" = ["E501"]
+"pipelines/model_card.py" = ["E501"]
+"pipelines/risk_scoring/train.py" = ["E501"]
+"pipelines/supply_chain/train.py" = ["E501"]
+"pipelines/surveillance/train.py" = ["E501"]
+"pipelines/train_edge_models.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

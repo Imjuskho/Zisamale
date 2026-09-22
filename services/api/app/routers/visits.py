@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select, text
@@ -28,7 +28,7 @@ def _parse_visit_date(raw: str) -> datetime:
         ts = int(value)
         if ts > 10_000_000_000:
             ts = ts / 1000
-        return datetime.fromtimestamp(ts, tz=timezone.utc)
+        return datetime.fromtimestamp(ts, tz=UTC)
     normalized = value.replace("Z", "+00:00")
     try:
         parsed = datetime.fromisoformat(normalized)
@@ -38,7 +38,7 @@ def _parse_visit_date(raw: str) -> datetime:
             detail=f"Invalid visit_date: {raw}",
         ) from exc
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
     return parsed
 
 
@@ -77,7 +77,7 @@ def _overdue_days(next_visit) -> int:
 
 def _next_visit_recommendation(visit_at: datetime, risk_category: str | None) -> dict:
     days = FOLLOWUP_DAYS.get(risk_category or "medium", 7)
-    suggested = (visit_at.astimezone(timezone.utc) + timedelta(days=days)).date().isoformat()
+    suggested = (visit_at.astimezone(UTC) + timedelta(days=days)).date().isoformat()
     return {"visit_type": "followup", "suggested_date": suggested}
 
 
@@ -176,9 +176,7 @@ async def get_priority_list(
 ):
     if not _valid_chw_id(chw_id):
         return {"visits": []}
-    households_result = await db.execute(
-        select(Household).where(Household.chw_id == chw_id)
-    )
+    households_result = await db.execute(select(Household).where(Household.chw_id == chw_id))
     households = {row.household_id: row for row in households_result.scalars().all()}
     household_ids = set(households)
 
@@ -201,7 +199,9 @@ async def get_priority_list(
                     "visit_type": "pregnancy",
                     "risk_score": float(pregnancy.risk_score or 0),
                     "risk_category": pregnancy.risk_category or "low",
-                    "due_date": str(pregnancy.next_visit_date) if pregnancy.next_visit_date else None,
+                    "due_date": str(pregnancy.next_visit_date)
+                    if pregnancy.next_visit_date
+                    else None,
                     "overdue_days": _overdue_days(pregnancy.next_visit_date),
                     "top_risk_factors": _as_list(pregnancy.top_risk_factors),
                     "distance_km": float(household.distance_to_facility_km or 0)
@@ -286,7 +286,10 @@ async def get_chw_performance(
     Returns the full CHWPerformance contract: catchment size, weekly
     visit completion, open referrals, high-risk cases, and last sync.
     """
-    rows = (await db.execute(text("""
+    rows = (
+        (
+            await db.execute(
+                text("""
         SELECT u.user_id::text            AS chw_id,
                u.full_name                AS chw_name,
                COALESCE(hh.hh_count, 0)   AS household_count,
@@ -322,23 +325,31 @@ async def get_chw_performance(
         WHERE u.role = 'chw' AND u.is_active = TRUE
           AND (CAST(:district AS uuid) IS NULL OR u.district_id = CAST(:district AS uuid))
         ORDER BY u.full_name
-    """), {"district": district})).mappings().all()
+    """),
+                {"district": district},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     perf_list = []
     for r in rows:
         household_count = int(r["household_count"] or 0)
         last_visit = r["last_visit"]
-        perf_list.append({
-            "chw_id": r["chw_id"],
-            "chw_name": r["chw_name"],
-            "catchment_population": int(r["catchment_population"] or 0),
-            # One catchment visit per household per week is the protocol target.
-            "visits_this_week": int(r["visits_this_week"] or 0),
-            "expected_visits_weekly": max(household_count, 1),
-            "high_risk_cases": int(r["high_risk_cases"] or 0),
-            "referrals_open": int(r["referrals_open"] or 0),
-            "last_sync_at": (last_visit or datetime.now(timezone.utc)).isoformat(),
-        })
+        perf_list.append(
+            {
+                "chw_id": r["chw_id"],
+                "chw_name": r["chw_name"],
+                "catchment_population": int(r["catchment_population"] or 0),
+                # One catchment visit per household per week is the protocol target.
+                "visits_this_week": int(r["visits_this_week"] or 0),
+                "expected_visits_weekly": max(household_count, 1),
+                "high_risk_cases": int(r["high_risk_cases"] or 0),
+                "referrals_open": int(r["referrals_open"] or 0),
+                "last_sync_at": (last_visit or datetime.now(UTC)).isoformat(),
+            }
+        )
 
     return {"chws": perf_list}
 
@@ -361,7 +372,10 @@ async def get_chw_households(
     # the token here rather than taken from the path.
     chw_id = token_chw_id(user, chw_id) or chw_id
 
-    rows = (await db.execute(text("""
+    rows = (
+        (
+            await db.execute(
+                text("""
         SELECT h.household_id::text     AS household_id,
                COALESCE(h.village_name, 'Unnamed village') AS head_of_household,
                h.village_name, h.ta_name,
@@ -383,7 +397,13 @@ async def get_chw_households(
                  h.water_source, h.sanitation_type, h.food_security_score,
                  h.distance_to_facility_km, h.gps_lat, h.gps_lon
         ORDER BY h.village_name NULLS LAST
-    """), {"chw_id": chw_id})).mappings().all()
+    """),
+                {"chw_id": chw_id},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     def _iso(dt):
         return dt.isoformat() if dt else None
@@ -427,7 +447,11 @@ async def run_budget_model(
         "recommended_allocations": [
             {"category": "ACTs", "amount_mwk": 120_000_000, "rationale": "Malaria peak season"},
             {"category": "RDTs", "amount_mwk": 45_000_000, "rationale": "Diagnostic capacity"},
-            {"category": "Maternity supplies", "amount_mwk": 80_000_000, "rationale": "High maternal mortality"},
+            {
+                "category": "Maternity supplies",
+                "amount_mwk": 80_000_000,
+                "rationale": "High maternal mortality",
+            },
         ],
         "executive_summary": f"Budget scenario '{scenario}' for {district or 'national'} level.",
     }

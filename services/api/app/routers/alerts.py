@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,10 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.deps import get_current_user, require_role
+from app.deps import require_role
 from app.models.alert import Alert
 from app.models.surveillance import SurveillanceWeekly
-from app.schemas.alert import AlertResponse, AlertRespond
+from app.schemas.alert import AlertRespond, AlertResponse
 
 router = APIRouter(prefix="/api/v1", tags=["alerts"])
 
@@ -91,7 +91,7 @@ async def respond_to_alert(
     alert.response_notes = body.notes
     alert.actions_taken = body.actions_taken
     alert.resources_deployed = body.resources_deployed
-    alert.responded_at = datetime.now(timezone.utc)
+    alert.responded_at = datetime.now(UTC)
 
     return {"status": "updated", "alert_id": alert_id}
 
@@ -107,17 +107,14 @@ async def get_surveillance_trends(
 
         async with async_session() as db:
             result = await db.execute(
-                select(SurveillanceWeekly).where(
-                    SurveillanceWeekly.district_id == district_id
-                )
+                select(SurveillanceWeekly).where(SurveillanceWeekly.district_id == district_id)
             )
             rows = list(result.scalars().all())
         malaria = [row for row in rows if row.disease == "malaria"]
         series = malaria or rows
         series.sort(key=lambda row: (row.year or 0, row.week_number or 0))
         actual = [
-            {"week": row.epidemiological_week, "cases": row.confirmed_cases or 0}
-            for row in series
+            {"week": row.epidemiological_week, "cases": row.confirmed_cases or 0} for row in series
         ]
     except Exception:
         actual = []

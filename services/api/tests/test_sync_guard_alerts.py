@@ -18,7 +18,6 @@ SUPERVISOR_ID = "ac8cb4bc-f349-4aa9-85e5-0e6ded5a02e2"
 FACILITY_ID = "259c6b52-7ded-47c3-981f-09e250608d02"
 
 
-
 def _token(role: str = "chw", chw_id: str = CHW_ID) -> dict[str, str]:
     claims = {"sub": chw_id if role == "chw" else f"{role}-x", "role": role}
     if role == "chw":
@@ -37,12 +36,16 @@ async def _register_household(client: AsyncClient, household_id: str) -> None:
     response = await client.post(
         "/api/v1/households/batch",
         headers=_token(),
-        json={"households": [{
-            "household_id": household_id,
-            "gps_lat": -13.976541,
-            "gps_lon": 33.776542,
-            "village_name": "Mkhoma",
-        }]},
+        json={
+            "households": [
+                {
+                    "household_id": household_id,
+                    "gps_lat": -13.976541,
+                    "gps_lon": 33.776542,
+                    "village_name": "Mkhoma",
+                }
+            ]
+        },
     )
     assert response.status_code == 200
     assert response.json()["created"] == 1, f"register failed: {response.json()}"
@@ -62,14 +65,16 @@ async def test_gps_coarsened_at_both_sync_boundaries(client: AsyncClient):
             "device_id": "device-x",
             "chw_name": "Test CHW",
             "chw_id": CHW_ID,
-            "visits": [{
-                "visit_id": visit_id,
-                "household_id": household_id,
-                "visit_date": "2026-08-24T09:30:00Z",
-                "visit_type": "routine",
-                "gps_lat": -13.971234,
-                "gps_lon": 33.779876,
-            }],
+            "visits": [
+                {
+                    "visit_id": visit_id,
+                    "household_id": household_id,
+                    "visit_date": "2026-08-24T09:30:00Z",
+                    "visit_type": "routine",
+                    "gps_lat": -13.971234,
+                    "gps_lon": 33.779876,
+                }
+            ],
         },
     )
     assert response.status_code == 200
@@ -78,7 +83,9 @@ async def test_gps_coarsened_at_both_sync_boundaries(client: AsyncClient):
     assert body["conflicts"] == []
 
     from sqlalchemy import text
+
     from app.database import engine
+
     async with engine.connect() as conn:
         hh = (
             await conn.execute(
@@ -146,11 +153,13 @@ async def test_bad_visit_date_becomes_failure_receipt(client: AsyncClient):
             "device_id": "device-x",
             "chw_name": "Test CHW",
             "chw_id": CHW_ID,
-            "visits": [{
-                "visit_id": str(uuid.uuid4()),
-                "household_id": household_id,
-                "visit_date": "not-a-date",
-            }],
+            "visits": [
+                {
+                    "visit_id": str(uuid.uuid4()),
+                    "household_id": household_id,
+                    "visit_date": "not-a-date",
+                }
+            ],
         },
     )
     body = response.json()
@@ -179,17 +188,21 @@ async def test_body_chw_id_ignored_for_chw_tokens(client: AsyncClient):
             "device_id": "device-x",
             "chw_name": "Test CHW",
             "chw_id": SUPERVISOR_ID,
-            "visits": [{
-                "visit_id": visit_id,
-                "household_id": household_id,
-                "visit_date": "2026-08-24",
-            }],
+            "visits": [
+                {
+                    "visit_id": visit_id,
+                    "household_id": household_id,
+                    "visit_date": "2026-08-24",
+                }
+            ],
         },
     )
     assert vv.status_code == 200
 
     from sqlalchemy import text
+
     from app.database import engine
+
     async with engine.connect() as conn:
         hh_row = (
             await conn.execute(
@@ -217,12 +230,24 @@ async def test_critical_stockout_alert_normalized_and_idempotent(client: AsyncCl
         "stockout_risk": "critical",
     }
     first = await client.post(
-        "/api/v1/chw/sync", headers=_token(),
-        json={"device_id": "d", "chw_name": "Test CHW", "chw_id": CHW_ID, "stock_reports": [report]},
+        "/api/v1/chw/sync",
+        headers=_token(),
+        json={
+            "device_id": "d",
+            "chw_name": "Test CHW",
+            "chw_id": CHW_ID,
+            "stock_reports": [report],
+        },
     )
     second = await client.post(
-        "/api/v1/chw/sync", headers=_token(),
-        json={"device_id": "d", "chw_name": "Test CHW", "chw_id": CHW_ID, "stock_reports": [report]},
+        "/api/v1/chw/sync",
+        headers=_token(),
+        json={
+            "device_id": "d",
+            "chw_name": "Test CHW",
+            "chw_id": CHW_ID,
+            "stock_reports": [report],
+        },
     )
     assert first.status_code == 200 and second.status_code == 200
     assert first.json()["stock_alerts_triggered"] == 1
@@ -230,11 +255,15 @@ async def test_critical_stockout_alert_normalized_and_idempotent(client: AsyncCl
     assert second.json()["stock_alerts_triggered"] == 0
 
     from sqlalchemy import text
+
     from app.database import engine
+
     async with engine.connect() as conn:
         rows = (
             await conn.execute(
-                text("SELECT risk_score FROM alerts WHERE disease='stockout' AND risk_score >= 0.89"),
+                text(
+                    "SELECT risk_score FROM alerts WHERE disease='stockout' AND risk_score >= 0.89"
+                ),
             )
         ).all()
     assert rows, "expected a stockout alert on the canonical 0-1 scale"

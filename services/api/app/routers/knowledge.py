@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import smtplib
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import EmailMessage
-import smtplib
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -128,11 +128,11 @@ async def create_study(
         researcher_contact=body.researcher_contact,
         health_topic=body.health_topic,
         audience=body.audience,
-        discovered_at=datetime.now(timezone.utc),
+        discovered_at=datetime.now(UTC),
         ingested_by="manual",
         status="discovered",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(study)
     await db.flush()
@@ -189,9 +189,9 @@ async def update_consent(
 
     study.consent_status = body.consent_status
     study.researcher_notes = body.researcher_notes
-    study.updated_at = datetime.now(timezone.utc)
+    study.updated_at = datetime.now(UTC)
     if body.consent_status == "granted":
-        study.consent_date = datetime.now(timezone.utc)
+        study.consent_date = datetime.now(UTC)
         study.status = "approved"
 
     return {"status": "updated", "study_id": study_id, "consent_status": body.consent_status}
@@ -271,11 +271,11 @@ async def create_asset(
         media_url=body.media_url,
         audio_url=body.audio_url,
         poster_url=body.poster_url,
-        synthesized_at=datetime.now(timezone.utc),
+        synthesized_at=datetime.now(UTC),
         synthesized_by="admin",
         status="draft",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(asset)
     await db.flush()
@@ -329,7 +329,7 @@ async def approve_asset(
 
     asset.status = "approved"
     asset.reviewed_by = user.get("sub")
-    asset.updated_at = datetime.now(timezone.utc)
+    asset.updated_at = datetime.now(UTC)
     return {"status": "approved", "asset_id": asset_id}
 
 
@@ -387,7 +387,9 @@ async def create_deployment(
     user: dict = Depends(require_role("chw", "supervisor", "dho")),
 ):
     if not body.asset_id and not body.talk_id and not body.guide_id:
-        raise HTTPException(status_code=400, detail="One of asset_id, talk_id, or guide_id is required")
+        raise HTTPException(
+            status_code=400, detail="One of asset_id, talk_id, or guide_id is required"
+        )
 
     delivery_method = body.delivery_method
     if body.talk_id and delivery_method == "home_visit":
@@ -395,7 +397,7 @@ async def create_deployment(
     if body.guide_id and delivery_method not in ("home_visit", "clinic"):
         delivery_method = "home_visit"
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     deployment = KnowledgeDeployment(
         deployment_id=str(uuid.uuid4()),
         asset_id=body.asset_id,
@@ -528,10 +530,10 @@ async def create_guide(
         clinical_decision_points=body.clinical_decision_points,
         clinical_decision_points_chichewa=body.clinical_decision_points_chichewa,
         source=body.source,
-        last_reviewed=datetime.now(timezone.utc),
+        last_reviewed=datetime.now(UTC),
         is_active=True,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(guide)
     await db.flush()
@@ -636,8 +638,8 @@ async def create_talk(
         health_topic=body.health_topic,
         audience=body.audience,
         status="draft",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(talk)
     await db.flush()
@@ -767,12 +769,12 @@ async def create_referral(
         trigger_event=body.trigger_event,
         presenting_concern=body.presenting_concern,
         referred_to=body.referred_to,
-        referral_date=datetime.now(timezone.utc),
+        referral_date=datetime.now(UTC),
         chw_id=body.chw_id,
         notes=body.notes,
         status="identified",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(referral)
     await db.flush()
@@ -804,7 +806,7 @@ async def update_referral(
         referral.follow_up_date = datetime.fromisoformat(follow_up_date)
     if notes:
         referral.notes = notes
-    referral.updated_at = datetime.now(timezone.utc)
+    referral.updated_at = datetime.now(UTC)
 
     return {"status": "updated", "referral_id": referral_id}
 
@@ -848,7 +850,11 @@ async def list_topics(
         topic_assets = asset_by_topic.get(topic, [])
         topic_guides = [g for g in guides if g.category == topic]
         topic_talks = [t for t in talks if t.health_topic == topic]
-        topic_deps = [d for d in deployments if any(a.health_topic == topic for a in topic_assets if a.asset_id == d.asset_id)]
+        topic_deps = [
+            d
+            for d in deployments
+            if any(a.health_topic == topic for a in topic_assets if a.asset_id == d.asset_id)
+        ]
 
         topics[topic] = {
             "health_topic": topic,
@@ -861,7 +867,9 @@ async def list_topics(
             "households_reached": sum(d.households_reached or 0 for d in topic_deps),
         }
         for a in topic_assets:
-            topics[topic]["asset_types"][a.asset_type] = topics[topic]["asset_types"].get(a.asset_type, 0) + 1
+            topics[topic]["asset_types"][a.asset_type] = (
+                topics[topic]["asset_types"].get(a.asset_type, 0) + 1
+            )
 
     return {"topics": list(topics.values())}
 
@@ -909,63 +917,67 @@ async def assets_for_household(
         if asset.severity == "emergency":
             score += 1
         if score > 0:
-            matched_assets.append({
-                "asset": KnowledgeAssetResponse(
-                    asset_id=asset.asset_id,
-                    study_id=asset.study_id,
-                    title=asset.title,
-                    title_chichewa=asset.title_chichewa,
-                    key_finding=asset.key_finding,
-                    key_finding_chichewa=asset.key_finding_chichewa,
-                    actionable_takeaways=asset.actionable_takeaways or [],
-                    actionable_takeaways_chichewa=asset.actionable_takeaways_chichewa or [],
-                    evidence_refs=asset.evidence_refs or [],
-                    asset_type=asset.asset_type,
-                    health_topic=asset.health_topic,
-                    audience=asset.audience,
-                    severity=asset.severity,
-                    media_url=asset.media_url,
-                    audio_url=asset.audio_url,
-                    poster_url=asset.poster_url,
-                    confidence_level=asset.confidence_level,
-                    status=asset.status,
-                    synthesized_at=str(asset.synthesized_at) if asset.synthesized_at else None,
-                ).model_dump(),
-                "relevance_score": score,
-            })
+            matched_assets.append(
+                {
+                    "asset": KnowledgeAssetResponse(
+                        asset_id=asset.asset_id,
+                        study_id=asset.study_id,
+                        title=asset.title,
+                        title_chichewa=asset.title_chichewa,
+                        key_finding=asset.key_finding,
+                        key_finding_chichewa=asset.key_finding_chichewa,
+                        actionable_takeaways=asset.actionable_takeaways or [],
+                        actionable_takeaways_chichewa=asset.actionable_takeaways_chichewa or [],
+                        evidence_refs=asset.evidence_refs or [],
+                        asset_type=asset.asset_type,
+                        health_topic=asset.health_topic,
+                        audience=asset.audience,
+                        severity=asset.severity,
+                        media_url=asset.media_url,
+                        audio_url=asset.audio_url,
+                        poster_url=asset.poster_url,
+                        confidence_level=asset.confidence_level,
+                        status=asset.status,
+                        synthesized_at=str(asset.synthesized_at) if asset.synthesized_at else None,
+                    ).model_dump(),
+                    "relevance_score": score,
+                }
+            )
 
     matched_assets.sort(key=lambda x: x["relevance_score"], reverse=True)
 
     matched_guides = []
     for guide in all_guides:
         if guide.category in topic_hints:
-            matched_guides.append(SelfCareGuideResponse(
-                guide_id=guide.guide_id,
-                title=guide.title,
-                title_chichewa=guide.title_chichewa,
-                category=guide.category,
-                audience=guide.audience,
-                severity=guide.severity,
-                what_it_is=guide.what_it_is,
-                what_it_is_chichewa=guide.what_it_is_chichewa,
-                what_to_do_now=guide.what_to_do_now or [],
-                what_to_do_now_chichewa=guide.what_to_do_now_chichewa or [],
-                what_not_to_do=guide.what_not_to_do or [],
-                what_not_to_do_chichewa=guide.what_not_to_do_chichewa or [],
-                when_to_seek_help=guide.when_to_seek_help,
-                when_to_seek_help_chichewa=guide.when_to_seek_help_chichewa,
-                prevention=guide.prevention or [],
-                prevention_chichewa=guide.prevention_chichewa or [],
-                treatment_limitations=guide.treatment_limitations or [],
-                treatment_limitations_chichewa=guide.treatment_limitations_chichewa or [],
-                clinical_decision_points=guide.clinical_decision_points or [],
-                clinical_decision_points_chichewa=guide.clinical_decision_points_chichewa or [],
-                illustration_url=guide.illustration_url,
-                audio_url=guide.audio_url,
-                video_url=guide.video_url,
-                source=guide.source,
-                last_reviewed=str(guide.last_reviewed) if guide.last_reviewed else None,
-            ).model_dump())
+            matched_guides.append(
+                SelfCareGuideResponse(
+                    guide_id=guide.guide_id,
+                    title=guide.title,
+                    title_chichewa=guide.title_chichewa,
+                    category=guide.category,
+                    audience=guide.audience,
+                    severity=guide.severity,
+                    what_it_is=guide.what_it_is,
+                    what_it_is_chichewa=guide.what_it_is_chichewa,
+                    what_to_do_now=guide.what_to_do_now or [],
+                    what_to_do_now_chichewa=guide.what_to_do_now_chichewa or [],
+                    what_not_to_do=guide.what_not_to_do or [],
+                    what_not_to_do_chichewa=guide.what_not_to_do_chichewa or [],
+                    when_to_seek_help=guide.when_to_seek_help,
+                    when_to_seek_help_chichewa=guide.when_to_seek_help_chichewa,
+                    prevention=guide.prevention or [],
+                    prevention_chichewa=guide.prevention_chichewa or [],
+                    treatment_limitations=guide.treatment_limitations or [],
+                    treatment_limitations_chichewa=guide.treatment_limitations_chichewa or [],
+                    clinical_decision_points=guide.clinical_decision_points or [],
+                    clinical_decision_points_chichewa=guide.clinical_decision_points_chichewa or [],
+                    illustration_url=guide.illustration_url,
+                    audio_url=guide.audio_url,
+                    video_url=guide.video_url,
+                    source=guide.source,
+                    last_reviewed=str(guide.last_reviewed) if guide.last_reviewed else None,
+                ).model_dump()
+            )
 
     return {
         "household_id": household_id,
@@ -986,14 +998,16 @@ async def deployment_heatmap(
     result = await db.execute(select(KnowledgeDeployment))
     deployments = result.scalars().all()
 
-    by_district: dict[str, dict] = defaultdict(lambda: {
-        "district_id": "",
-        "district_name": "",
-        "deployment_count": 0,
-        "households_reached": 0,
-        "individuals_reached": 0,
-        "delivery_methods": defaultdict(int),
-    })
+    by_district: dict[str, dict] = defaultdict(
+        lambda: {
+            "district_id": "",
+            "district_name": "",
+            "deployment_count": 0,
+            "households_reached": 0,
+            "individuals_reached": 0,
+            "delivery_methods": defaultdict(int),
+        }
+    )
 
     for d in deployments:
         key = d.district_id or "unknown"
@@ -1038,17 +1052,19 @@ async def impact_trajectory(
 
     trajectory = []
     for d in deployments:
-        trajectory.append({
-            "deployment_id": d.deployment_id,
-            "asset_id": d.asset_id,
-            "deployed_at": str(d.deployed_at) if d.deployed_at else None,
-            "pre_score": d.knowledge_pre_score,
-            "post_score": d.knowledge_post_score,
-            "delta": round((d.knowledge_post_score or 0) - (d.knowledge_pre_score or 0), 2),
-            "behavior_change_score": d.behavior_change_score,
-            "district_id": d.district_id,
-            "delivery_method": d.delivery_method,
-        })
+        trajectory.append(
+            {
+                "deployment_id": d.deployment_id,
+                "asset_id": d.asset_id,
+                "deployed_at": str(d.deployed_at) if d.deployed_at else None,
+                "pre_score": d.knowledge_pre_score,
+                "post_score": d.knowledge_post_score,
+                "delta": round((d.knowledge_post_score or 0) - (d.knowledge_pre_score or 0), 2),
+                "behavior_change_score": d.behavior_change_score,
+                "district_id": d.district_id,
+                "delivery_method": d.delivery_method,
+            }
+        )
 
     scores = [t["delta"] for t in trajectory]
     avg_delta = sum(scores) / len(scores) if scores else 0
@@ -1076,7 +1092,7 @@ async def pipeline_view(
     assets = assets_result.scalars().all()
     deployments = deps_result.scalars().all()
 
-    study_by_id = {s.study_id: s for s in studies}
+    {s.study_id: s for s in studies}
     assets_by_study: dict[str, list] = defaultdict(list)
     for a in assets:
         if a.study_id:
@@ -1090,39 +1106,47 @@ async def pipeline_view(
     links = []
 
     for s in studies:
-        nodes.append({
-            "id": s.study_id,
-            "label": s.title[:60],
-            "type": "study",
-            "status": s.status,
-            "topic": s.health_topic,
-        })
+        nodes.append(
+            {
+                "id": s.study_id,
+                "label": s.title[:60],
+                "type": "study",
+                "status": s.status,
+                "topic": s.health_topic,
+            }
+        )
         for a in assets_by_study.get(s.study_id, []):
             links.append({"source": s.study_id, "target": a.asset_id, "value": 1})
 
     for a in assets:
-        nodes.append({
-            "id": a.asset_id,
-            "label": a.title[:60],
-            "type": "asset",
-            "asset_type": a.asset_type,
-            "topic": a.health_topic,
-            "status": a.status,
-        })
+        nodes.append(
+            {
+                "id": a.asset_id,
+                "label": a.title[:60],
+                "type": "asset",
+                "asset_type": a.asset_type,
+                "topic": a.health_topic,
+                "status": a.status,
+            }
+        )
         deps = deps_by_asset.get(a.asset_id, [])
         if deps:
             total_households = sum(d.households_reached or 0 for d in deps)
-            links.append({
-                "source": a.asset_id,
-                "target": f"deployed-{a.asset_id}",
-                "value": len(deps),
-            })
-            nodes.append({
-                "id": f"deployed-{a.asset_id}",
-                "label": f"{len(deps)} deployments ({total_households} HH)",
-                "type": "deployment",
-                "topic": a.health_topic,
-            })
+            links.append(
+                {
+                    "source": a.asset_id,
+                    "target": f"deployed-{a.asset_id}",
+                    "value": len(deps),
+                }
+            )
+            nodes.append(
+                {
+                    "id": f"deployed-{a.asset_id}",
+                    "label": f"{len(deps)} deployments ({total_households} HH)",
+                    "type": "deployment",
+                    "topic": a.health_topic,
+                }
+            )
 
     return {
         "nodes": nodes,
@@ -1144,7 +1168,9 @@ async def talk_print_kit(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role("dho", "phim", "mohp", "supervisor", "chw")),
 ):
-    result = await db.execute(select(CommunityHealthTalk).where(CommunityHealthTalk.talk_id == talk_id))
+    result = await db.execute(
+        select(CommunityHealthTalk).where(CommunityHealthTalk.talk_id == talk_id)
+    )
     talk = result.scalar_one_or_none()
     if not talk:
         raise HTTPException(status_code=404, detail="Talk not found")
@@ -1163,7 +1189,9 @@ async def talk_print_kit(
             "title": study.title if study else None,
             "authors": study.authors if study else [],
             "journal": study.journal if study else None,
-        } if study else None,
+        }
+        if study
+        else None,
         "talking_points": talk.talking_points or [],
         "talking_points_chichewa": talk.talking_points_chichewa or [],
         "discussion_questions": talk.discussion_questions or [],
@@ -1213,7 +1241,9 @@ async def talk_flipbook_data(
     db: AsyncSession = Depends(get_db),
     user: dict = Depends(require_role("dho", "phim", "mohp", "supervisor", "chw")),
 ):
-    result = await db.execute(select(CommunityHealthTalk).where(CommunityHealthTalk.talk_id == talk_id))
+    result = await db.execute(
+        select(CommunityHealthTalk).where(CommunityHealthTalk.talk_id == talk_id)
+    )
     talk = result.scalar_one_or_none()
     if not talk:
         raise HTTPException(status_code=404, detail="Talk not found")
@@ -1222,29 +1252,37 @@ async def talk_flipbook_data(
     talking_points = talk.talking_points or []
     talking_points_chichewa = talk.talking_points_chichewa or []
     for i, tp in enumerate(talking_points):
-        pages.append({
-            "page_number": i + 1,
-            "type": "talking_point",
-            "content_en": tp,
-            "content_ny": talking_points_chichewa[i] if i < len(talking_points_chichewa) else "",
-        })
+        pages.append(
+            {
+                "page_number": i + 1,
+                "type": "talking_point",
+                "content_en": tp,
+                "content_ny": talking_points_chichewa[i]
+                if i < len(talking_points_chichewa)
+                else "",
+            }
+        )
 
     questions = talk.discussion_questions or []
     for i, q in enumerate(questions):
-        pages.append({
-            "page_number": len(talking_points) + i + 1,
-            "type": "discussion_question",
-            "content_en": q,
-            "content_ny": q,
-        })
+        pages.append(
+            {
+                "page_number": len(talking_points) + i + 1,
+                "type": "discussion_question",
+                "content_en": q,
+                "content_ny": q,
+            }
+        )
 
     if talk.pledge_card_text:
-        pages.append({
-            "page_number": len(pages) + 1,
-            "type": "pledge_card",
-            "content_en": talk.pledge_card_text,
-            "content_ny": talk.pledge_card_text_chichewa or "",
-        })
+        pages.append(
+            {
+                "page_number": len(pages) + 1,
+                "type": "pledge_card",
+                "content_en": talk.pledge_card_text,
+                "content_ny": talk.pledge_card_text_chichewa or "",
+            }
+        )
 
     return {
         "title": talk.title,
@@ -1278,12 +1316,14 @@ async def schedule_sms_tips(
     for asset in assets:
         takeaways = asset.actionable_takeaways or []
         if takeaways:
-            sms_assets.append({
-                "asset_id": asset.asset_id,
-                "topic": asset.health_topic,
-                "message_en": f"ZISAMALE {asset.health_topic.upper()}: {takeaways[0]}",
-                "message_ny": f"ZISAMALE {asset.health_topic.upper()}: {(asset.actionable_takeaways_chichewa or takeaways)[0]}",
-            })
+            sms_assets.append(
+                {
+                    "asset_id": asset.asset_id,
+                    "topic": asset.health_topic,
+                    "message_en": f"ZISAMALE {asset.health_topic.upper()}: {takeaways[0]}",
+                    "message_ny": f"ZISAMALE {asset.health_topic.upper()}: {(asset.actionable_takeaways_chichewa or takeaways)[0]}",
+                }
+            )
 
     return {
         "scheduled": len(sms_assets),
@@ -1326,7 +1366,7 @@ async def monthly_brief(
     avg_change = sum(scores) / len(scores) if scores else 0
 
     return {
-        "period": datetime.now(timezone.utc).strftime("%B %Y"),
+        "period": datetime.now(UTC).strftime("%B %Y"),
         "pipeline": {
             "studies_total": len(studies),
             "studies_deployed": sum(1 for s in studies if s.status == "deployed"),
@@ -1387,10 +1427,11 @@ async def email_monthly_brief(
     ]
     avg_change = sum(scores) / len(scores) if scores else 0
 
-    period = datetime.now(timezone.utc).strftime("%B %Y")
+    period = datetime.now(UTC).strftime("%B %Y")
 
     topic_lines = "\n".join(
-        f"  - {t}: {c} assets" for t, c in sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        f"  - {t}: {c} assets"
+        for t, c in sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     )
 
     html_body = f"""
@@ -1434,7 +1475,7 @@ async def email_monthly_brief(
     <pre style="color: #57534E; font-size: 13px; background: #F5F2EB; padding: 12px; border-radius: 4px;">{topic_lines}</pre>
 
     <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #D6D3CD; color: #A8A29E; font-size: 11px;">
-        Generated by Zisamale SAMALA-AI | {datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+        Generated by Zisamale SAMALA-AI | {datetime.now(UTC).strftime("%Y-%m-%d")}
     </div>
     </body></html>
     """
@@ -1464,6 +1505,7 @@ Topic Coverage:
     failed = 0
 
     if settings.smtp_host:
+
         def _send_email(msg: EmailMessage) -> None:
             if settings.smtp_use_tls:
                 with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as server:
@@ -1490,7 +1532,10 @@ Topic Coverage:
                 sent += 1
             except Exception as e:
                 import logging
-                logging.warning("brief.email_failed", extra={"recipient": recipient, "error": str(e)})
+
+                logging.warning(
+                    "brief.email_failed", extra={"recipient": recipient, "error": str(e)}
+                )
                 failed += 1
     else:
         failed = len(body.recipients)
@@ -1500,7 +1545,9 @@ Topic Coverage:
         "recipients": len(body.recipients),
         "sent": sent,
         "failed": failed,
-        "note": "Configure SMTP_HOST in environment to enable email delivery" if failed else "Emails sent",
+        "note": "Configure SMTP_HOST in environment to enable email delivery"
+        if failed
+        else "Emails sent",
     }
 
 
@@ -1515,13 +1562,15 @@ async def cron_dispatch_monthly_brief(
     settings_object = settings
     from app.models.user import User
 
-    users_result = await db.execute(
-        select(User).where(User.role.in_(["dho", "phim", "mohp"]))
-    )
+    users_result = await db.execute(select(User).where(User.role.in_(["dho", "phim", "mohp"])))
     recipients = [u.username for u in users_result.scalars().all() if u.username]
 
     if not recipients:
-        return {"period": datetime.now(timezone.utc).strftime("%B %Y"), "sent": 0, "note": "No DHO/PHIM/MoHP users found"}
+        return {
+            "period": datetime.now(UTC).strftime("%B %Y"),
+            "sent": 0,
+            "note": "No DHO/PHIM/MoHP users found",
+        }
 
     studies_result = await db.execute(select(ResearchStudy))
     assets_result = await db.execute(select(KnowledgeAsset))
@@ -1548,9 +1597,10 @@ async def cron_dispatch_monthly_brief(
     ]
     avg_change = sum(scores) / len(scores) if scores else 0
 
-    period = datetime.now(timezone.utc).strftime("%B %Y")
+    period = datetime.now(UTC).strftime("%B %Y")
     topic_lines = "\n".join(
-        f"  - {t}: {c} assets" for t, c in sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        f"  - {t}: {c} assets"
+        for t, c in sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     )
 
     html_body = f"""
@@ -1589,7 +1639,7 @@ async def cron_dispatch_monthly_brief(
     <h2 style="color: #1B4332; font-size: 16px;">Topic Coverage</h2>
     <pre style="color: #57534E; font-size: 13px; background: #F5F2EB; padding: 12px; border-radius: 4px;">{topic_lines}</pre>
     <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #D6D3CD; color: #A8A29E; font-size: 11px;">
-        Generated by Zisamale SAMALA-AI | {datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+        Generated by Zisamale SAMALA-AI | {datetime.now(UTC).strftime("%Y-%m-%d")}
     </div>
     </body></html>
     """
@@ -1604,19 +1654,29 @@ async def cron_dispatch_monthly_brief(
                 msg["Subject"] = f"SAMALA-AI Monthly Knowledge Brief — {period}"
                 msg["From"] = settings_object.smtp_from_addr
                 msg["To"] = recipient
-                msg.set_content(f"SAMALA-AI Monthly Knowledge Brief — {period}\n\nStudies: {len(studies)} | Assets: {len(assets)} | Deployments: {len(deployments)}\nHouseholds reached: {total_hh} | Individuals reached: {total_ind}\nAvg knowledge change: {avg_change:+.2f}\n\n— Zisamale SAMALA-AI")
+                msg.set_content(
+                    f"SAMALA-AI Monthly Knowledge Brief — {period}\n\nStudies: {len(studies)} | Assets: {len(assets)} | Deployments: {len(deployments)}\nHouseholds reached: {total_hh} | Individuals reached: {total_ind}\nAvg knowledge change: {avg_change:+.2f}\n\n— Zisamale SAMALA-AI"
+                )
                 msg.add_alternative(html_body, subtype="html")
 
                 if settings_object.smtp_use_tls:
-                    with smtplib.SMTP(settings_object.smtp_host, settings_object.smtp_port, timeout=20) as server:
+                    with smtplib.SMTP(
+                        settings_object.smtp_host, settings_object.smtp_port, timeout=20
+                    ) as server:
                         server.starttls()
                         if settings_object.smtp_username:
-                            server.login(settings_object.smtp_username, settings_object.smtp_password)
+                            server.login(
+                                settings_object.smtp_username, settings_object.smtp_password
+                            )
                         server.send_message(msg)
                 else:
-                    with smtplib.SMTP(settings_object.smtp_host, settings_object.smtp_port, timeout=20) as server:
+                    with smtplib.SMTP(
+                        settings_object.smtp_host, settings_object.smtp_port, timeout=20
+                    ) as server:
                         if settings_object.smtp_username:
-                            server.login(settings_object.smtp_username, settings_object.smtp_password)
+                            server.login(
+                                settings_object.smtp_username, settings_object.smtp_password
+                            )
                         server.send_message(msg)
                 sent += 1
             except Exception:
@@ -1629,5 +1689,7 @@ async def cron_dispatch_monthly_brief(
         "recipients": len(recipients),
         "sent": sent,
         "failed": failed,
-        "note": "Configure SMTP_HOST in environment to enable email delivery" if failed else "Monthly brief emailed to all DHO/PHIM/MoHP users",
+        "note": "Configure SMTP_HOST in environment to enable email delivery"
+        if failed
+        else "Monthly brief emailed to all DHO/PHIM/MoHP users",
     }

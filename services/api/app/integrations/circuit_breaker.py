@@ -36,9 +36,7 @@ class CircuitOpenError(RuntimeError):
     def __init__(self, name: str, retry_after: float) -> None:
         self.name = name
         self.retry_after = retry_after
-        super().__init__(
-            f"Circuit '{name}' is OPEN; retry after {retry_after:.2f}s"
-        )
+        super().__init__(f"Circuit '{name}' is OPEN; retry after {retry_after:.2f}s")
 
 
 class CircuitBreaker:
@@ -154,9 +152,7 @@ class CircuitBreaker:
 
     async def _release_trial(self) -> None:
         async with self._lock:
-            self._half_open_calls_in_flight = max(
-                0, self._half_open_calls_in_flight - 1
-            )
+            self._half_open_calls_in_flight = max(0, self._half_open_calls_in_flight - 1)
 
     async def record_success(self) -> None:
         async with self._lock:
